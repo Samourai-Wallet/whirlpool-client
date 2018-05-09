@@ -1,0 +1,77 @@
+package com.samourai.whirlpool.client.utils;
+
+import com.samourai.wallet.segwit.SegwitAddress;
+import com.samourai.wallet.segwit.bech32.Bech32Util;
+import org.apache.commons.text.CharacterPredicates;
+import org.apache.commons.text.RandomStringGenerator;
+import org.bitcoinj.core.*;
+import org.bitcoinj.crypto.TransactionSignature;
+import org.bitcoinj.script.Script;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.lang.invoke.MethodHandles;
+import java.util.Arrays;
+
+public class ClientUtils {
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+
+    public static boolean findTxOutput(String outputAddressBech32, Transaction tx, NetworkParameters params) {
+        try {
+            byte[] expectedScriptBytes = Bech32Util.getInstance().computeScriptPubKey(outputAddressBech32, params);
+            for (TransactionOutput output : tx.getOutputs()) {
+                if (Arrays.equals(output.getScriptBytes(), expectedScriptBytes)) {
+                    return true;
+                }
+            }
+        }
+        catch(Exception e) {
+            log.error("findTxOutput failed", e);
+        }
+        return false;
+    }
+
+    public static Integer findInputIndex(String utxoHash, long utxoIdx, Transaction tx) {
+        for (int index = 0; index < tx.getInputs().size(); index++) {
+            TransactionInput input = tx.getInput(index);
+            TransactionOutPoint transactionOutPoint = input.getOutpoint();
+            if (transactionOutPoint.getHash().toString().equals(utxoHash) && transactionOutPoint.getIndex() == utxoIdx) {
+                return index;
+            }
+        }
+        return null;
+    }
+
+    public static String getRandomString(int length) {
+        RandomStringGenerator randomStringGenerator =
+                new RandomStringGenerator.Builder()
+                        .filteredBy(CharacterPredicates.ASCII_ALPHA_NUMERALS)
+                        .build();
+        return randomStringGenerator.generate(length);
+    }
+
+    public static String generateUniqueBordereau() {
+        return getRandomString(256);
+    }
+
+    public static byte[][] witnessSerialize(TransactionWitness witness) {
+        byte[][] serialized = new byte[witness.getPushCount()][];
+        for (int i=0; i<witness.getPushCount(); i++) {
+            serialized[i] = witness.getPush(i);
+        }
+        return serialized;
+    }
+
+    public static void signSegwitInput(Transaction tx, int inputIdx, ECKey ecKey, long spendAmount, NetworkParameters params) throws Exception {
+        final SegwitAddress segwitAddress = new SegwitAddress(ecKey, params);
+        final Script redeemScript = segwitAddress.segWitRedeemScript();
+        final Script scriptCode = redeemScript.scriptCode();
+
+        TransactionSignature sig = tx.calculateWitnessSignature(inputIdx, ecKey, scriptCode, Coin.valueOf(spendAmount), Transaction.SigHash.ALL, false);
+        final TransactionWitness witness = new TransactionWitness(2);
+        witness.setPush(0, sig.encodeToBitcoin());
+        witness.setPush(1, ecKey.getPubKey());
+        tx.setWitness(inputIdx, witness);
+    }
+
+}

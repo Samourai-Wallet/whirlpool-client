@@ -1,0 +1,39 @@
+package com.samourai.whirlpool.client.utils;
+
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.messaging.simp.stomp.StompFrameHandler;
+import org.springframework.messaging.simp.stomp.StompHeaders;
+
+import java.lang.invoke.MethodHandles;
+import java.lang.reflect.Type;
+import java.util.function.Consumer;
+
+public class ClientFrameHandler implements StompFrameHandler {
+    private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private WhirlpoolProtocol whirlpoolProtocol;
+    private final Consumer<Object> frameHandler;
+
+    public ClientFrameHandler(WhirlpoolProtocol whirlpoolProtocol, Consumer<Object> frameHandler) {
+        this.whirlpoolProtocol = whirlpoolProtocol;
+        this.frameHandler = frameHandler;
+    }
+
+    @Override
+    public Type getPayloadType(StompHeaders headers) {
+        String broadcastType = headers.get(whirlpoolProtocol.HEADER_MESSAGE_TYPE).get(0);
+        try {
+            return Class.forName(broadcastType);
+        }
+        catch(ClassNotFoundException e) {
+            log.error("unknown message type: "+broadcastType, e);
+            return null;
+        }
+    }
+
+    @Override
+    public void handleFrame(StompHeaders headers, Object payload) {
+        frameHandler.accept(payload);
+    }
+}
