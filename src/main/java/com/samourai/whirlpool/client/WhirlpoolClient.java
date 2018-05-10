@@ -7,6 +7,7 @@ import com.samourai.whirlpool.client.utils.ClientSessionHandler;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.v1.messages.*;
+import com.samourai.whirlpool.protocol.v1.notifications.RegisterInputRoundStatusNotification;
 import com.samourai.whirlpool.protocol.v1.notifications.RoundStatus;
 import com.samourai.whirlpool.protocol.v1.notifications.RoundStatusNotification;
 import com.samourai.whirlpool.protocol.v1.notifications.SigningRoundStatusNotification;
@@ -38,12 +39,13 @@ public class WhirlpoolClient {
     private long utxoIdx;
     private ISimpleWhirlpoolClient simpleWhirlpoolClient;
     private String paymentCode;
-    private long spendAmount;
     private boolean liquidity;
 
     // round data
     private RoundStatusNotification roundStatusNotification;
     private String roundId;
+    private long denomination;
+    private long minerFee;
     private byte[] signedBordereau; // will get it after REGISTER_INPUT
     private PeersPaymentCodesResponse peersPaymentCodesResponse; // will get it after REGISTER_INPUT
 
@@ -66,12 +68,11 @@ public class WhirlpoolClient {
         this.serverPublicKey = serverPublicKey;
     }
 
-    public void whirlpool(String utxoHash, long utxoIdx, String paymentCode, ISimpleWhirlpoolClient simpleWhirlpoolClient, long spendAmount, boolean liquidity) throws Exception {
+    public void whirlpool(String utxoHash, long utxoIdx, String paymentCode, ISimpleWhirlpoolClient simpleWhirlpoolClient, boolean liquidity) throws Exception {
         this.utxoHash = utxoHash;
         this.utxoIdx = utxoIdx;
         this.simpleWhirlpoolClient = simpleWhirlpoolClient;
         this.paymentCode = paymentCode;
-        this.spendAmount = spendAmount; // TODO get dynamically from server
         this.liquidity = liquidity;
 
         connect();
@@ -150,7 +151,7 @@ public class WhirlpoolClient {
                 switch (notification.status) {
                     case REGISTER_INPUT:
                         try {
-                            this.registerInput();
+                            this.registerInput((RegisterInputRoundStatusNotification)roundStatusNotification);
                         } catch (Exception e) {
                             log.error("registerInput failed", e);
                         }
@@ -230,6 +231,8 @@ public class WhirlpoolClient {
         // round data
         this.roundStatusNotification = null;
         this.roundId = null;
+        this.denomination = -1;
+        this.minerFee = -1;
         this.signedBordereau = null;
         this.peersPaymentCodesResponse = null;
 
@@ -240,8 +243,12 @@ public class WhirlpoolClient {
         this.roundStatusCompleted = new HashMap<>();
     }
 
-    private void registerInput() throws Exception {
+    private void registerInput(RegisterInputRoundStatusNotification registerInputRoundStatusNotification) throws Exception {
         log.info("### registerInput");
+
+        // get round settings
+        this.denomination = registerInputRoundStatusNotification.getDenomination();
+        this.minerFee = registerInputRoundStatusNotification.getMinerFee();
 
         RegisterInputRequest registerInputRequest = new RegisterInputRequest();
         registerInputRequest.utxoHash = utxoHash;
@@ -309,7 +316,8 @@ public class WhirlpoolClient {
         if (inputIndex == null) {
             throw new Exception("Input not found in tx");
         }
-        this.simpleWhirlpoolClient.signTransaction(tx, inputIndex, this.spendAmount, clientCryptoService.getNetworkParameters());
+        long spendAmount = computeSpendAmount();
+        this.simpleWhirlpoolClient.signTransaction(tx, inputIndex, spendAmount, clientCryptoService.getNetworkParameters());
 
         // verify
         tx.verify();
@@ -318,6 +326,14 @@ public class WhirlpoolClient {
         signingRequest.witness = ClientUtils.witnessSerialize(tx.getWitness(inputIndex));
         stompSession.send(whirlpoolProtocol.ENDPOINT_SIGNING, signingRequest);
         roundStatusCompleted.put(RoundStatus.SIGNING, true);
+    }
+
+    private long computeSpendAmount() {
+        if (liquidity) {
+            // no minerFees for liquidities
+            return denomination;
+        }
+        return denomination + minerFee;
     }
 
     public RoundStatusNotification __getRoundStatusNotification() {
