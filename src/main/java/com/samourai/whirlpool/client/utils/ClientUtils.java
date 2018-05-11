@@ -7,10 +7,14 @@ import org.apache.commons.text.RandomStringGenerator;
 import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.TransactionSignature;
 import org.bitcoinj.script.Script;
+import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
+import java.security.KeyFactory;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 
 public class ClientUtils {
@@ -60,6 +64,11 @@ public class ClientUtils {
             serialized[i] = witness.getPush(i);
         }
         return serialized;
+    }
+
+    public static RSAKeyParameters publicKeyUnserialize(byte[] publicKeySerialized) throws Exception {
+        RSAPublicKey rsaPublicKey = (RSAPublicKey) KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKeySerialized));
+        return new RSAKeyParameters(false, rsaPublicKey.getModulus(), rsaPublicKey.getPublicExponent());
     }
 
     public static void signSegwitInput(Transaction tx, int inputIdx, ECKey ecKey, long spendAmount, NetworkParameters params) throws Exception {

@@ -7,10 +7,8 @@ import com.samourai.whirlpool.client.utils.ClientSessionHandler;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.v1.messages.*;
-import com.samourai.whirlpool.protocol.v1.notifications.RegisterInputRoundStatusNotification;
-import com.samourai.whirlpool.protocol.v1.notifications.RoundStatus;
-import com.samourai.whirlpool.protocol.v1.notifications.RoundStatusNotification;
-import com.samourai.whirlpool.protocol.v1.notifications.SigningRoundStatusNotification;
+import com.samourai.whirlpool.protocol.v1.notifications.*;
+import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
@@ -31,8 +29,7 @@ public class WhirlpoolClient {
 
     // server settings
     private String wsUrl;
-    private String registerOutputUrl;
-    private RSAKeyParameters serverPublicKey;
+    private NetworkParameters networkParameters;
 
     // round settings
     private String utxoHash;
@@ -43,6 +40,7 @@ public class WhirlpoolClient {
 
     // round data
     private RoundStatusNotification roundStatusNotification;
+    private RSAKeyParameters serverPublicKey;
     private String roundId;
     private long denomination;
     private long minerFee;
@@ -60,12 +58,15 @@ public class WhirlpoolClient {
     private WebSocketStompClient stompClient;
     private StompSession stompSession;
 
-    public WhirlpoolClient(String wsUrl, String registerOutputUrl, ClientCryptoService clientCryptoService, WhirlpoolProtocol whirlpoolProtocol, RSAKeyParameters serverPublicKey) {
+    public WhirlpoolClient(String wsUrl, NetworkParameters networkParameters) {
+        this(wsUrl, networkParameters, new ClientCryptoService(), new WhirlpoolProtocol());
+    }
+
+    public WhirlpoolClient(String wsUrl, NetworkParameters networkParameters, ClientCryptoService clientCryptoService, WhirlpoolProtocol whirlpoolProtocol) {
         this.wsUrl = wsUrl;
-        this.registerOutputUrl = registerOutputUrl;
+        this.networkParameters = networkParameters;
         this.clientCryptoService = clientCryptoService;
         this.whirlpoolProtocol = whirlpoolProtocol;
-        this.serverPublicKey = serverPublicKey;
     }
 
     public void whirlpool(String utxoHash, long utxoIdx, String paymentCode, ISimpleWhirlpoolClient simpleWhirlpoolClient, boolean liquidity) throws Exception {
@@ -157,7 +158,7 @@ public class WhirlpoolClient {
                         }
                         break;
                     case REGISTER_OUTPUT:
-                        registerOutputIfReady();
+                        registerOutputIfReady((RegisterOutputRoundStatusNotification)roundStatusNotification);
                         break;
                     case REVEAL_OUTPUT_OR_BLAME:
                         revealOutput();
@@ -180,10 +181,10 @@ public class WhirlpoolClient {
         }
     }
 
-    private void registerOutputIfReady() {
+    private void registerOutputIfReady(RegisterOutputRoundStatusNotification registerOutputRoundStatusNotification) {
         if (this.signedBordereau != null && this.peersPaymentCodesResponse != null) {
             try {
-                this.registerOutput();
+                this.registerOutput(registerOutputRoundStatusNotification);
             } catch (Exception e) {
                 log.error("registerOutput failed", e);
             }
@@ -209,14 +210,14 @@ public class WhirlpoolClient {
     private synchronized void onRegisterInputResponse(RegisterInputResponse payload) {
         this.signedBordereau = payload.signedBordereau;
         if (RoundStatus.REGISTER_OUTPUT.equals(this.roundStatusNotification.status)) {
-            registerOutputIfReady();
+            registerOutputIfReady((RegisterOutputRoundStatusNotification)this.roundStatusNotification);
         }
     }
 
     private synchronized void onToPaymentCodeResponse(PeersPaymentCodesResponse payload) {
         this.peersPaymentCodesResponse = payload;
         if (RoundStatus.REGISTER_OUTPUT.equals(this.roundStatusNotification.status)) {
-            registerOutputIfReady();
+            registerOutputIfReady((RegisterOutputRoundStatusNotification)this.roundStatusNotification);
         }
     }
 
@@ -230,6 +231,7 @@ public class WhirlpoolClient {
         log.info("### resetRound");
         // round data
         this.roundStatusNotification = null;
+        this.serverPublicKey = null;
         this.roundId = null;
         this.denomination = -1;
         this.minerFee = -1;
@@ -247,6 +249,11 @@ public class WhirlpoolClient {
         log.info("### registerInput");
 
         // get round settings
+        this.serverPublicKey = ClientUtils.publicKeyUnserialize(registerInputRoundStatusNotification.getPublicKey());
+        String serverNetworkId = registerInputRoundStatusNotification.getNetworkId();
+        if (!networkParameters.getPaymentProtocolId().equals(serverNetworkId)) {
+            throw new Exception("Client/server networkId mismatch: server is runinng "+serverNetworkId+", client is expecting "+networkParameters.getPaymentProtocolId());
+        }
         this.denomination = registerInputRoundStatusNotification.getDenomination();
         this.minerFee = registerInputRoundStatusNotification.getMinerFee();
 
@@ -269,20 +276,20 @@ public class WhirlpoolClient {
         roundStatusCompleted.put(RoundStatus.REGISTER_INPUT, true);
     }
 
-    private void registerOutput() throws Exception {
+    private void registerOutput(RegisterOutputRoundStatusNotification registerOutputRoundStatusNotification) throws Exception {
         log.info("### registerOutput");
         RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
         registerOutputRequest.roundId = roundStatusNotification.roundId;
         registerOutputRequest.unblindedSignedBordereau = clientCryptoService.unblind(signedBordereau, blindingParams);
         registerOutputRequest.bordereau = this.bordereau;
-        registerOutputRequest.sendAddress = simpleWhirlpoolClient.computeSendAddress(peersPaymentCodesResponse.toPaymentCode, clientCryptoService.getNetworkParameters());
-        this.receiveAddress = simpleWhirlpoolClient.computeReceiveAddress(peersPaymentCodesResponse.fromPaymentCode, clientCryptoService.getNetworkParameters());
+        registerOutputRequest.sendAddress = simpleWhirlpoolClient.computeSendAddress(peersPaymentCodesResponse.toPaymentCode, networkParameters);
+        this.receiveAddress = simpleWhirlpoolClient.computeReceiveAddress(peersPaymentCodesResponse.fromPaymentCode, networkParameters);
         registerOutputRequest.receiveAddress = this.receiveAddress;
         log.info("registerOutput : sendAddress="+registerOutputRequest.sendAddress+", receiveAddress="+this.receiveAddress);
 
         // POST request through a different identity for mix privacy
         try {
-            this.simpleWhirlpoolClient.postHttpRequest(registerOutputUrl, registerOutputRequest);
+            this.simpleWhirlpoolClient.postHttpRequest(registerOutputRoundStatusNotification.getRegisterOutputUrl(), registerOutputRequest);
             roundStatusCompleted.put(RoundStatus.REGISTER_OUTPUT, true);
         }
         catch(Exception e) {
@@ -297,7 +304,7 @@ public class WhirlpoolClient {
         revealOutputRequest.roundId = roundStatusNotification.roundId;
         revealOutputRequest.bordereau = this.bordereau;
 
-        stompSession.send(whirlpoolProtocol.ENDPOINT_REGISTER_OUTPUT, revealOutputRequest);
+        stompSession.send(whirlpoolProtocol.ENDPOINT_REVEAL_OUTPUT, revealOutputRequest);
         roundStatusCompleted.put(RoundStatus.REVEAL_OUTPUT_OR_BLAME, true);
     }
 
@@ -306,9 +313,9 @@ public class WhirlpoolClient {
         SigningRequest signingRequest = new SigningRequest();
         signingRequest.roundId = roundStatusNotification.roundId;
 
-        Transaction tx = new Transaction(clientCryptoService.getNetworkParameters(), signingRoundStatusNotification.transaction);
+        Transaction tx = new Transaction(networkParameters, signingRoundStatusNotification.transaction);
 
-        if(!ClientUtils.findTxOutput(this.receiveAddress, tx, clientCryptoService.getNetworkParameters())){
+        if(!ClientUtils.findTxOutput(this.receiveAddress, tx, networkParameters)){
             throw new Exception("Output not found in tx"); //
         }
 
@@ -317,7 +324,7 @@ public class WhirlpoolClient {
             throw new Exception("Input not found in tx");
         }
         long spendAmount = computeSpendAmount();
-        this.simpleWhirlpoolClient.signTransaction(tx, inputIndex, spendAmount, clientCryptoService.getNetworkParameters());
+        this.simpleWhirlpoolClient.signTransaction(tx, inputIndex, spendAmount, networkParameters);
 
         // verify
         tx.verify();

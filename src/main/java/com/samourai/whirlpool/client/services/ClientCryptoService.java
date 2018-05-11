@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client.services;
 
-import org.bitcoinj.core.NetworkParameters;
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.engines.RSABlindingEngine;
@@ -14,14 +13,9 @@ import java.math.BigInteger;
 
 @Service
 public class ClientCryptoService {
-    private NetworkParameters networkParameters;
 
-    public ClientCryptoService(NetworkParameters networkParameters) {
-        this.networkParameters = networkParameters;
-    }
+    public ClientCryptoService() {
 
-    public NetworkParameters getNetworkParameters() {
-        return networkParameters;
     }
 
     public RSABlindingParameters computeBlindingParams(RSAKeyParameters publicKey) {
