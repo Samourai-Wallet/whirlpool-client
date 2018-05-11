@@ -2,9 +2,17 @@
 Whirlpool client
 
 ## Usage
-- edit whirlpool-server configuration (
-- run whirlpool-server
-- run whirlpool-client(s)
+- (run whirlpool-server if not already running)
+
+- run from IDE:
+```
+com.samourai.whirlpool.client.Application
+```
+
+- run from commandline:
+```
+java -jar target/whirlpool-client-0.0.1-SNAPSHOT-jar-with-dependencies.jar
+```
 
 ## Build instructions
 Before using whirlpool-client, install dependencies in this order:
