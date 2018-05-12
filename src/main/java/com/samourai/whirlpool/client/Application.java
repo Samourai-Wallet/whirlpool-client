@@ -4,6 +4,8 @@ import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.simple.ISimpleWhirlpoolClient;
 import com.samourai.whirlpool.client.simple.SimpleWhirlpoolClient;
+import com.samourai.whirlpool.client.utils.LogbackUtils;
+import org.apache.log4j.Level;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.DumpedPrivateKey;
 import org.bitcoinj.core.ECKey;
@@ -31,7 +33,8 @@ public class Application implements ApplicationRunner {
     private static final String ARG_UTXO_KEY = "utxo-key";
     private static final String ARG_SEED_PASSPHRASE = "seed-passphrase";
     private static final String ARG_SEED_WORDS = "seed-words";
-    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --seed-passphrase= --seed-words= [--debug]";
+    private static final String ARG_SERVER = "server";
+    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --seed-passphrase= --seed-words= [--server=host:port] [--debug]";
 
     private ApplicationArguments args;
 
@@ -42,10 +45,14 @@ public class Application implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) throws Exception {
         this.args = args;
+
+        if (args.containsOption("debug")) {
+            // enable debug logs
+            LogbackUtils.setLogLevel("com.samourai.whirlpool.client", Level.DEBUG.toString());
+        }
+
         logger.info("--------------------------------------");
         logger.info("Running whirlpool-client {}", Arrays.toString(args.getSourceArgs()));
-
-        String wsUrl = "ws://127.0.0.1:8080";
 
         try {
             String networkId = requireOption(ARG_NETWORK_ID);
@@ -53,6 +60,7 @@ public class Application implements ApplicationRunner {
             String utxoKey = requireOption(ARG_UTXO_KEY);
             String seedWords = requireOption(ARG_SEED_WORDS);
             String seedPassphrase = requireOption(ARG_SEED_PASSPHRASE);
+            String wsUrl = "ws://"+requireOption(ARG_SERVER, "127.0.0.1:8080");
 
             new Thread(() -> {
                 try {
@@ -114,6 +122,13 @@ public class Application implements ApplicationRunner {
     private String requireOption(String name) {
         if (!args.getOptionNames().contains(name)) {
             throw new IllegalArgumentException("Missing required option: "+name);
+        }
+        return args.getOptionValues(name).iterator().next();
+    }
+
+    private String requireOption(String name, String defaultValue) {
+        if (!args.getOptionNames().contains(name)) {
+            return defaultValue;
         }
         return args.getOptionValues(name).iterator().next();
     }
