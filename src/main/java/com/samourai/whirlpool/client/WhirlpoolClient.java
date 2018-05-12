@@ -87,7 +87,7 @@ public class WhirlpoolClient {
             return;
         }
 
-        log.info("==> connect");
+        log.info("==> connecting to "+wsUrl);
         stompClient = createWebSocketClient();
         stompSession = stompClient.connect(wsUrl, new ClientSessionHandler()).get();
 
