@@ -11,7 +11,7 @@ com.samourai.whirlpool.client.Application
 
 - run from commandline:
 ```
-java -jar target/whirlpool-client-0.0.1-SNAPSHOT-run.jar --network={main,test} --utxo= --utxo-key= --seed-passphrase= --seed-words= [--server=host:port] [--debug]
+java -jar target/whirlpool-client-0.0.1-SNAPSHOT-run.jar --network={main,test} --utxo= --utxo-key= --seed-passphrase= --seed-words= [--liquidity] [--server=host:port] [--debug]
 ```
 
 Examples:

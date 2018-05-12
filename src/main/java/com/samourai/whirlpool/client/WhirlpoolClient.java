@@ -91,6 +91,7 @@ public class WhirlpoolClient {
         log.info(" • connecting to "+wsUrl);
         stompClient = createWebSocketClient();
         stompSession = stompClient.connect(wsUrl, new ClientSessionHandler()).get();
+        log.info(" • connected");
 
         // prefix logger
         log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass()+"("+stompSession.getSessionId()+")");

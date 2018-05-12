@@ -26,7 +26,7 @@ import java.util.List;
 
 @EnableAutoConfiguration
 public class Application implements ApplicationRunner {
-    private static final Logger logger = LoggerFactory.getLogger(Application.class);
+    private static final Logger log = LoggerFactory.getLogger(Application.class);
 
     private static final String ARG_NETWORK_ID = "network";
     private static final String ARG_UTXO = "utxo";
@@ -34,16 +34,17 @@ public class Application implements ApplicationRunner {
     private static final String ARG_SEED_PASSPHRASE = "seed-passphrase";
     private static final String ARG_SEED_WORDS = "seed-words";
     private static final String ARG_SERVER = "server";
-    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --seed-passphrase= --seed-words= [--server=host:port] [--debug]";
+    private static final String ARG_LIQUIDITY = "liquidity";
+    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --seed-passphrase= --seed-words= [--liquidity] [--server=host:port] [--debug]";
 
     private ApplicationArguments args;
 
-    public static void main(String... args) throws Exception {
+    public static void main(String... args) {
         SpringApplication.run(Application.class, args);
     }
 
     @Override
-    public void run(ApplicationArguments args) throws Exception {
+    public void run(ApplicationArguments args) {
         this.args = args;
 
         if (args.containsOption("debug")) {
@@ -51,8 +52,8 @@ public class Application implements ApplicationRunner {
             LogbackUtils.setLogLevel("com.samourai.whirlpool.client", Level.DEBUG.toString());
         }
 
-        logger.info("--------------------------------------");
-        logger.info("Running whirlpool-client {}", Arrays.toString(args.getSourceArgs()));
+        log.info("------------ whirlpool-client ------------");
+        log.info("Running whirlpool-client {}", Arrays.toString(args.getSourceArgs()));
 
         try {
             String networkId = requireOption(ARG_NETWORK_ID);
@@ -60,11 +61,12 @@ public class Application implements ApplicationRunner {
             String utxoKey = requireOption(ARG_UTXO_KEY);
             String seedWords = requireOption(ARG_SEED_WORDS);
             String seedPassphrase = requireOption(ARG_SEED_PASSPHRASE);
+            boolean liquidity = args.containsOption(ARG_LIQUIDITY);
             String wsUrl = "ws://"+requireOption(ARG_SERVER, "127.0.0.1:8080");
 
             new Thread(() -> {
                 try {
-                    WhirlpoolClient whirlpoolClient = runClient(wsUrl, networkId, utxo, utxoKey, seedWords, seedPassphrase);
+                    WhirlpoolClient whirlpoolClient = runClient(wsUrl, networkId, utxo, utxoKey, seedWords, seedPassphrase, liquidity);
                     synchronized (this) {
                         while(!whirlpoolClient.isDone()) {
                             wait(1000);
@@ -76,12 +78,12 @@ public class Application implements ApplicationRunner {
             }).start();
         }
         catch(IllegalArgumentException e) {
-            logger.info("Invalid arguments: "+e.getMessage());
-            logger.info("Usage: whirlpool-client "+USAGE);
+            log.info("Invalid arguments: "+e.getMessage());
+            log.info("Usage: whirlpool-client "+USAGE);
         }
     }
 
-    private WhirlpoolClient runClient(String wsUrl, String networkId, String utxo, String utxoKey, String seedWords, String seedPassphrase) throws Exception {
+    private WhirlpoolClient runClient(String wsUrl, String networkId, String utxo, String utxoKey, String seedWords, String seedPassphrase, boolean liquidity) throws Exception {
         Assert.notNull(wsUrl, "wsUrl is null");
         NetworkParameters params = NetworkParameters.fromPmtProtocolID(networkId);
         Assert.notNull(params, "unknown network");
@@ -112,7 +114,6 @@ public class Application implements ApplicationRunner {
         
         // whirlpool
         WhirlpoolClient whirlpoolClient = new WhirlpoolClient(wsUrl, params);
-        boolean liquidity = false;
         String utxoSplit[] = utxo.split("-");
         String utxoHash = utxoSplit[0];
         Long utxoIdx = Long.parseLong(utxoSplit[1]);
