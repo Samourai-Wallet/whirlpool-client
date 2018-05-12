@@ -18,13 +18,15 @@ public class ClientSessionHandler extends StompSessionHandlerAdapter {
     @Override
     public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
         String username = connectedHeaders.get("user-name").iterator().next();
-        log.info("afterConnected: username="+username);
+        if (log.isDebugEnabled()) {
+            log.debug("STOMP username=" + username);
+        }
         super.afterConnected(session, connectedHeaders);
     }
 
     @Override
     public void handleException(StompSession session, StompCommand command, StompHeaders headers, byte[] payload, Throwable exception) {
-        log.error("handleException"+exception,exception);
+        log.error("",exception);
         super.handleException(session, command, headers, payload, exception);
     }
 }

@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.utils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32Util;
 import org.apache.commons.text.CharacterPredicates;
@@ -19,6 +20,7 @@ import java.util.Arrays;
 
 public class ClientUtils {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static boolean findTxOutput(String outputAddressBech32, Transaction tx, NetworkParameters params) {
         try {
@@ -83,4 +85,13 @@ public class ClientUtils {
         tx.setWitness(inputIdx, witness);
     }
 
+    public static String toJsonString(Object o) {
+        try {
+            return objectMapper.writeValueAsString(o);
+        }
+        catch(Exception e) {
+            log.error("", e);
+        }
+        return null;
+    }
 }

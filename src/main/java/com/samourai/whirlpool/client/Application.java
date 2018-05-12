@@ -56,7 +56,7 @@ public class Application implements ApplicationRunner {
 
             new Thread(() -> {
                 try {
-                    runClient(wsUrl, networkId, utxo, utxoKey, seedWords, seedPassphrase);
+                    WhirlpoolClient whirlpoolClient = runClient(wsUrl, networkId, utxo, utxoKey, seedWords, seedPassphrase);
                     synchronized (this) {
                         wait();
                     }
@@ -69,10 +69,9 @@ public class Application implements ApplicationRunner {
             logger.info("Invalid arguments: "+e.getMessage());
             logger.info("Usage: whirlpool-client "+USAGE);
         }
-        logger.info("--------------------------------------");
     }
 
-    private void runClient(String wsUrl, String networkId, String utxo, String utxoKey, String seedWords, String seedPassphrase) throws Exception {
+    private WhirlpoolClient runClient(String wsUrl, String networkId, String utxo, String utxoKey, String seedWords, String seedPassphrase) throws Exception {
         Assert.notNull(wsUrl, "wsUrl is null");
         NetworkParameters params = NetworkParameters.fromPmtProtocolID(networkId);
         Assert.notNull(params, "unknown network");
@@ -109,6 +108,7 @@ public class Application implements ApplicationRunner {
         Long utxoIdx = Long.parseLong(utxoSplit[1]);
         ISimpleWhirlpoolClient simpleClient = new SimpleWhirlpoolClient(ecKey, bip47w);
         whirlpoolClient.whirlpool(utxoHash, utxoIdx, paymentCode, simpleClient, liquidity);
+        return whirlpoolClient;
     }
 
     private String requireOption(String name) {
