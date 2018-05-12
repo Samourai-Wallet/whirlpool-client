@@ -66,7 +66,9 @@ public class Application implements ApplicationRunner {
                 try {
                     WhirlpoolClient whirlpoolClient = runClient(wsUrl, networkId, utxo, utxoKey, seedWords, seedPassphrase);
                     synchronized (this) {
-                        wait();
+                        while(!whirlpoolClient.isDone()) {
+                            wait(1000);
+                        }
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -132,5 +134,4 @@ public class Application implements ApplicationRunner {
         }
         return args.getOptionValues(name).iterator().next();
     }
-
 }

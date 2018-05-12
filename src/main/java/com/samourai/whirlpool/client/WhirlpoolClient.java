@@ -57,6 +57,7 @@ public class WhirlpoolClient {
     private WhirlpoolProtocol whirlpoolProtocol;
     private WebSocketStompClient stompClient;
     private StompSession stompSession;
+    private boolean done;
 
     public WhirlpoolClient(String wsUrl, NetworkParameters networkParameters) {
         this(wsUrl, networkParameters, new ClientCryptoService(), new WhirlpoolProtocol());
@@ -110,18 +111,22 @@ public class WhirlpoolClient {
     private void subscribe() {
         stompSession.subscribe(whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE,
             new ClientFrameHandler(whirlpoolProtocol, (payload) -> {
-                if (log.isDebugEnabled()) {
-                    log.debug("--> (" + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ") " + ClientUtils.toJsonString(payload));
+                if (!done) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("--> (" + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ") " + ClientUtils.toJsonString(payload));
+                    }
+                    onBroadcastReceived(payload);
                 }
-                onBroadcastReceived(payload);
             })
         );
         stompSession.subscribe(whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY,
             new ClientFrameHandler(whirlpoolProtocol, (payload) -> {
-                if (log.isDebugEnabled()) {
-                    log.debug("--> (" + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY + ") " + ClientUtils.toJsonString(payload));
+                if (!done) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("--> (" + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY + ") " + ClientUtils.toJsonString(payload));
+                    }
+                    onPrivateReceived(payload);
                 }
-                onPrivateReceived(payload);
             })
         );
     }
@@ -141,14 +146,6 @@ public class WhirlpoolClient {
     }
 
     private synchronized void onBroadcastRoundStatusNotificationChange(RoundStatusNotification notification) {
-        // ignore further notifications if we got success notification
-        if (this.roundStatusNotification != null && RoundStatus.SUCCESS.equals(this.roundStatusNotification.status)) {
-            if (log.isDebugEnabled()) {
-                log.debug("ignoring onRoundStatusNotificationChange (already success) : "+ClientUtils.toJsonString(notification));
-            }
-            return;
-        }
-
         if (this.roundId != null && !this.roundId.equals(notification.roundId)) {
             // roundId changed, reset...
             log.info("new round detected: "+notification.roundId);
@@ -179,11 +176,13 @@ public class WhirlpoolClient {
                         }
                         break;
                     case SUCCESS:
+                        done = true;
                         logStep(4, "SUCCESS");
                         log.info("Funds will be received at " + this.receiveAddress);
                         disconnect();
                         break;
                     case FAIL:
+                        done = true;
                         logStep(4, "FAILURE");
                         disconnect();
                         break;
@@ -364,6 +363,10 @@ public class WhirlpoolClient {
 
     private void logStep(int step, String msg) {
         log.info("("+step+"/4) " + msg);
+    }
+
+    public boolean isDone() {
+        return done;
     }
 
     public RoundStatusNotification __getRoundStatusNotification() {
