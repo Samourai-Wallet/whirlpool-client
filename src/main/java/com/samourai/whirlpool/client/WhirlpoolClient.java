@@ -142,11 +142,11 @@ public class WhirlpoolClient {
             log.info("--> (broadcast) " + ClientUtils.toJsonString(payload));
         }
         if (RoundStatusNotification.class.isAssignableFrom(payload.getClass())) {
-            onBroadcastRoundStatusNotificationChange((RoundStatusNotification)payload);
+            onRoundStatusNotificationChange((RoundStatusNotification)payload);
         }
     }
 
-    private synchronized void onBroadcastRoundStatusNotificationChange(RoundStatusNotification notification) {
+    private synchronized void onRoundStatusNotificationChange(RoundStatusNotification notification) {
         if (this.roundId != null && !this.roundId.equals(notification.roundId)) {
             // roundId changed, reset...
             log.info("new round detected: "+notification.roundId);
@@ -177,15 +177,13 @@ public class WhirlpoolClient {
                         }
                         break;
                     case SUCCESS:
-                        done = true;
                         logStep(4, "SUCCESS");
                         log.info("Funds will be received at " + this.receiveAddress);
-                        disconnect();
+                        exit();
                         break;
                     case FAIL:
-                        done = true;
                         logStep(4, "FAILURE");
-                        disconnect();
+                        exit();
                         break;
                 }
             }
@@ -208,25 +206,35 @@ public class WhirlpoolClient {
     }
 
     private synchronized void onPrivateReceived(Object payload) {
-        if (RoundStatusNotification.class.isAssignableFrom(payload.getClass())) {
-            onBroadcastRoundStatusNotificationChange((RoundStatusNotification)payload);
+        Class payloadClass = payload.getClass();
+        if (ErrorResponse.class.isAssignableFrom(payloadClass)) {
+            onErrorResponse((ErrorResponse)payload);
         }
-        else if (RegisterInputResponse.class.isAssignableFrom(payload.getClass())) {
+        else if (RoundStatusNotification.class.isAssignableFrom(payload.getClass())) {
+            onRoundStatusNotificationChange((RoundStatusNotification)payload);
+        }
+        else if (RegisterInputResponse.class.isAssignableFrom(payloadClass)) {
             onRegisterInputResponse((RegisterInputResponse)payload);
         }
-        else if (PeersPaymentCodesResponse.class.isAssignableFrom(payload.getClass())) {
-            onToPaymentCodeResponse((PeersPaymentCodesResponse)payload);
+        else if (PeersPaymentCodesResponse.class.isAssignableFrom(payloadClass)) {
+            onPeersPaymentCodeResponse((PeersPaymentCodesResponse)payload);
         }
     }
 
-    private synchronized void onRegisterInputResponse(RegisterInputResponse payload) {
+    private void onErrorResponse(ErrorResponse errorResponse) {
+        logStep(4, "ERROR");
+        log.error(errorResponse.message);
+        exit();
+    }
+
+    private void onRegisterInputResponse(RegisterInputResponse payload) {
         this.signedBordereau = payload.signedBordereau;
         if (RoundStatus.REGISTER_OUTPUT.equals(this.roundStatusNotification.status)) {
             registerOutputIfReady((RegisterOutputRoundStatusNotification)this.roundStatusNotification);
         }
     }
 
-    private synchronized void onToPaymentCodeResponse(PeersPaymentCodesResponse payload) {
+    private void onPeersPaymentCodeResponse(PeersPaymentCodesResponse payload) {
         this.peersPaymentCodesResponse = payload;
         if (RoundStatus.REGISTER_OUTPUT.equals(this.roundStatusNotification.status)) {
             registerOutputIfReady((RegisterOutputRoundStatusNotification)this.roundStatusNotification);
@@ -364,6 +372,11 @@ public class WhirlpoolClient {
 
     private void logStep(int step, String msg) {
         log.info("("+step+"/4) " + msg);
+    }
+
+    private void exit() {
+        disconnect();
+        done = true;
     }
 
     public boolean isDone() {
