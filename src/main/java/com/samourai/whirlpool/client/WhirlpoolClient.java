@@ -176,14 +176,15 @@ public class WhirlpoolClient {
     }
 
     private synchronized void onRoundStatusNotificationChange(RoundStatusNotification notification) {
-        if (resuming) {
-            if (!notification.roundId.equals(this.roundStatusNotification.roundId)) {
-                log.error(" ! Unable to resume joined round: round ended");
-            }
-        }
         if (this.roundStatusNotification != null && !this.roundStatusNotification.roundId.equals(notification.roundId)) {
             // roundId changed, reset...
-            log.info("new round detected: "+notification.roundId);
+            if (resuming) {
+                log.error(" ! Unable to resume joined round: new round detected");
+                resuming = false;
+            }
+            else {
+                log.info("new round detected: " + notification.roundId);
+            }
             this.resetRound();
         }
         if (this.roundStatusNotification == null || !notification.status.equals(this.roundStatusNotification.status)) {
@@ -303,6 +304,7 @@ public class WhirlpoolClient {
         this.blindingParams = null;
         this.receiveAddress = null;
         this.roundStatusCompleted = new HashMap<>();
+        this.resuming = false;
     }
 
     private void registerInput(RegisterInputRoundStatusNotification registerInputRoundStatusNotification) throws Exception {
@@ -451,6 +453,7 @@ public class WhirlpoolClient {
         }
         else {
             log.error(" ! connection lost, reconnecting for a new round...");
+            resetRound();
         }
         reconnectOrExit();
     }
