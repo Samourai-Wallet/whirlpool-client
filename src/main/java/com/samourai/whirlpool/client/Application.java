@@ -5,6 +5,7 @@ import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.simple.ISimpleWhirlpoolClient;
 import com.samourai.whirlpool.client.simple.SimpleWhirlpoolClient;
 import com.samourai.whirlpool.client.utils.LogbackUtils;
+import com.samourai.whirlpool.client.utils.WhirlpoolClientConfig;
 import org.apache.log4j.Level;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.DumpedPrivateKey;
@@ -112,9 +113,10 @@ public class Application implements ApplicationRunner {
         // init BIP47 wallet for input
         BIP47Wallet bip47w = new BIP47Wallet(47, mc, params, Hex.decode(hdw.getSeedHex()), hdw.getPassphrase(), 1);
         String paymentCode = bip47w.getAccount(0).getPaymentCode();
-        
+
         // whirlpool
-        WhirlpoolClient whirlpoolClient = new WhirlpoolClient(wsUrl, params);
+        WhirlpoolClientConfig config = new WhirlpoolClientConfig(wsUrl, params);
+        WhirlpoolClient whirlpoolClient = new WhirlpoolClient(config);
         String utxoSplit[] = utxo.split("-");
         String utxoHash = utxoSplit[0];
         Long utxoIdx = Long.parseLong(utxoSplit[1]);

@@ -5,6 +5,7 @@ import com.samourai.whirlpool.client.simple.ISimpleWhirlpoolClient;
 import com.samourai.whirlpool.client.utils.ClientFrameHandler;
 import com.samourai.whirlpool.client.utils.ClientSessionHandler;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.utils.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.v1.messages.*;
 import com.samourai.whirlpool.protocol.v1.notifications.*;
@@ -29,8 +30,7 @@ public class WhirlpoolClient {
     private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     // server settings
-    private String wsUrl;
-    private NetworkParameters networkParameters;
+    private WhirlpoolClientConfig config;
 
     // round settings
     private String utxoHash;
@@ -61,13 +61,12 @@ public class WhirlpoolClient {
     private boolean resuming;
     private boolean done;
 
-    public WhirlpoolClient(String wsUrl, NetworkParameters networkParameters) {
-        this(wsUrl, networkParameters, new ClientCryptoService(), new WhirlpoolProtocol());
+    public WhirlpoolClient(WhirlpoolClientConfig config) {
+        this(config, new ClientCryptoService(), new WhirlpoolProtocol());
     }
 
-    public WhirlpoolClient(String wsUrl, NetworkParameters networkParameters, ClientCryptoService clientCryptoService, WhirlpoolProtocol whirlpoolProtocol) {
-        this.wsUrl = wsUrl;
-        this.networkParameters = networkParameters;
+    public WhirlpoolClient(WhirlpoolClientConfig config, ClientCryptoService clientCryptoService, WhirlpoolProtocol whirlpoolProtocol) {
+        this.config = config;
         this.clientCryptoService = clientCryptoService;
         this.whirlpoolProtocol = whirlpoolProtocol;
     }
@@ -100,9 +99,9 @@ public class WhirlpoolClient {
                 return;
             }
 
-            log.info(" • connecting to " + wsUrl);
+            log.info(" • connecting to " + config.getWsUrl());
             stompClient = createWebSocketClient();
-            stompSession = stompClient.connect(wsUrl, new ClientSessionHandler(this)).get();
+            stompSession = stompClient.connect(config.getWsUrl(), new ClientSessionHandler(this)).get();
             log.info(" • connected");
 
             // prefix logger
@@ -307,6 +306,8 @@ public class WhirlpoolClient {
     }
 
     private void registerInput(RegisterInputRoundStatusNotification registerInputRoundStatusNotification) throws Exception {
+        NetworkParameters networkParameters = config.getNetworkParameters();
+
         logStep(1, "REGISTER_INPUT");
 
         // get round settings
@@ -338,6 +339,8 @@ public class WhirlpoolClient {
     }
 
     private void registerOutput(RegisterOutputRoundStatusNotification registerOutputRoundStatusNotification) throws Exception {
+        NetworkParameters networkParameters = config.getNetworkParameters();
+
         logStep(2, "REGISTER_OUTPUT");
         RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
         registerOutputRequest.roundId = roundStatusNotification.roundId;
@@ -375,6 +378,8 @@ public class WhirlpoolClient {
     }
 
     private void signing(SigningRoundStatusNotification signingRoundStatusNotification) throws Exception {
+        NetworkParameters networkParameters = config.getNetworkParameters();
+
         logStep(3, "SIGNING");
         SigningRequest signingRequest = new SigningRequest();
         signingRequest.roundId = roundStatusNotification.roundId;
@@ -461,9 +466,6 @@ public class WhirlpoolClient {
     }
 
     private void reconnect() throws Exception {
-        int RECONNECT_DELAY=5;
-        int RECONNECT_UNTIL=600;
-
         reconnecting = true;
         long beginTime = System.currentTimeMillis();
         long elapsedTime;
@@ -478,12 +480,12 @@ public class WhirlpoolClient {
             catch(Exception e) {
             }
 
-            log.info(" ! Reconnection failed, retrying in "+RECONNECT_DELAY+"s");
+            log.info(" ! Reconnection failed, retrying in "+config.getReconnectDelay()+"s");
 
             // wait delay before retrying
             synchronized (this) {
                 try {
-                    wait(RECONNECT_DELAY * 1000);
+                    wait(config.getReconnectDelay() * 1000);
                 }
                 catch(Exception e) {
                     log.error("", e);
@@ -491,7 +493,7 @@ public class WhirlpoolClient {
             }
             elapsedTime = System.currentTimeMillis() - beginTime;
         }
-        while(elapsedTime < RECONNECT_UNTIL * 1000);
+        while(elapsedTime < config.getReconnectUntil() * 1000);
 
         // aborting
         reconnecting = false;
