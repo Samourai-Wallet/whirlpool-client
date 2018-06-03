@@ -15,6 +15,7 @@ import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
+import org.springframework.messaging.simp.stomp.ConnectionLostException;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
@@ -41,7 +42,6 @@ public class WhirlpoolClient {
     // round data
     private RoundStatusNotification roundStatusNotification;
     private RSAKeyParameters serverPublicKey;
-    private String roundId;
     private long denomination;
     private long minerFee;
     private byte[] signedBordereau; // will get it after REGISTER_INPUT
@@ -57,6 +57,8 @@ public class WhirlpoolClient {
     private WhirlpoolProtocol whirlpoolProtocol;
     private WebSocketStompClient stompClient;
     private StompSession stompSession;
+    private boolean reconnecting;
+    private boolean resuming;
     private boolean done;
 
     public WhirlpoolClient(String wsUrl, NetworkParameters networkParameters) {
@@ -77,36 +79,61 @@ public class WhirlpoolClient {
         this.paymentCode = paymentCode;
         this.liquidity = liquidity;
 
+        try {
+            connectAndJoin();
+        }
+        catch (Exception e) {
+            reconnectOrExit();
+        }
+    }
+
+    private void connectAndJoin() throws Exception {
         connect();
         subscribe();
         getRoundStatus();
     }
 
     private void connect() throws Exception {
-        if (this.stompClient != null) {
-            log.warn("connect() : already connected");
-            return;
+        try {
+            if (this.stompClient != null) {
+                log.warn("connect() : already connected");
+                return;
+            }
+
+            log.info(" • connecting to " + wsUrl);
+            stompClient = createWebSocketClient();
+            stompSession = stompClient.connect(wsUrl, new ClientSessionHandler(this)).get();
+            log.info(" • connected");
+
+            // prefix logger
+            log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass()+"("+stompSession.getSessionId()+")");
         }
-
-        log.info(" • connecting to "+wsUrl);
-        stompClient = createWebSocketClient();
-        stompSession = stompClient.connect(wsUrl, new ClientSessionHandler()).get();
-        log.info(" • connected");
-
-        // prefix logger
-        log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass()+"("+stompSession.getSessionId()+")");
+        catch(Exception e) {
+            log.error(" ! connection failed: "+e.getMessage());
+            stompClient = null;
+            stompSession = null;
+            throw e;
+        }
     }
 
     public void disconnect() {
-        log.info(" • disconnect");
+        log.info(" • disconnecting...");
+        disconnect(false);
+    }
+
+    private void disconnect(boolean connectionLost) {
         if (stompSession != null) {
-            stompSession.disconnect();
+            // don't disconnect session if connectionLost, to avoid forever delays
+            if (!connectionLost) {
+                stompSession.disconnect();
+            }
             stompSession = null;
         }
         if (stompClient != null) {
             stompClient.stop();
             stompClient = null;
         }
+        log.info(" • disconnected");
     }
 
     private void subscribe() {
@@ -130,6 +157,9 @@ public class WhirlpoolClient {
                 }
             })
         );
+        if (log.isDebugEnabled()) {
+            log.debug(" • subscribed to server");
+        }
     }
 
     private void getRoundStatus() {
@@ -147,7 +177,12 @@ public class WhirlpoolClient {
     }
 
     private synchronized void onRoundStatusNotificationChange(RoundStatusNotification notification) {
-        if (this.roundId != null && !this.roundId.equals(notification.roundId)) {
+        if (resuming) {
+            if (!notification.roundId.equals(this.roundStatusNotification.roundId)) {
+                log.error(" ! Unable to resume joined round: round ended");
+            }
+        }
+        if (this.roundStatusNotification != null && !this.roundStatusNotification.roundId.equals(notification.roundId)) {
             // roundId changed, reset...
             log.info("new round detected: "+notification.roundId);
             this.resetRound();
@@ -228,10 +263,15 @@ public class WhirlpoolClient {
     }
 
     private void onRegisterInputResponse(RegisterInputResponse payload) {
+        log.info(" > Joined round " + this.roundStatusNotification.roundId);
         this.signedBordereau = payload.signedBordereau;
         if (RoundStatus.REGISTER_OUTPUT.equals(this.roundStatusNotification.status)) {
             registerOutputIfReady((RegisterOutputRoundStatusNotification)this.roundStatusNotification);
         }
+    }
+
+    private boolean hasRegisteredInput() {
+        return (this.signedBordereau != null);
     }
 
     private void onPeersPaymentCodeResponse(PeersPaymentCodesResponse payload) {
@@ -254,7 +294,6 @@ public class WhirlpoolClient {
         // round data
         this.roundStatusNotification = null;
         this.serverPublicKey = null;
-        this.roundId = null;
         this.denomination = -1;
         this.minerFee = -1;
         this.signedBordereau = null;
@@ -381,6 +420,82 @@ public class WhirlpoolClient {
 
     public boolean isDone() {
         return done;
+    }
+
+    public void onTransportError(Throwable exception) {
+        if (exception instanceof ConnectionLostException) {
+            // ignore connectionLost when reconnecting (already managed)
+            if (!reconnecting) {
+                if (log.isDebugEnabled()) {
+                    log.debug(" ! transportError : " + exception.getMessage());
+                }
+                onConnectionLost();
+            }
+        }
+        else {
+            log.error(" ! transportError : " + exception.getMessage());
+        }
+    }
+
+    private void onConnectionLost() {
+        disconnect(true);
+
+        if (hasRegisteredInput()) {
+            log.error(" ! connection lost, reconnecting for resuming joined round...");
+            this.resuming = true;
+        }
+        else {
+            log.error(" ! connection lost, reconnecting for a new round...");
+        }
+        reconnectOrExit();
+    }
+
+    private void reconnectOrExit() {
+        try {
+            reconnect();
+        }
+        catch(Exception e) {
+            log.info(" ! Failed to connect to server. Please check your connectivity or retry later.");
+            exit();
+        }
+    }
+
+    private void reconnect() throws Exception {
+        int RECONNECT_DELAY=5;
+        int RECONNECT_UNTIL=600;
+
+        reconnecting = true;
+        long beginTime = System.currentTimeMillis();
+        long elapsedTime;
+        do {
+            try {
+                connectAndJoin();
+
+                // success
+                reconnecting = false;
+                return;
+            }
+            catch(Exception e) {
+            }
+
+            log.info(" ! Reconnection failed, retrying in "+RECONNECT_DELAY+"s");
+
+            // wait delay before retrying
+            synchronized (this) {
+                try {
+                    wait(RECONNECT_DELAY * 1000);
+                }
+                catch(Exception e) {
+                    log.error("", e);
+                }
+            }
+            elapsedTime = System.currentTimeMillis() - beginTime;
+        }
+        while(elapsedTime < RECONNECT_UNTIL * 1000);
+
+        // aborting
+        reconnecting = false;
+        throw new Exception("Reconnecting failed");
     }
 
     public RoundStatusNotification __getRoundStatusNotification() {
