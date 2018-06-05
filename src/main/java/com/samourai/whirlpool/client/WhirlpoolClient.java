@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client;
 
+import ch.qos.logback.classic.Level;
 import com.samourai.whirlpool.client.services.ClientCryptoService;
 import com.samourai.whirlpool.client.simple.ISimpleWhirlpoolClient;
 import com.samourai.whirlpool.client.utils.ClientFrameHandler;
@@ -57,6 +58,7 @@ public class WhirlpoolClient {
     private WhirlpoolProtocol whirlpoolProtocol;
     private WebSocketStompClient stompClient;
     private StompSession stompSession;
+    private String logPrefix;
     private boolean reconnecting;
     private boolean resuming;
     private boolean done;
@@ -102,10 +104,13 @@ public class WhirlpoolClient {
             log.info(" • connecting to " + config.getWsUrl());
             stompClient = createWebSocketClient();
             stompSession = stompClient.connect(config.getWsUrl(), new ClientSessionHandler(this)).get();
-            log.info(" • connected");
 
             // prefix logger
-            log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass()+"("+stompSession.getSessionId()+")");
+            Level level = ((ch.qos.logback.classic.Logger)log).getEffectiveLevel();
+            String loggerName = logPrefix != null ? logPrefix : stompSession.getSessionId();
+            log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass()+"("+loggerName+")");
+            ((ch.qos.logback.classic.Logger)log).setLevel(level);
+            log.info(" • connected, stompSessionId="+stompSession.getSessionId());
         }
         catch(Exception e) {
             log.error(" ! connection failed: "+e.getMessage());
@@ -162,6 +167,9 @@ public class WhirlpoolClient {
     }
 
     private void getRoundStatus() {
+        if (log.isDebugEnabled()) {
+            log.debug("(send) --> getRoundStatus");
+        }
         RoundStatusRequest roundStatusRequest = new RoundStatusRequest();
         stompSession.send(whirlpoolProtocol.ENDPOINT_ROUND_STATUS, roundStatusRequest);
     }
@@ -505,5 +513,16 @@ public class WhirlpoolClient {
 
     public RoundStatusNotification __getRoundStatusNotification() {
         return roundStatusNotification;
+    }
+
+    public void setLogPrefix(String logPrefix) {
+        this.logPrefix = logPrefix;
+    }
+
+    public void debugState() {
+        if (log.isDebugEnabled()) {
+            log.debug("roundStatusComplete=" + roundStatusCompleted);
+            log.debug("roundStatusNotification=" + ClientUtils.toJsonString(roundStatusNotification));
+        }
     }
 }
