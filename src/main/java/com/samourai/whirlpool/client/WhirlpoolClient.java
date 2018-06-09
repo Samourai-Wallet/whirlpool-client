@@ -58,6 +58,7 @@ public class WhirlpoolClient {
     private WhirlpoolProtocol whirlpoolProtocol;
     private WebSocketStompClient stompClient;
     private StompSession stompSession;
+    private String stompUsername;
     private String logPrefix;
     private boolean reconnecting;
     private boolean resuming;
@@ -91,7 +92,6 @@ public class WhirlpoolClient {
     private void connectAndJoin() throws Exception {
         connect();
         subscribe();
-        getRoundStatus();
     }
 
     private void connect() throws Exception {
@@ -110,12 +110,17 @@ public class WhirlpoolClient {
             String loggerName = logPrefix != null ? logPrefix : stompSession.getSessionId();
             log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass()+"("+loggerName+")");
             ((ch.qos.logback.classic.Logger)log).setLevel(level);
-            log.info(" • connected, stompSessionId="+stompSession.getSessionId());
+            log.info(" • connected");
+            if (log.isDebugEnabled()) {
+                log.debug("stompSessionId=" + stompSession.getSessionId() + ", stompUsername=" + stompUsername);
+            }
+
         }
         catch(Exception e) {
             log.error(" ! connection failed: "+e.getMessage());
             stompClient = null;
             stompSession = null;
+            stompUsername = null;
             throw e;
         }
     }
@@ -132,6 +137,7 @@ public class WhirlpoolClient {
                 stompSession.disconnect();
             }
             stompSession = null;
+            stompUsername = null;
         }
         if (stompClient != null) {
             stompClient.stop();
@@ -149,6 +155,9 @@ public class WhirlpoolClient {
                     }
                     onBroadcastReceived(payload);
                 }
+                else {
+                    log.warn("--> (" + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ") ignored (done): " + ClientUtils.toJsonString(payload));
+                }
             })
         );
         stompSession.subscribe(whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY,
@@ -159,19 +168,15 @@ public class WhirlpoolClient {
                     }
                     onPrivateReceived(payload);
                 }
+                else {
+                    log.warn("--> (" + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY + ") ignored (done): " + ClientUtils.toJsonString(payload));
+                }
             })
         );
+        // will automatically receive roundStatus in response of subscription
         if (log.isDebugEnabled()) {
             log.debug(" • subscribed to server");
         }
-    }
-
-    private void getRoundStatus() {
-        if (log.isDebugEnabled()) {
-            log.debug("(send) --> getRoundStatus");
-        }
-        RoundStatusRequest roundStatusRequest = new RoundStatusRequest();
-        stompSession.send(whirlpoolProtocol.ENDPOINT_ROUND_STATUS, roundStatusRequest);
     }
 
     private void onBroadcastReceived(Object payload) {
@@ -452,6 +457,10 @@ public class WhirlpoolClient {
         }
     }
 
+    public void onAfterConnected(String stompUsername) {
+        this.stompUsername = stompUsername;
+    }
+
     private void onConnectionLost() {
         disconnect(true);
 
@@ -521,6 +530,7 @@ public class WhirlpoolClient {
 
     public void debugState() {
         if (log.isDebugEnabled()) {
+            log.debug("stompUsername=" + stompUsername);
             log.debug("roundStatusComplete=" + roundStatusCompleted);
             log.debug("roundStatusNotification=" + ClientUtils.toJsonString(roundStatusNotification));
         }

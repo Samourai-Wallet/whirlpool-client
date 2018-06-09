@@ -22,9 +22,7 @@ public class ClientSessionHandler extends StompSessionHandlerAdapter {
     public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
         super.afterConnected(session, connectedHeaders);
         String username = connectedHeaders.get("user-name").iterator().next();
-        if (log.isDebugEnabled()) {
-            log.debug("STOMP username=" + username);
-        }
+        this.whirlpoolClient.onAfterConnected(username);
     }
 
     @Override
