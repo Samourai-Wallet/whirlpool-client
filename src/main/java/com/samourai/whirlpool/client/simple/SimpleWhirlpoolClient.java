@@ -15,10 +15,12 @@ import org.springframework.web.client.RestTemplate;
 public class SimpleWhirlpoolClient implements ISimpleWhirlpoolClient {
     private ECKey utxoKey;
     private BIP47Wallet bip47Wallet;
+    private ECKey receiveKey;
 
     public SimpleWhirlpoolClient(ECKey utxoKey, BIP47Wallet bip47Wallet) {
         this.utxoKey = utxoKey;
         this.bip47Wallet = bip47Wallet;
+        this.receiveKey = null;
     }
 
     private int computeNextPaymentCodeSendIndex() {
@@ -47,7 +49,8 @@ public class SimpleWhirlpoolClient implements ISimpleWhirlpoolClient {
         PaymentAddress receiveAddress = BIP47Util.getInstance().getReceiveAddress(bip47Wallet, new PaymentCode(fromPeerPaymentCode), idx, params);
 
         // receiver can calculate from privkey
-        SegwitAddress addressToReceiver = new SegwitAddress(receiveAddress.getReceiveECKey(), params);
+        this.receiveKey = receiveAddress.getReceiveECKey();
+        SegwitAddress addressToReceiver = new SegwitAddress(receiveKey, params);
         return addressToReceiver.getBech32AsString();
     }
 
@@ -75,5 +78,10 @@ public class SimpleWhirlpoolClient implements ISimpleWhirlpoolClient {
             // response error
             throw new Exception("unable to registerOutput");
         }
+    }
+
+    @Override
+    public ISimpleWhirlpoolClient computeSimpleWhirlpoolClientForNextRound() {
+        return new SimpleWhirlpoolClient(receiveKey, bip47Wallet);
     }
 }

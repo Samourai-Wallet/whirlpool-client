@@ -17,4 +17,6 @@ public interface ISimpleWhirlpoolClient {
 
     void postHttpRequest(String url, Object requestBody) throws Exception;
 
+    ISimpleWhirlpoolClient computeSimpleWhirlpoolClientForNextRound();
+
 }
