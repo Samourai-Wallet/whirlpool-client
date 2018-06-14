@@ -34,14 +34,12 @@ public class WhirlpoolClient {
     private WhirlpoolClientConfig config;
 
     // round settings
-    private String utxoHash;
-    private long utxoIdx;
-    private ISimpleWhirlpoolClient simpleWhirlpoolClient;
-    private String paymentCode;
-    private boolean liquidity;
+    private RoundParams roundParams;
+    private WhirlpoolClientListener listener;
 
     // round data
     private RoundStatusNotification roundStatusNotification;
+    private ErrorResponse errorResponse;
     private RSAKeyParameters serverPublicKey;
     private long denomination;
     private long minerFee;
@@ -52,6 +50,8 @@ public class WhirlpoolClient {
     private String bordereau; // will generate it randomly
     private RSABlindingParameters blindingParams;
     private String receiveAddress;
+    private String receiveUtxoHash;
+    private Integer receiveUtxoIdx;
     private Map<RoundStatus,Boolean> roundStatusCompleted = new HashMap<>();
 
     private ClientCryptoService clientCryptoService;
@@ -74,12 +74,9 @@ public class WhirlpoolClient {
         this.whirlpoolProtocol = whirlpoolProtocol;
     }
 
-    public void whirlpool(String utxoHash, long utxoIdx, String paymentCode, ISimpleWhirlpoolClient simpleWhirlpoolClient, boolean liquidity) throws Exception {
-        this.utxoHash = utxoHash;
-        this.utxoIdx = utxoIdx;
-        this.simpleWhirlpoolClient = simpleWhirlpoolClient;
-        this.paymentCode = paymentCode;
-        this.liquidity = liquidity;
+    public void whirlpool(RoundParams roundParams, WhirlpoolClientListener listener) {
+        this.roundParams = roundParams;
+        this.listener = listener;
 
         try {
             connectAndJoin();
@@ -125,7 +122,7 @@ public class WhirlpoolClient {
         }
     }
 
-    public void disconnect() {
+    private void disconnect() {
         log.info(" • disconnecting...");
         disconnect(false);
     }
@@ -226,12 +223,14 @@ public class WhirlpoolClient {
                         break;
                     case SUCCESS:
                         logStep(4, "SUCCESS");
-                        log.info("Funds will be received at " + this.receiveAddress);
+                        log.info("Funds will be received at " + this.receiveAddress+", utxo "+this.receiveUtxoHash+":"+this.receiveUtxoIdx);
+                        this.listener.success();
+
                         exit();
                         break;
                     case FAIL:
                         logStep(4, "FAILURE");
-                        exit();
+                        failAndExit();
                         break;
                 }
             }
@@ -270,8 +269,14 @@ public class WhirlpoolClient {
     }
 
     private void onErrorResponse(ErrorResponse errorResponse) {
+        this.errorResponse = errorResponse;
         logStep(4, "ERROR");
         log.error(errorResponse.message);
+        failAndExit();
+    }
+
+    private void failAndExit() {
+        this.listener.fail();
         exit();
     }
 
@@ -300,12 +305,18 @@ public class WhirlpoolClient {
         return stompClient;
     }
 
+    public RoundParams computeNextRoundParams() {
+        ISimpleWhirlpoolClient nextSimpleWhirlpoolClient = roundParams.getSimpleWhirlpoolClient().computeSimpleWhirlpoolClientForNextRound();
+        return new RoundParams(this.receiveUtxoHash, this.receiveUtxoIdx, roundParams.getPaymentCode(), nextSimpleWhirlpoolClient, true);
+    }
+
     private void resetRound() {
         if (log.isDebugEnabled()) {
             log.debug("resetRound");
         }
         // round data
         this.roundStatusNotification = null;
+        this.errorResponse = null;
         this.serverPublicKey = null;
         this.denomination = -1;
         this.minerFee = -1;
@@ -316,6 +327,8 @@ public class WhirlpoolClient {
         this.bordereau = null;
         this.blindingParams = null;
         this.receiveAddress = null;
+        this.receiveUtxoHash = null;
+        this.receiveUtxoIdx = null;
         this.roundStatusCompleted = new HashMap<>();
         this.resuming = false;
     }
@@ -334,14 +347,16 @@ public class WhirlpoolClient {
         this.denomination = registerInputRoundStatusNotification.getDenomination();
         this.minerFee = registerInputRoundStatusNotification.getMinerFee();
 
+        ISimpleWhirlpoolClient simpleWhirlpoolClient = roundParams.getSimpleWhirlpoolClient();
+
         RegisterInputRequest registerInputRequest = new RegisterInputRequest();
-        registerInputRequest.utxoHash = utxoHash;
-        registerInputRequest.utxoIndex = utxoIdx;
+        registerInputRequest.utxoHash = roundParams.getUtxoHash();
+        registerInputRequest.utxoIndex = roundParams.getUtxoIdx();
         registerInputRequest.pubkey = simpleWhirlpoolClient.getPubkey();
         registerInputRequest.signature = simpleWhirlpoolClient.signMessage(roundStatusNotification.roundId);
         registerInputRequest.roundId = roundStatusNotification.roundId;
-        registerInputRequest.paymentCode = paymentCode;
-        registerInputRequest.liquidity = this.liquidity;
+        registerInputRequest.paymentCode = roundParams.getPaymentCode();
+        registerInputRequest.liquidity = roundParams.isLiquidity();
 
         // keep bordereau private, but transmit blindedBordereau
         // clear bordereau will be provided with unblindedBordereau under another identity for REGISTER_OUTPUT
@@ -355,6 +370,7 @@ public class WhirlpoolClient {
 
     private void registerOutput(RegisterOutputRoundStatusNotification registerOutputRoundStatusNotification) throws Exception {
         NetworkParameters networkParameters = config.getNetworkParameters();
+        ISimpleWhirlpoolClient simpleWhirlpoolClient = roundParams.getSimpleWhirlpoolClient();
 
         logStep(2, "REGISTER_OUTPUT");
         RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
@@ -372,7 +388,7 @@ public class WhirlpoolClient {
 
         // POST request through a different identity for mix privacy
         try {
-            this.simpleWhirlpoolClient.postHttpRequest(registerOutputRoundStatusNotification.getRegisterOutputUrl(), registerOutputRequest);
+            simpleWhirlpoolClient.postHttpRequest(registerOutputRoundStatusNotification.getRegisterOutputUrl(), registerOutputRequest);
             roundStatusCompleted.put(RoundStatus.REGISTER_OUTPUT, true);
         }
         catch(Exception e) {
@@ -401,16 +417,21 @@ public class WhirlpoolClient {
 
         Transaction tx = new Transaction(networkParameters, signingRoundStatusNotification.transaction);
 
-        if(!ClientUtils.findTxOutput(this.receiveAddress, tx, networkParameters)){
-            throw new Exception("Output not found in tx"); //
+        Integer txOutputIndex = ClientUtils.findTxOutputIndex(this.receiveAddress, tx, networkParameters);
+        if(txOutputIndex != null){
+            receiveUtxoHash = tx.getHashAsString();
+            receiveUtxoIdx = txOutputIndex;
+        }
+        else {
+            throw new Exception("Output not found in tx");
         }
 
-        Integer inputIndex = ClientUtils.findInputIndex(this.utxoHash, this.utxoIdx, tx);
+        Integer inputIndex = ClientUtils.findInputIndex(roundParams.getUtxoHash(), roundParams.getUtxoIdx(), tx);
         if (inputIndex == null) {
             throw new Exception("Input not found in tx");
         }
         long spendAmount = computeSpendAmount();
-        this.simpleWhirlpoolClient.signTransaction(tx, inputIndex, spendAmount, networkParameters);
+        roundParams.getSimpleWhirlpoolClient().signTransaction(tx, inputIndex, spendAmount, networkParameters);
 
         // verify
         tx.verify();
@@ -422,18 +443,20 @@ public class WhirlpoolClient {
     }
 
     private long computeSpendAmount() {
-        if (liquidity) {
+        if (roundParams.isLiquidity()) {
             // no minerFees for liquidities
             return denomination;
         }
         return denomination + minerFee;
     }
 
-    private void logStep(int step, String msg) {
-        log.info("("+step+"/4) " + msg);
+    private void logStep(int currentStep, String msg) {
+        final int NB_STEPS = 4;
+        log.info("("+currentStep+"/"+NB_STEPS+") " + msg);
+        this.listener.progress(this.roundStatusNotification.status, currentStep, NB_STEPS);
     }
 
-    private void exit() {
+    public void exit() {
         disconnect();
         done = true;
     }
@@ -481,7 +504,7 @@ public class WhirlpoolClient {
         }
         catch(Exception e) {
             log.info(" ! Failed to connect to server. Please check your connectivity or retry later.");
-            exit();
+            failAndExit();
         }
     }
 
@@ -533,6 +556,9 @@ public class WhirlpoolClient {
             log.debug("stompUsername=" + stompUsername);
             log.debug("roundStatusComplete=" + roundStatusCompleted);
             log.debug("roundStatusNotification=" + ClientUtils.toJsonString(roundStatusNotification));
+            if (errorResponse != null) {
+                log.debug("errorResponse=" + ClientUtils.toJsonString(errorResponse));
+            }
         }
     }
 }

@@ -22,19 +22,19 @@ public class ClientUtils {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public static boolean findTxOutput(String outputAddressBech32, Transaction tx, NetworkParameters params) {
+    public static Integer findTxOutputIndex(String outputAddressBech32, Transaction tx, NetworkParameters params) {
         try {
             byte[] expectedScriptBytes = Bech32Util.getInstance().computeScriptPubKey(outputAddressBech32, params);
             for (TransactionOutput output : tx.getOutputs()) {
                 if (Arrays.equals(output.getScriptBytes(), expectedScriptBytes)) {
-                    return true;
+                    return output.getIndex();
                 }
             }
         }
         catch(Exception e) {
             log.error("findTxOutput failed", e);
         }
-        return false;
+        return null;
     }
 
     public static Integer findInputIndex(String utxoHash, long utxoIdx, Transaction tx) {
