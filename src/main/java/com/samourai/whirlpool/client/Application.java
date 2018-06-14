@@ -6,6 +6,7 @@ import com.samourai.whirlpool.client.simple.ISimpleWhirlpoolClient;
 import com.samourai.whirlpool.client.simple.SimpleWhirlpoolClient;
 import com.samourai.whirlpool.client.utils.LogbackUtils;
 import com.samourai.whirlpool.client.utils.WhirlpoolClientConfig;
+import com.samourai.whirlpool.protocol.v1.notifications.RoundStatus;
 import org.apache.log4j.Level;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.DumpedPrivateKey;
@@ -37,9 +38,11 @@ public class Application implements ApplicationRunner {
     private static final String ARG_SEED_WORDS = "seed-words";
     private static final String ARG_SERVER = "server";
     private static final String ARG_LIQUIDITY = "liquidity";
-    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --seed-passphrase= --seed-words= [--liquidity] [--server=host:port] [--debug]";
+    private static final String ARG_ROUNDS = "rounds";
+    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --seed-passphrase= --seed-words= [--liquidity] [--rounds=1] [--server=host:port] [--debug]";
 
     private ApplicationArguments args;
+    private boolean done;
 
     public static void main(String... args) {
         SpringApplication.run(Application.class, args);
@@ -48,6 +51,7 @@ public class Application implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         this.args = args;
+        this.done = false;
 
         if (args.containsOption(ARG_DEBUG)) {
             // enable debug logs
@@ -64,13 +68,20 @@ public class Application implements ApplicationRunner {
             String seedWords = requireOption(ARG_SEED_WORDS);
             String seedPassphrase = requireOption(ARG_SEED_PASSPHRASE);
             boolean liquidity = args.containsOption(ARG_LIQUIDITY);
+            final int rounds;
+            try {
+                rounds = Integer.parseInt(requireOption(ARG_ROUNDS, "1"));
+            }
+            catch (Exception e) {
+                throw new IllegalArgumentException("Numeric value expected for option: "+ARG_ROUNDS);
+            }
             String wsUrl = "ws://"+requireOption(ARG_SERVER, "127.0.0.1:8080");
 
             new Thread(() -> {
                 try {
-                    WhirlpoolClient whirlpoolClient = runClient(wsUrl, networkId, utxo, utxoKey, seedWords, seedPassphrase, liquidity);
+                    runClient(wsUrl, networkId, utxo, utxoKey, seedWords, seedPassphrase, liquidity, rounds);
                     synchronized (this) {
-                        while(!whirlpoolClient.isDone()) {
+                        while(!done) {
                             wait(1000);
                         }
                     }
@@ -85,7 +96,7 @@ public class Application implements ApplicationRunner {
         }
     }
 
-    private WhirlpoolClient runClient(String wsUrl, String networkId, String utxo, String utxoKey, String seedWords, String seedPassphrase, boolean liquidity) throws Exception {
+    private WhirlpoolMultiRoundClient runClient(String wsUrl, String networkId, String utxo, String utxoKey, String seedWords, String seedPassphrase, boolean liquidity, int rounds) throws Exception {
         Assert.notNull(wsUrl, "wsUrl is null");
         NetworkParameters params = NetworkParameters.fromPmtProtocolID(networkId);
         Assert.notNull(params, "unknown network");
@@ -93,6 +104,7 @@ public class Application implements ApplicationRunner {
         Assert.notNull(utxoKey, "utxoWif are null");
         Assert.notNull(seedWords, "seedWords are null");
         Assert.notNull(seedPassphrase, "seedPassphrase is null");
+        Assert.isTrue(rounds > 0, "rounds should be > 0");
 
         // initialize bitcoinj context
         new Context(params);
@@ -116,13 +128,36 @@ public class Application implements ApplicationRunner {
 
         // whirlpool
         WhirlpoolClientConfig config = new WhirlpoolClientConfig(wsUrl, params);
-        WhirlpoolClient whirlpoolClient = new WhirlpoolClient(config);
+        WhirlpoolMultiRoundClient multiRoundWhirlpoolClient = new WhirlpoolMultiRoundClient(config);
+
         String utxoSplit[] = utxo.split("-");
         String utxoHash = utxoSplit[0];
         Long utxoIdx = Long.parseLong(utxoSplit[1]);
         ISimpleWhirlpoolClient simpleClient = new SimpleWhirlpoolClient(ecKey, bip47w);
-        whirlpoolClient.whirlpool(utxoHash, utxoIdx, paymentCode, simpleClient, liquidity);
-        return whirlpoolClient;
+        RoundParams roundParams = new RoundParams(utxoHash, utxoIdx, paymentCode, simpleClient, liquidity);
+        WhirlpoolMultiRoundClientListener listener = computeMultiRoundListener();
+
+        multiRoundWhirlpoolClient.whirlpool(roundParams, rounds, listener);
+        return multiRoundWhirlpoolClient;
+    }
+
+    private WhirlpoolMultiRoundClientListener computeMultiRoundListener() {
+        return new WhirlpoolMultiRoundClientListener() {
+            @Override
+            public void success(int doneRounds) {
+                done = true;
+            }
+
+            @Override
+            public void fail(int currentRound, int nbRounds) {
+                done = true;
+            }
+
+            @Override
+            public void progress(int currentRound, int nbRounds, RoundStatus roundStatus, int currentStep, int nbSteps) {
+
+            }
+        };
     }
 
     private String requireOption(String name) {
