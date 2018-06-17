@@ -154,6 +154,11 @@ public class Application implements ApplicationRunner {
             }
 
             @Override
+            public void roundSuccess(int currentRound, int rounds) {
+
+            }
+
+            @Override
             public void progress(int currentRound, int nbRounds, RoundStatus roundStatus, int currentStep, int nbSteps) {
 
             }

@@ -65,6 +65,7 @@ public class WhirlpoolMultiRoundClient {
     }
 
     private void onRoundSuccess() {
+        listener.roundSuccess(doneRounds, rounds);
         this.doneRounds++;
 
         if (doneRounds == rounds) {
@@ -73,7 +74,8 @@ public class WhirlpoolMultiRoundClient {
         }
         else {
             // go to next round
-            RoundParams nextRoundParams = getLastWhirlpoolClient().computeNextRoundParams();
+            WhirlpoolClient whirlpoolClient = getLastWhirlpoolClient();
+            RoundParams nextRoundParams = whirlpoolClient.computeNextRoundParams();
             runClient(nextRoundParams);
         }
     }
