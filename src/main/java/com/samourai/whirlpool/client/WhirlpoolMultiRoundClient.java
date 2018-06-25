@@ -65,9 +65,9 @@ public class WhirlpoolMultiRoundClient {
     }
 
     private void onRoundSuccess() {
-        listener.roundSuccess(doneRounds, rounds);
-        this.doneRounds++;
+        listener.roundSuccess(doneRounds+1, rounds);
 
+        this.doneRounds++;
         if (doneRounds == rounds) {
             // all rounds done
             listener.success(doneRounds);
@@ -89,12 +89,12 @@ public class WhirlpoolMultiRoundClient {
 
             @Override
             public void fail() {
-                listener.fail(doneRounds, rounds);
+                listener.fail(doneRounds+1, rounds);
             }
 
             @Override
             public void progress(RoundStatus roundStatus, int currentStep, int nbSteps) {
-                listener.progress(doneRounds, rounds, roundStatus, currentStep, nbSteps);
+                listener.progress(doneRounds+1, rounds, roundStatus, currentStep, nbSteps);
             }
         };
     }
