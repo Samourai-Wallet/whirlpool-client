@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client;
 
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.whirlpool.client.beans.RoundResultSuccess;
 import com.samourai.whirlpool.client.simple.ISimpleWhirlpoolClient;
 import com.samourai.whirlpool.client.simple.SimpleWhirlpoolClient;
 import com.samourai.whirlpool.client.utils.LogbackUtils;
@@ -154,7 +155,7 @@ public class Application implements ApplicationRunner {
             }
 
             @Override
-            public void roundSuccess(int currentRound, int nbRounds) {
+            public void roundSuccess(int currentRound, int nbRounds, RoundResultSuccess roundResultSuccess) {
 
             }
 

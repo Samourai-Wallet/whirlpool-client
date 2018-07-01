@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client;
 
+import com.samourai.whirlpool.client.beans.RoundResultSuccess;
 import com.samourai.whirlpool.client.utils.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.v1.notifications.RoundStatus;
 import org.slf4j.Logger;
@@ -64,8 +65,8 @@ public class WhirlpoolMultiRoundClient {
         return whirlpoolClients.get(whirlpoolClients.size() - 1);
     }
 
-    private void onRoundSuccess() {
-        listener.roundSuccess(doneRounds+1, rounds);
+    private void onRoundSuccess(RoundResultSuccess roundResultSuccess) {
+        listener.roundSuccess(doneRounds+1, rounds, roundResultSuccess);
 
         this.doneRounds++;
         if (doneRounds == rounds) {
@@ -83,8 +84,8 @@ public class WhirlpoolMultiRoundClient {
     private WhirlpoolClientListener computeRoundListener() {
         return new WhirlpoolClientListener() {
             @Override
-            public void success() {
-                onRoundSuccess();
+            public void success(RoundResultSuccess roundResultSuccess) {
+                onRoundSuccess(roundResultSuccess);
             }
 
             @Override

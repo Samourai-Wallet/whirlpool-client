@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client;
 
 import ch.qos.logback.classic.Level;
+import com.samourai.whirlpool.client.beans.RoundResultSuccess;
 import com.samourai.whirlpool.client.services.ClientCryptoService;
 import com.samourai.whirlpool.client.simple.ISimpleWhirlpoolClient;
 import com.samourai.whirlpool.client.utils.ClientFrameHandler;
@@ -186,54 +187,52 @@ public class WhirlpoolClient {
     }
 
     private synchronized void onRoundStatusNotificationChange(RoundStatusNotification notification) {
-        if (this.roundStatusNotification != null && !this.roundStatusNotification.roundId.equals(notification.roundId)) {
-            // roundId changed, reset...
-            if (resuming) {
-                log.error(" ! Unable to resume joined round: new round detected");
-                resuming = false;
+        try {
+            if (this.roundStatusNotification != null && !this.roundStatusNotification.roundId.equals(notification.roundId)) {
+                // roundId changed, reset...
+                if (resuming) {
+                    log.error(" ! Unable to resume joined round: new round detected");
+                    resuming = false;
+                } else {
+                    log.info("new round detected: " + notification.roundId);
+                }
+                this.resetRound();
             }
-            else {
-                log.info("new round detected: " + notification.roundId);
-            }
-            this.resetRound();
-        }
-        if (this.roundStatusNotification == null || !notification.status.equals(this.roundStatusNotification.status)) {
-            this.roundStatusNotification = notification;
-            if (!roundStatusCompleted.containsKey(notification.status)) {
-                switch (notification.status) {
-                    case REGISTER_INPUT:
-                        try {
-                            this.registerInput((RegisterInputRoundStatusNotification)roundStatusNotification);
-                        } catch (Exception e) {
-                            log.error("registerInput failed", e);
-                        }
-                        break;
-                    case REGISTER_OUTPUT:
-                        registerOutputIfReady((RegisterOutputRoundStatusNotification)roundStatusNotification);
-                        break;
-                    case REVEAL_OUTPUT_OR_BLAME:
-                        revealOutput();
-                        break;
-                    case SIGNING:
-                        try {
-                            this.signing((SigningRoundStatusNotification)roundStatusNotification);
-                        } catch (Exception e) {
-                            log.error("signing failed", e);
-                        }
-                        break;
-                    case SUCCESS:
-                        logStep(4, "SUCCESS");
-                        log.info("Funds will be received at " + this.receiveAddress+", utxo "+this.receiveUtxoHash+":"+this.receiveUtxoIdx);
-                        this.listener.success();
+            if (this.roundStatusNotification == null || !notification.status.equals(this.roundStatusNotification.status)) {
+                this.roundStatusNotification = notification;
+                if (!roundStatusCompleted.containsKey(notification.status)) {
+                    switch (notification.status) {
+                        case REGISTER_INPUT:
+                            registerInput((RegisterInputRoundStatusNotification) roundStatusNotification);
+                            break;
+                        case REGISTER_OUTPUT:
+                            registerOutputIfReady((RegisterOutputRoundStatusNotification) roundStatusNotification);
+                            break;
+                        case REVEAL_OUTPUT_OR_BLAME:
+                            revealOutput();
+                            break;
+                        case SIGNING:
+                            this.signing((SigningRoundStatusNotification) roundStatusNotification);
+                            break;
+                        case SUCCESS:
+                            logStep(4, "SUCCESS");
+                            log.info("Funds will be received at " + this.receiveAddress + ", utxo " + this.receiveUtxoHash + ":" + this.receiveUtxoIdx);
 
-                        exit();
-                        break;
-                    case FAIL:
-                        logStep(4, "FAILURE");
-                        failAndExit();
-                        break;
+                            RoundResultSuccess roundResultSuccess = new RoundResultSuccess(this.receiveAddress, this.receiveUtxoHash, this.receiveUtxoIdx);
+                            this.listener.success(roundResultSuccess);
+                            exit();
+                            break;
+                        case FAIL:
+                            logStep(4, "FAILURE");
+                            failAndExit();
+                            break;
+                    }
                 }
             }
+        }
+        catch(Exception e) {
+            log.error("", e);
+            failAndExit();
         }
     }
 
