@@ -192,7 +192,6 @@ public class WhirlpoolClient {
                 // roundId changed, reset...
                 if (resuming) {
                     log.error(" ! Unable to resume joined round: new round detected");
-                    resuming = false;
                 } else {
                     log.info("new round detected: " + notification.roundId);
                 }
@@ -200,54 +199,78 @@ public class WhirlpoolClient {
             }
             if (this.roundStatusNotification == null || !notification.status.equals(this.roundStatusNotification.status)) {
                 this.roundStatusNotification = notification;
+                // ignore duplicate roundStatus
                 if (!roundStatusCompleted.containsKey(notification.status)) {
-                    switch (notification.status) {
-                        case REGISTER_INPUT:
-                            registerInput((RegisterInputRoundStatusNotification) roundStatusNotification);
-                            break;
-                        case REGISTER_OUTPUT:
-                            registerOutputIfReady((RegisterOutputRoundStatusNotification) roundStatusNotification);
-                            break;
-                        case REVEAL_OUTPUT_OR_BLAME:
-                            revealOutput();
-                            break;
-                        case SIGNING:
-                            this.signing((SigningRoundStatusNotification) roundStatusNotification);
-                            break;
-                        case SUCCESS:
-                            logStep(4, "SUCCESS");
-                            log.info("Funds will be received at " + this.receiveAddress + ", utxo " + this.receiveUtxoHash + ":" + this.receiveUtxoIdx);
 
-                            RoundResultSuccess roundResultSuccess = new RoundResultSuccess(this.receiveAddress, this.receiveUtxoHash, this.receiveUtxoIdx);
-                            this.listener.success(roundResultSuccess);
-                            exit();
-                            break;
-                        case FAIL:
-                            logStep(4, "FAILURE");
-                            failAndExit();
-                            break;
+                    if (RoundStatus.FAIL.equals(notification.status)) {
+                        logStep(4, "FAILURE");
+                        failAndExit();
+                        return;
                     }
+
+                    if (RoundStatus.REGISTER_INPUT.equals(notification.status)) {
+                        registerInput((RegisterInputRoundStatusNotification) roundStatusNotification);
+                        roundStatusCompleted.put(RoundStatus.REGISTER_INPUT, true);
+
+                    } else if (roundStatusCompleted.containsKey(RoundStatus.REGISTER_INPUT)) {
+                        if (gotRegisterInputResponse() && gotPeersPaymentCode()) {
+
+                            if (RoundStatus.REGISTER_OUTPUT.equals(notification.status)) {
+                                this.registerOutput((RegisterOutputRoundStatusNotification) roundStatusNotification);
+                                roundStatusCompleted.put(RoundStatus.REGISTER_OUTPUT, true);
+
+                            } else if (roundStatusCompleted.containsKey(RoundStatus.REGISTER_OUTPUT)) {
+                                if (RoundStatus.REVEAL_OUTPUT_OR_BLAME.equals(notification.status)) {
+                                    this.revealOutput();
+                                    roundStatusCompleted.put(RoundStatus.REVEAL_OUTPUT_OR_BLAME, true);
+
+                                } else if (RoundStatus.SIGNING.equals(notification.status)) {
+                                    this.signing((SigningRoundStatusNotification) roundStatusNotification);
+                                    roundStatusCompleted.put(RoundStatus.SIGNING, true);
+
+                                } else if (roundStatusCompleted.containsKey(RoundStatus.SIGNING)) {
+
+                                    if (RoundStatus.SUCCESS.equals(notification.status)) {
+                                        logStep(4, "SUCCESS");
+                                        log.info("Funds will be received at " + this.receiveAddress + ", utxo " + this.receiveUtxoHash + ":" + this.receiveUtxoIdx);
+
+                                        RoundResultSuccess roundResultSuccess = new RoundResultSuccess(this.receiveAddress, this.receiveUtxoHash, this.receiveUtxoIdx);
+                                        this.listener.success(roundResultSuccess);
+                                        exit();
+                                        return;
+                                    } else {
+
+                                    }
+                                } else {
+                                    log.warn(" x SIGNING not completed");
+                                    if (log.isDebugEnabled()) {
+                                        log.error("Ignoring roundStatusNotification: " + ClientUtils.toJsonString(roundStatusNotification));
+                                    }
+                                }
+                            } else {
+                                log.warn(" x REGISTER_OUTPUT not completed");
+                                if (log.isDebugEnabled()) {
+                                    log.error("Ignoring roundStatusNotification: " + ClientUtils.toJsonString(roundStatusNotification));
+                                }
+                            }
+                        } else {
+                            log.info(" > Trying to join current round...");
+                        }
+                    } else {
+                        log.info(" > Waiting for next round...");
+                        if (log.isDebugEnabled()) {
+                            log.debug("Current round status: " + notification.status);
+                        }
+                    }
+                }
+                else {
+                    log.warn("Ignoring duplicate roundStatus: "+roundStatusNotification.status);
                 }
             }
         }
         catch(Exception e) {
             log.error("", e);
             failAndExit();
-        }
-    }
-
-    private void registerOutputIfReady(RegisterOutputRoundStatusNotification registerOutputRoundStatusNotification) {
-        if (this.signedBordereau != null && this.peersPaymentCodesResponse != null) {
-            try {
-                this.registerOutput(registerOutputRoundStatusNotification);
-            } catch (Exception e) {
-                log.error("registerOutput failed", e);
-            }
-        }
-        else {
-            if (log.isDebugEnabled()) {
-                log.debug("Cannot register output yet, no signedBordereau or peersPaymentCodesResponse received yet");
-            }
         }
     }
 
@@ -279,22 +302,30 @@ public class WhirlpoolClient {
         exit();
     }
 
+    private boolean gotRegisterInputResponse() {
+        return (this.signedBordereau != null);
+    }
+
     private void onRegisterInputResponse(RegisterInputResponse payload) {
         log.info(" > Joined round " + this.roundStatusNotification.roundId);
         this.signedBordereau = payload.signedBordereau;
         if (RoundStatus.REGISTER_OUTPUT.equals(this.roundStatusNotification.status)) {
-            registerOutputIfReady((RegisterOutputRoundStatusNotification)this.roundStatusNotification);
+            if (gotPeersPaymentCode()) {
+                registerOutput((RegisterOutputRoundStatusNotification) this.roundStatusNotification);
+            }
         }
     }
 
-    private boolean hasRegisteredInput() {
-        return (this.signedBordereau != null);
+    private boolean gotPeersPaymentCode() {
+        return (this.peersPaymentCodesResponse != null);
     }
 
     private void onPeersPaymentCodeResponse(PeersPaymentCodesResponse payload) {
         this.peersPaymentCodesResponse = payload;
         if (RoundStatus.REGISTER_OUTPUT.equals(this.roundStatusNotification.status)) {
-            registerOutputIfReady((RegisterOutputRoundStatusNotification)this.roundStatusNotification);
+            if (gotRegisterInputResponse()) {
+                registerOutput((RegisterOutputRoundStatusNotification) this.roundStatusNotification);
+            }
         }
     }
 
@@ -364,35 +395,33 @@ public class WhirlpoolClient {
         registerInputRequest.blindedBordereau = clientCryptoService.blind(this.bordereau, blindingParams);
 
         stompSession.send(whirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);
-        roundStatusCompleted.put(RoundStatus.REGISTER_INPUT, true);
     }
 
-    private void registerOutput(RegisterOutputRoundStatusNotification registerOutputRoundStatusNotification) throws Exception {
-        NetworkParameters networkParameters = config.getNetworkParameters();
-        ISimpleWhirlpoolClient simpleWhirlpoolClient = roundParams.getSimpleWhirlpoolClient();
-
-        logStep(2, "REGISTER_OUTPUT");
-        RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
-        registerOutputRequest.roundId = roundStatusNotification.roundId;
-        registerOutputRequest.unblindedSignedBordereau = clientCryptoService.unblind(signedBordereau, blindingParams);
-        registerOutputRequest.bordereau = this.bordereau;
-        registerOutputRequest.sendAddress = simpleWhirlpoolClient.computeSendAddress(peersPaymentCodesResponse.toPaymentCode, networkParameters);
-        this.receiveAddress = simpleWhirlpoolClient.computeReceiveAddress(peersPaymentCodesResponse.fromPaymentCode, networkParameters);
-        registerOutputRequest.receiveAddress = this.receiveAddress;
-
-        if (log.isDebugEnabled()) {
-            log.debug("sendAddress=" + registerOutputRequest.sendAddress);
-            log.debug("receiveAddress=" + registerOutputRequest.receiveAddress);
-        }
-
-        // POST request through a different identity for mix privacy
+    private void registerOutput(RegisterOutputRoundStatusNotification registerOutputRoundStatusNotification) {
         try {
+            NetworkParameters networkParameters = config.getNetworkParameters();
+            ISimpleWhirlpoolClient simpleWhirlpoolClient = roundParams.getSimpleWhirlpoolClient();
+
+            logStep(2, "REGISTER_OUTPUT");
+            RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
+            registerOutputRequest.roundId = roundStatusNotification.roundId;
+            registerOutputRequest.unblindedSignedBordereau = clientCryptoService.unblind(signedBordereau, blindingParams);
+            registerOutputRequest.bordereau = this.bordereau;
+            registerOutputRequest.sendAddress = simpleWhirlpoolClient.computeSendAddress(peersPaymentCodesResponse.toPaymentCode, networkParameters);
+            this.receiveAddress = simpleWhirlpoolClient.computeReceiveAddress(peersPaymentCodesResponse.fromPaymentCode, networkParameters);
+            registerOutputRequest.receiveAddress = this.receiveAddress;
+
+            if (log.isDebugEnabled()) {
+                log.debug("sendAddress=" + registerOutputRequest.sendAddress);
+                log.debug("receiveAddress=" + registerOutputRequest.receiveAddress);
+            }
+
+            // POST request through a different identity for mix privacy
             simpleWhirlpoolClient.postHttpRequest(registerOutputRoundStatusNotification.getRegisterOutputUrl(), registerOutputRequest);
-            roundStatusCompleted.put(RoundStatus.REGISTER_OUTPUT, true);
         }
         catch(Exception e) {
             log.error("failed to registerOutput", e);
-            throw e;
+            failAndExit();
         }
     }
 
@@ -404,7 +433,6 @@ public class WhirlpoolClient {
         revealOutputRequest.bordereau = this.bordereau;
 
         stompSession.send(whirlpoolProtocol.ENDPOINT_REVEAL_OUTPUT, revealOutputRequest);
-        roundStatusCompleted.put(RoundStatus.REVEAL_OUTPUT_OR_BLAME, true);
     }
 
     private void signing(SigningRoundStatusNotification signingRoundStatusNotification) throws Exception {
@@ -438,7 +466,6 @@ public class WhirlpoolClient {
         // transmit
         signingRequest.witness = ClientUtils.witnessSerialize(tx.getWitness(inputIndex));
         stompSession.send(whirlpoolProtocol.ENDPOINT_SIGNING, signingRequest);
-        roundStatusCompleted.put(RoundStatus.SIGNING, true);
     }
 
     private long computeSpendAmount() {
@@ -486,7 +513,7 @@ public class WhirlpoolClient {
     private void onConnectionLost() {
         disconnect(true);
 
-        if (hasRegisteredInput()) {
+        if (gotRegisterInputResponse()) {
             log.error(" ! connection lost, reconnecting for resuming joined round...");
             this.resuming = true;
         }
