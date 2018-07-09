@@ -178,9 +178,6 @@ public class WhirlpoolClient {
     }
 
     private void onBroadcastReceived(Object payload) {
-        if (log.isDebugEnabled()) {
-            log.info("--> (broadcast) " + ClientUtils.toJsonString(payload));
-        }
         if (RoundStatusNotification.class.isAssignableFrom(payload.getClass())) {
             onRoundStatusNotificationChange((RoundStatusNotification)payload);
         }
@@ -254,7 +251,11 @@ public class WhirlpoolClient {
                                 }
                             }
                         } else {
-                            log.info(" > Trying to join current round...");
+                            if (roundParams.isLiquidity()) {
+                                log.info(" > Ready to provide liquidity");
+                            } else {
+                                log.info(" > Trying to join current round...");
+                            }
                         }
                     } else {
                         log.info(" > Waiting for next round...");
@@ -414,10 +415,15 @@ public class WhirlpoolClient {
             if (log.isDebugEnabled()) {
                 log.debug("sendAddress=" + registerOutputRequest.sendAddress);
                 log.debug("receiveAddress=" + registerOutputRequest.receiveAddress);
+                log.debug("POST " + registerOutputRoundStatusNotification.getRegisterOutputUrl()+": " + ClientUtils.toJsonString(registerOutputRequest));
             }
 
             // POST request through a different identity for mix privacy
             simpleWhirlpoolClient.postHttpRequest(registerOutputRoundStatusNotification.getRegisterOutputUrl(), registerOutputRequest);
+
+            if (log.isDebugEnabled()) {
+                log.debug("POST completed");
+            }
         }
         catch(Exception e) {
             log.error("failed to registerOutput", e);
