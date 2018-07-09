@@ -101,8 +101,8 @@ public class Application implements ApplicationRunner {
         Assert.notNull(wsUrl, "wsUrl is null");
         NetworkParameters params = NetworkParameters.fromPmtProtocolID(networkId);
         Assert.notNull(params, "unknown network");
-        Assert.notNull(utxo, "utxo are null");
-        Assert.notNull(utxoKey, "utxoWif are null");
+        Assert.notNull(utxo, "utxo is null");
+        Assert.notNull(utxoKey, "utxoKey is null");
         Assert.notNull(seedWords, "seedWords are null");
         Assert.notNull(seedPassphrase, "seedPassphrase is null");
         Assert.isTrue(rounds > 0, "rounds should be > 0");
@@ -147,16 +147,18 @@ public class Application implements ApplicationRunner {
             @Override
             public void success(int doneRounds) {
                 done = true;
+                log.info("***** ALL "+doneRounds+" ROUNDS SUCCESS *****");
             }
 
             @Override
             public void fail(int currentRound, int nbRounds) {
                 done = true;
+                log.info("***** ROUND "+currentRound+"/"+nbRounds+" FAILED *****");
             }
 
             @Override
             public void roundSuccess(int currentRound, int nbRounds, RoundResultSuccess roundResultSuccess) {
-
+                log.info("***** ROUND "+currentRound+"/"+nbRounds+" SUCCESS *****");
             }
 
             @Override
