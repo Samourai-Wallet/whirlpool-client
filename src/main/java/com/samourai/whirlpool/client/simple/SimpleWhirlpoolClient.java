@@ -17,12 +17,10 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 
 public class SimpleWhirlpoolClient implements ISimpleWhirlpoolClient {
+    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private ECKey utxoKey;
     private BIP47Wallet bip47Wallet;
     private ECKey receiveKey;
-
-    // non-static logger to prefix it with stomp sessionId
-    private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     public SimpleWhirlpoolClient(ECKey utxoKey, BIP47Wallet bip47Wallet) {
         this.utxoKey = utxoKey;
@@ -58,7 +56,7 @@ public class SimpleWhirlpoolClient implements ISimpleWhirlpoolClient {
         // receiver can calculate from privkey
         this.receiveKey = receiveAddress.getReceiveECKey();
         if (log.isDebugEnabled()) {
-            log.debug("receive ECKey=" + this.receiveKey.getPrivateKeyAsWiF(params));
+            log.debug("receiveECKey=" + this.receiveKey.getPrivateKeyAsWiF(params));
         }
         SegwitAddress addressToReceiver = new SegwitAddress(receiveKey, params);
         return addressToReceiver.getBech32AsString();
