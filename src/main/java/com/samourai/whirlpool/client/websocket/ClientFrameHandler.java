@@ -22,12 +22,12 @@ public class ClientFrameHandler implements StompFrameHandler {
 
     @Override
     public Type getPayloadType(StompHeaders headers) {
-        String broadcastType = headers.get(whirlpoolProtocol.HEADER_MESSAGE_TYPE).get(0);
+        String messageType = headers.get(whirlpoolProtocol.HEADER_MESSAGE_TYPE).get(0);
         try {
-            return Class.forName(broadcastType);
+            return Class.forName(messageType);
         }
         catch(ClassNotFoundException e) {
-            log.error("unknown message type: "+broadcastType, e);
+            log.error("unknown message type: " + messageType, e);
             return null;
         }
     }

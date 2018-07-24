@@ -12,6 +12,7 @@ import java.lang.invoke.MethodHandles;
  */
 public class ClientSessionHandler extends StompSessionHandlerAdapter {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+    private static final String HEADER_USERNAME = "user-name";
     private MixClient mixClient;
 
     public ClientSessionHandler(MixClient mixClient) {
@@ -21,7 +22,7 @@ public class ClientSessionHandler extends StompSessionHandlerAdapter {
     @Override
     public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
         super.afterConnected(session, connectedHeaders);
-        String username = connectedHeaders.get("user-name").iterator().next();
+        String username = connectedHeaders.get(HEADER_USERNAME).iterator().next();
         this.mixClient.onAfterConnected(username);
     }
 

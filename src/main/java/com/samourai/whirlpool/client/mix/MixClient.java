@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.ConnectionLostException;
+import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
@@ -395,7 +396,7 @@ public class MixClient {
         this.bordereau = ClientUtils.generateUniqueBordereau();
         registerInputRequest.blindedBordereau = clientCryptoService.blind(this.bordereau, blindingParams);
 
-        stompSession.send(whirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);
+        send(whirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);
     }
 
     private void registerOutput(RegisterOutputMixStatusNotification registerOutputMixStatusNotification) {
@@ -438,7 +439,7 @@ public class MixClient {
         revealOutputRequest.mixId = mixStatusNotification.mixId;
         revealOutputRequest.bordereau = this.bordereau;
 
-        stompSession.send(whirlpoolProtocol.ENDPOINT_REVEAL_OUTPUT, revealOutputRequest);
+        send(whirlpoolProtocol.ENDPOINT_REVEAL_OUTPUT, revealOutputRequest);
     }
 
     private void signing(SigningMixStatusNotification signingMixStatusNotification) throws Exception {
@@ -471,7 +472,7 @@ public class MixClient {
 
         // transmit
         signingRequest.witness = ClientUtils.witnessSerialize(tx.getWitness(inputIndex));
-        stompSession.send(whirlpoolProtocol.ENDPOINT_SIGNING, signingRequest);
+        send(whirlpoolProtocol.ENDPOINT_SIGNING, signingRequest);
     }
 
     private long computeSpendAmount() {
@@ -485,7 +486,8 @@ public class MixClient {
     private void logStep(int currentStep, String msg) {
         final int NB_STEPS = 4;
         log.info("("+currentStep+"/"+NB_STEPS+") " + msg);
-        this.listener.progress(this.mixStatusNotification.status, currentStep, NB_STEPS);
+        MixStatus mixStatus = (this.mixStatusNotification != null ? this.mixStatusNotification.status : MixStatus.REGISTER_INPUT); // null when protocol error on REGISTER_INPUT
+        this.listener.progress(mixStatus, currentStep, NB_STEPS);
     }
 
     public void exit() {
@@ -573,6 +575,13 @@ public class MixClient {
         // aborting
         reconnecting = false;
         throw new Exception("Reconnecting failed");
+    }
+
+    private void send(String destination, Object message) {
+        StompHeaders stompHeaders = new StompHeaders();
+        stompHeaders.setDestination(destination);
+        stompHeaders.set(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION, "foo");
+        stompSession.send(stompHeaders, message);
     }
 
     public MixStatusNotification __getMixStatusNotification() {
