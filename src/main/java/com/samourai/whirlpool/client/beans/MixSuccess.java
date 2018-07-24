@@ -1,11 +1,11 @@
 package com.samourai.whirlpool.client.beans;
 
-public class RoundResultSuccess {
+public class MixSuccess {
     private String receiveAddress;
     private String receiveUtxoHash;
     private int receiveUtxoIdx;
 
-    public RoundResultSuccess(String receiveAddress, String receiveUtxoHash, int receiveUtxoIdx) {
+    public MixSuccess(String receiveAddress, String receiveUtxoHash, int receiveUtxoIdx) {
         this.receiveAddress = receiveAddress;
         this.receiveUtxoHash = receiveUtxoHash;
         this.receiveUtxoIdx = receiveUtxoIdx;

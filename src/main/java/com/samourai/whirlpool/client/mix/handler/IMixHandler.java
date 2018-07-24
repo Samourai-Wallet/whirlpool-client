@@ -1,9 +1,9 @@
-package com.samourai.whirlpool.client.simple;
+package com.samourai.whirlpool.client.mix.handler;
 
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 
-public interface ISimpleWhirlpoolClient {
+public interface IMixHandler {
 
     String computeSendAddress(String toPeerPaymentCode, NetworkParameters params) throws Exception;
 
@@ -17,6 +17,6 @@ public interface ISimpleWhirlpoolClient {
 
     void postHttpRequest(String url, Object requestBody) throws Exception;
 
-    ISimpleWhirlpoolClient computeSimpleWhirlpoolClientForNextRound();
+    IMixHandler computeMixHandlerForNextMix();
 
 }

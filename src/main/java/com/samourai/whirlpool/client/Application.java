@@ -2,12 +2,13 @@ package com.samourai.whirlpool.client;
 
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.hd.HD_Wallet;
-import com.samourai.whirlpool.client.beans.RoundResultSuccess;
-import com.samourai.whirlpool.client.simple.ISimpleWhirlpoolClient;
-import com.samourai.whirlpool.client.simple.SimpleWhirlpoolClient;
+import com.samourai.whirlpool.client.beans.MixSuccess;
+import com.samourai.whirlpool.client.mix.MixParams;
+import com.samourai.whirlpool.client.mix.handler.IMixHandler;
+import com.samourai.whirlpool.client.mix.handler.MixHandler;
 import com.samourai.whirlpool.client.utils.LogbackUtils;
 import com.samourai.whirlpool.client.utils.WhirlpoolClientConfig;
-import com.samourai.whirlpool.protocol.v1.notifications.RoundStatus;
+import com.samourai.whirlpool.protocol.v1.notifications.MixStatus;
 import org.apache.log4j.Level;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.DumpedPrivateKey;
@@ -97,7 +98,7 @@ public class Application implements ApplicationRunner {
         }
     }
 
-    private WhirlpoolMultiRoundClient runClient(String wsUrl, String networkId, String utxo, String utxoKey, String seedWords, String seedPassphrase, boolean liquidity, int rounds) throws Exception {
+    private WhirlpoolClient runClient(String wsUrl, String networkId, String utxo, String utxoKey, String seedWords, String seedPassphrase, boolean liquidity, int rounds) throws Exception {
         Assert.notNull(wsUrl, "wsUrl is null");
         NetworkParameters params = NetworkParameters.fromPmtProtocolID(networkId);
         Assert.notNull(params, "unknown network");
@@ -129,21 +130,21 @@ public class Application implements ApplicationRunner {
 
         // whirlpool
         WhirlpoolClientConfig config = new WhirlpoolClientConfig(wsUrl, params);
-        WhirlpoolMultiRoundClient multiRoundWhirlpoolClient = new WhirlpoolMultiRoundClient(config);
+        WhirlpoolClient whirlpoolClient = new WhirlpoolClient(config);
 
         String utxoSplit[] = utxo.split("-");
         String utxoHash = utxoSplit[0];
         Long utxoIdx = Long.parseLong(utxoSplit[1]);
-        ISimpleWhirlpoolClient simpleClient = new SimpleWhirlpoolClient(ecKey, bip47w);
-        RoundParams roundParams = new RoundParams(utxoHash, utxoIdx, paymentCode, simpleClient, liquidity);
-        WhirlpoolMultiRoundClientListener listener = computeMultiRoundListener();
+        IMixHandler mixHandler = new MixHandler(ecKey, bip47w);
+        MixParams mixParams = new MixParams(utxoHash, utxoIdx, paymentCode, mixHandler, liquidity);
+        WhirlpoolClientListener listener = computeClientListener();
 
-        multiRoundWhirlpoolClient.whirlpool(roundParams, rounds, listener);
-        return multiRoundWhirlpoolClient;
+        whirlpoolClient.whirlpool(mixParams, rounds, listener);
+        return whirlpoolClient;
     }
 
-    private WhirlpoolMultiRoundClientListener computeMultiRoundListener() {
-        return new WhirlpoolMultiRoundClientListener() {
+    private WhirlpoolClientListener computeClientListener() {
+        return new WhirlpoolClientListener() {
             @Override
             public void success(int doneRounds) {
                 done = true;
@@ -157,12 +158,12 @@ public class Application implements ApplicationRunner {
             }
 
             @Override
-            public void roundSuccess(int currentRound, int nbRounds, RoundResultSuccess roundResultSuccess) {
+            public void mixSuccess(int currentRound, int nbRounds, MixSuccess mixSuccess) {
                 log.info("***** ROUND "+currentRound+"/"+nbRounds+" SUCCESS *****");
             }
 
             @Override
-            public void progress(int currentRound, int nbRounds, RoundStatus roundStatus, int currentStep, int nbSteps) {
+            public void progress(int currentRound, int nbRounds, MixStatus mixStatus, int currentStep, int nbSteps) {
 
             }
         };

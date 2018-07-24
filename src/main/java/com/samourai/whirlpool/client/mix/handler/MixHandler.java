@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.simple;
+package com.samourai.whirlpool.client.mix.handler;
 
 import com.samourai.wallet.bip47.BIP47Util;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
@@ -16,13 +16,13 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
 
-public class SimpleWhirlpoolClient implements ISimpleWhirlpoolClient {
+public class MixHandler implements IMixHandler {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private ECKey utxoKey;
     private BIP47Wallet bip47Wallet;
     private ECKey receiveKey;
 
-    public SimpleWhirlpoolClient(ECKey utxoKey, BIP47Wallet bip47Wallet) {
+    public MixHandler(ECKey utxoKey, BIP47Wallet bip47Wallet) {
         this.utxoKey = utxoKey;
         this.bip47Wallet = bip47Wallet;
         this.receiveKey = null;
@@ -89,7 +89,7 @@ public class SimpleWhirlpoolClient implements ISimpleWhirlpoolClient {
     }
 
     @Override
-    public ISimpleWhirlpoolClient computeSimpleWhirlpoolClientForNextRound() {
-        return new SimpleWhirlpoolClient(receiveKey, bip47Wallet);
+    public IMixHandler computeMixHandlerForNextMix() {
+        return new MixHandler(receiveKey, bip47Wallet);
     }
 }

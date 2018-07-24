@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.utils;
 
-import com.samourai.whirlpool.client.WhirlpoolClient;
+import com.samourai.whirlpool.client.mix.MixClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.stomp.*;
@@ -12,17 +12,17 @@ import java.lang.invoke.MethodHandles;
  */
 public class ClientSessionHandler extends StompSessionHandlerAdapter {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private WhirlpoolClient whirlpoolClient;
+    private MixClient mixClient;
 
-    public ClientSessionHandler(WhirlpoolClient whirlpoolClient) {
-        this.whirlpoolClient = whirlpoolClient;
+    public ClientSessionHandler(MixClient mixClient) {
+        this.mixClient = mixClient;
     }
 
     @Override
     public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
         super.afterConnected(session, connectedHeaders);
         String username = connectedHeaders.get("user-name").iterator().next();
-        this.whirlpoolClient.onAfterConnected(username);
+        this.mixClient.onAfterConnected(username);
     }
 
     @Override
@@ -34,6 +34,6 @@ public class ClientSessionHandler extends StompSessionHandlerAdapter {
     @Override
     public void handleTransportError(StompSession session, Throwable exception) {
         super.handleTransportError(session, exception);
-        whirlpoolClient.onTransportError(exception);
+        mixClient.onTransportError(exception);
     }
 }

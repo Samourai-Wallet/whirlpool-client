@@ -1,19 +1,19 @@
-package com.samourai.whirlpool.client;
+package com.samourai.whirlpool.client.mix;
 
-import com.samourai.whirlpool.client.simple.ISimpleWhirlpoolClient;
+import com.samourai.whirlpool.client.mix.handler.IMixHandler;
 
-public class RoundParams {
+public class MixParams {
     private String utxoHash;
     private long utxoIdx;
     private String paymentCode;
-    private ISimpleWhirlpoolClient simpleWhirlpoolClient;
+    private IMixHandler mixHandler;
     private boolean liquidity;
 
-    public RoundParams( String utxoHash, long utxoIdx, String paymentCode, ISimpleWhirlpoolClient simpleWhirlpoolClient, boolean liquidity) {
+    public MixParams(String utxoHash, long utxoIdx, String paymentCode, IMixHandler mixHandler, boolean liquidity) {
         this.utxoHash = utxoHash;
         this.utxoIdx = utxoIdx;
         this.paymentCode = paymentCode;
-        this.simpleWhirlpoolClient = simpleWhirlpoolClient;
+        this.mixHandler = mixHandler;
         this.liquidity = liquidity;
     }
 
@@ -29,8 +29,8 @@ public class RoundParams {
         return paymentCode;
     }
 
-    public ISimpleWhirlpoolClient getSimpleWhirlpoolClient() {
-        return simpleWhirlpoolClient;
+    public IMixHandler getMixHandler() {
+        return mixHandler;
     }
 
     public boolean isLiquidity() {
