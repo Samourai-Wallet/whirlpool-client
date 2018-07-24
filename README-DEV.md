@@ -25,5 +25,5 @@ WhirlpoolClient whirlpoolClient = new WhirlpoolClient(config);
 
 // run
 WhirlpoolClientListener listener = ... // will be notified of mix status in realtime
-whirlpoolClient.whirlpool(roundParams, rounds, listener);
+whirlpoolClient.whirlpool(mixParams, rounds, listener);
 ```

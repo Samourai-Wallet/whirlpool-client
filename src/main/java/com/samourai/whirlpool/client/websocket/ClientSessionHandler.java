@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.utils;
+package com.samourai.whirlpool.client.websocket;
 
 import com.samourai.whirlpool.client.mix.MixClient;
 import org.slf4j.Logger;

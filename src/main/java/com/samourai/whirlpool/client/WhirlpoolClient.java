@@ -4,7 +4,6 @@ import com.samourai.whirlpool.client.beans.MixSuccess;
 import com.samourai.whirlpool.client.mix.MixClient;
 import com.samourai.whirlpool.client.mix.MixClientListener;
 import com.samourai.whirlpool.client.mix.MixParams;
-import com.samourai.whirlpool.client.utils.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.v1.notifications.MixStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +16,8 @@ public class WhirlpoolClient {
     private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private WhirlpoolClientConfig config;
-    private int rounds;
-    private int doneRounds;
+    private int mixs;
+    private int doneMixs;
     private String logPrefix;
 
     private List<MixClient> mixClients;
@@ -29,10 +28,10 @@ public class WhirlpoolClient {
         this.logPrefix = null;
     }
 
-    public void whirlpool(MixParams mixParams, int rounds, WhirlpoolClientListener listener) {
-        this.rounds = rounds;
+    public void whirlpool(MixParams mixParams, int mixs, WhirlpoolClientListener listener) {
+        this.mixs = mixs;
         this.listener = listener;
-        this.doneRounds = 0;
+        this.doneMixs = 0;
         this.mixClients = new ArrayList<>();
 
         new Thread(() -> {
@@ -52,14 +51,14 @@ public class WhirlpoolClient {
     }
 
     private MixClient runClient(MixParams mixParams) {
-        MixClientListener roundListener = computeRoundListener();
+        MixClientListener mixListener = computeMixListener();
 
         MixClient mixClient = new MixClient(config);
         if (logPrefix != null) {
-            int round = this.mixClients.size();
-            mixClient.setLogPrefix(logPrefix+"["+(round+1)+"]");
+            int mix = this.mixClients.size();
+            mixClient.setLogPrefix(logPrefix+"["+(mix+1)+"]");
         }
-        mixClient.whirlpool(mixParams, roundListener);
+        mixClient.whirlpool(mixParams, mixListener);
         this.mixClients.add(mixClient);
         return mixClient;
     }
@@ -68,37 +67,37 @@ public class WhirlpoolClient {
         return mixClients.get(mixClients.size() - 1);
     }
 
-    private void onRoundSuccess(MixSuccess mixSuccess) {
-        listener.mixSuccess(doneRounds+1, rounds, mixSuccess);
+    private void onMixsuccess(MixSuccess mixSuccess) {
+        listener.mixSuccess(doneMixs+1, mixs, mixSuccess);
 
-        this.doneRounds++;
-        if (doneRounds == rounds) {
-            // all rounds done
-            listener.success(doneRounds);
+        this.doneMixs++;
+        if (doneMixs == mixs) {
+            // all mixs done
+            listener.success(doneMixs);
         }
         else {
-            // go to next round
+            // go to next mix
             MixClient mixClient = getLastWhirlpoolClient();
-            MixParams nextMixParams = mixClient.computeNextRoundParams();
+            MixParams nextMixParams = mixClient.computeNextMixParams();
             runClient(nextMixParams);
         }
     }
 
-    private MixClientListener computeRoundListener() {
+    private MixClientListener computeMixListener() {
         return new MixClientListener() {
             @Override
             public void success(MixSuccess mixSuccess) {
-                onRoundSuccess(mixSuccess);
+                onMixsuccess(mixSuccess);
             }
 
             @Override
             public void fail() {
-                listener.fail(doneRounds+1, rounds);
+                listener.fail(doneMixs+1, mixs);
             }
 
             @Override
             public void progress(MixStatus mixStatus, int currentStep, int nbSteps) {
-                listener.progress(doneRounds+1, rounds, mixStatus, currentStep, nbSteps);
+                listener.progress(doneMixs+1, mixs, mixStatus, currentStep, nbSteps);
             }
         };
     }
@@ -112,7 +111,7 @@ public class WhirlpoolClient {
 
     public void debugState() {
         if (log.isDebugEnabled()) {
-            log.debug("Round "+doneRounds+"/"+rounds);
+            log.debug("Mix "+doneMixs+"/"+ mixs);
             for (MixClient mixClient : mixClients) {
                 mixClient.debugState();
             }
@@ -123,8 +122,8 @@ public class WhirlpoolClient {
         this.logPrefix = logPrefix;
     }
 
-    public MixClient getMixClient(int round) {
-        return mixClients.get(round-1);
+    public MixClient getMixClient(int mix) {
+        return mixClients.get(mix-1);
     }
 
 }

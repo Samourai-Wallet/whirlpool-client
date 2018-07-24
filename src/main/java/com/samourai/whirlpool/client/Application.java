@@ -7,7 +7,6 @@ import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.handler.IMixHandler;
 import com.samourai.whirlpool.client.mix.handler.MixHandler;
 import com.samourai.whirlpool.client.utils.LogbackUtils;
-import com.samourai.whirlpool.client.utils.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.v1.notifications.MixStatus;
 import org.apache.log4j.Level;
 import org.bitcoinj.core.Context;
@@ -40,8 +39,8 @@ public class Application implements ApplicationRunner {
     private static final String ARG_SEED_WORDS = "seed-words";
     private static final String ARG_SERVER = "server";
     private static final String ARG_LIQUIDITY = "liquidity";
-    private static final String ARG_ROUNDS = "rounds";
-    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --seed-passphrase= --seed-words= [--liquidity] [--rounds=1] [--server=host:port] [--debug]";
+    private static final String ARG_MIXS = "mixs";
+    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --seed-passphrase= --seed-words= [--liquidity] [--mixs=1] [--server=host:port] [--debug]";
 
     private ApplicationArguments args;
     private boolean done;
@@ -70,18 +69,18 @@ public class Application implements ApplicationRunner {
             String seedWords = requireOption(ARG_SEED_WORDS);
             String seedPassphrase = requireOption(ARG_SEED_PASSPHRASE);
             boolean liquidity = args.containsOption(ARG_LIQUIDITY);
-            final int rounds;
+            final int mixs;
             try {
-                rounds = Integer.parseInt(requireOption(ARG_ROUNDS, "1"));
+                mixs = Integer.parseInt(requireOption(ARG_MIXS, "1"));
             }
             catch (Exception e) {
-                throw new IllegalArgumentException("Numeric value expected for option: "+ARG_ROUNDS);
+                throw new IllegalArgumentException("Numeric value expected for option: "+ ARG_MIXS);
             }
             String wsUrl = "ws://"+requireOption(ARG_SERVER, "127.0.0.1:8080");
 
             new Thread(() -> {
                 try {
-                    runClient(wsUrl, networkId, utxo, utxoKey, seedWords, seedPassphrase, liquidity, rounds);
+                    runClient(wsUrl, networkId, utxo, utxoKey, seedWords, seedPassphrase, liquidity, mixs);
                     synchronized (this) {
                         while(!done) {
                             wait(1000);
@@ -98,7 +97,7 @@ public class Application implements ApplicationRunner {
         }
     }
 
-    private WhirlpoolClient runClient(String wsUrl, String networkId, String utxo, String utxoKey, String seedWords, String seedPassphrase, boolean liquidity, int rounds) throws Exception {
+    private WhirlpoolClient runClient(String wsUrl, String networkId, String utxo, String utxoKey, String seedWords, String seedPassphrase, boolean liquidity, int mixs) throws Exception {
         Assert.notNull(wsUrl, "wsUrl is null");
         NetworkParameters params = NetworkParameters.fromPmtProtocolID(networkId);
         Assert.notNull(params, "unknown network");
@@ -106,7 +105,7 @@ public class Application implements ApplicationRunner {
         Assert.notNull(utxoKey, "utxoKey is null");
         Assert.notNull(seedWords, "seedWords are null");
         Assert.notNull(seedPassphrase, "seedPassphrase is null");
-        Assert.isTrue(rounds > 0, "rounds should be > 0");
+        Assert.isTrue(mixs > 0, "mixs should be > 0");
 
         // initialize bitcoinj context
         new Context(params);
@@ -139,31 +138,31 @@ public class Application implements ApplicationRunner {
         MixParams mixParams = new MixParams(utxoHash, utxoIdx, paymentCode, mixHandler, liquidity);
         WhirlpoolClientListener listener = computeClientListener();
 
-        whirlpoolClient.whirlpool(mixParams, rounds, listener);
+        whirlpoolClient.whirlpool(mixParams, mixs, listener);
         return whirlpoolClient;
     }
 
     private WhirlpoolClientListener computeClientListener() {
         return new WhirlpoolClientListener() {
             @Override
-            public void success(int doneRounds) {
+            public void success(int nbMixs) {
                 done = true;
-                log.info("***** ALL "+doneRounds+" ROUNDS SUCCESS *****");
+                log.info("***** ALL " + nbMixs + " MIXS SUCCESS *****");
             }
 
             @Override
-            public void fail(int currentRound, int nbRounds) {
+            public void fail(int currentMix, int nbMixs) {
                 done = true;
-                log.info("***** ROUND "+currentRound+"/"+nbRounds+" FAILED *****");
+                log.info("***** MIX " + currentMix + "/" + nbMixs + " FAILED *****");
             }
 
             @Override
-            public void mixSuccess(int currentRound, int nbRounds, MixSuccess mixSuccess) {
-                log.info("***** ROUND "+currentRound+"/"+nbRounds+" SUCCESS *****");
+            public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
+                log.info("***** MIX " + currentMix + "/" + nbMixs + " SUCCESS *****");
             }
 
             @Override
-            public void progress(int currentRound, int nbRounds, MixStatus mixStatus, int currentStep, int nbSteps) {
+            public void progress(int currentMix, int nbMixs, MixStatus mixStatus, int currentStep, int nbSteps) {
 
             }
         };

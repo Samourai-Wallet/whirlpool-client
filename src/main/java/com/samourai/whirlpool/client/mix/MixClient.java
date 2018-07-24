@@ -1,13 +1,13 @@
 package com.samourai.whirlpool.client.mix;
 
 import ch.qos.logback.classic.Level;
+import com.samourai.whirlpool.client.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.beans.MixSuccess;
 import com.samourai.whirlpool.client.mix.handler.IMixHandler;
 import com.samourai.whirlpool.client.services.ClientCryptoService;
-import com.samourai.whirlpool.client.utils.ClientFrameHandler;
-import com.samourai.whirlpool.client.utils.ClientSessionHandler;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.utils.WhirlpoolClientConfig;
+import com.samourai.whirlpool.client.websocket.ClientFrameHandler;
+import com.samourai.whirlpool.client.websocket.ClientSessionHandler;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.v1.messages.*;
 import com.samourai.whirlpool.protocol.v1.notifications.*;
@@ -34,12 +34,12 @@ public class MixClient {
     // server settings
     private WhirlpoolClientConfig config;
 
-    // round settings
+    // mix settings
     private MixParams mixParams;
     private MixClientListener listener;
 
-    // round data
-    private RoundStatusNotification roundStatusNotification;
+    // mix data
+    private MixStatusNotification mixStatusNotification;
     private ErrorResponse errorResponse;
     private RSAKeyParameters serverPublicKey;
     private long denomination;
@@ -53,7 +53,7 @@ public class MixClient {
     private String receiveAddress;
     private String receiveUtxoHash;
     private Integer receiveUtxoIdx;
-    private Map<MixStatus,Boolean> roundStatusCompleted = new HashMap<>();
+    private Map<MixStatus,Boolean> mixStatusCompleted = new HashMap<>();
 
     private ClientCryptoService clientCryptoService;
     private WhirlpoolProtocol whirlpoolProtocol;
@@ -171,33 +171,33 @@ public class MixClient {
                 }
             })
         );
-        // will automatically receive roundStatus in response of subscription
+        // will automatically receive mixStatus in response of subscription
         if (log.isDebugEnabled()) {
             log.debug(" • subscribed to server");
         }
     }
 
     private void onBroadcastReceived(Object payload) {
-        if (RoundStatusNotification.class.isAssignableFrom(payload.getClass())) {
-            onRoundStatusNotificationChange((RoundStatusNotification)payload);
+        if (MixStatusNotification.class.isAssignableFrom(payload.getClass())) {
+            onMixStatusNotificationChange((MixStatusNotification)payload);
         }
     }
 
-    private synchronized void onRoundStatusNotificationChange(RoundStatusNotification notification) {
+    private synchronized void onMixStatusNotificationChange(MixStatusNotification notification) {
         try {
-            if (this.roundStatusNotification != null && !this.roundStatusNotification.roundId.equals(notification.roundId)) {
-                // roundId changed, reset...
+            if (this.mixStatusNotification != null && !this.mixStatusNotification.mixId.equals(notification.mixId)) {
+                // mixId changed, reset...
                 if (resuming) {
-                    log.error(" ! Unable to resume joined round: new round detected");
+                    log.error(" ! Unable to resume joined mix: new mix detected");
                 } else {
-                    log.info("new round detected: " + notification.roundId);
+                    log.info("new mix detected: " + notification.mixId);
                 }
-                this.resetRound();
+                this.resetMix();
             }
-            if (this.roundStatusNotification == null || !notification.status.equals(this.roundStatusNotification.status)) {
-                this.roundStatusNotification = notification;
-                // ignore duplicate roundStatus
-                if (!roundStatusCompleted.containsKey(notification.status)) {
+            if (this.mixStatusNotification == null || !notification.status.equals(this.mixStatusNotification.status)) {
+                this.mixStatusNotification = notification;
+                // ignore duplicate mixStatus
+                if (!mixStatusCompleted.containsKey(notification.status)) {
 
                     if (MixStatus.FAIL.equals(notification.status)) {
                         logStep(4, "FAILURE");
@@ -206,26 +206,26 @@ public class MixClient {
                     }
 
                     if (MixStatus.REGISTER_INPUT.equals(notification.status)) {
-                        registerInput((RegisterInputRoundStatusNotification) roundStatusNotification);
-                        roundStatusCompleted.put(MixStatus.REGISTER_INPUT, true);
+                        registerInput((RegisterInputMixStatusNotification) mixStatusNotification);
+                        mixStatusCompleted.put(MixStatus.REGISTER_INPUT, true);
 
-                    } else if (roundStatusCompleted.containsKey(MixStatus.REGISTER_INPUT)) {
+                    } else if (mixStatusCompleted.containsKey(MixStatus.REGISTER_INPUT)) {
                         if (gotRegisterInputResponse() && gotPeersPaymentCode()) {
 
                             if (MixStatus.REGISTER_OUTPUT.equals(notification.status)) {
-                                this.registerOutput((RegisterOutputRoundStatusNotification) roundStatusNotification);
-                                roundStatusCompleted.put(MixStatus.REGISTER_OUTPUT, true);
+                                this.registerOutput((RegisterOutputMixStatusNotification) mixStatusNotification);
+                                mixStatusCompleted.put(MixStatus.REGISTER_OUTPUT, true);
 
-                            } else if (roundStatusCompleted.containsKey(MixStatus.REGISTER_OUTPUT)) {
+                            } else if (mixStatusCompleted.containsKey(MixStatus.REGISTER_OUTPUT)) {
                                 if (MixStatus.REVEAL_OUTPUT.equals(notification.status)) {
                                     this.revealOutput();
-                                    roundStatusCompleted.put(MixStatus.REVEAL_OUTPUT, true);
+                                    mixStatusCompleted.put(MixStatus.REVEAL_OUTPUT, true);
 
                                 } else if (MixStatus.SIGNING.equals(notification.status)) {
-                                    this.signing((SigningRoundStatusNotification) roundStatusNotification);
-                                    roundStatusCompleted.put(MixStatus.SIGNING, true);
+                                    this.signing((SigningMixStatusNotification) mixStatusNotification);
+                                    mixStatusCompleted.put(MixStatus.SIGNING, true);
 
-                                } else if (roundStatusCompleted.containsKey(MixStatus.SIGNING)) {
+                                } else if (mixStatusCompleted.containsKey(MixStatus.SIGNING)) {
 
                                     if (MixStatus.SUCCESS.equals(notification.status)) {
                                         logStep(4, "SUCCESS");
@@ -241,31 +241,31 @@ public class MixClient {
                                 } else {
                                     log.warn(" x SIGNING not completed");
                                     if (log.isDebugEnabled()) {
-                                        log.error("Ignoring roundStatusNotification: " + ClientUtils.toJsonString(roundStatusNotification));
+                                        log.error("Ignoring mixStatusNotification: " + ClientUtils.toJsonString(mixStatusNotification));
                                     }
                                 }
                             } else {
                                 log.warn(" x REGISTER_OUTPUT not completed");
                                 if (log.isDebugEnabled()) {
-                                    log.error("Ignoring roundStatusNotification: " + ClientUtils.toJsonString(roundStatusNotification));
+                                    log.error("Ignoring mixStatusNotification: " + ClientUtils.toJsonString(mixStatusNotification));
                                 }
                             }
                         } else {
                             if (mixParams.isLiquidity()) {
                                 log.info(" > Ready to provide liquidity");
                             } else {
-                                log.info(" > Trying to join current round...");
+                                log.info(" > Trying to join current mix...");
                             }
                         }
                     } else {
-                        log.info(" > Waiting for next round...");
+                        log.info(" > Waiting for next mix...");
                         if (log.isDebugEnabled()) {
-                            log.debug("Current round status: " + notification.status);
+                            log.debug("Current mix status: " + notification.status);
                         }
                     }
                 }
                 else {
-                    log.warn("Ignoring duplicate roundStatus: "+roundStatusNotification.status);
+                    log.warn("Ignoring duplicate mixStatus: "+mixStatusNotification.status);
                 }
             }
         }
@@ -280,8 +280,8 @@ public class MixClient {
         if (ErrorResponse.class.isAssignableFrom(payloadClass)) {
             onErrorResponse((ErrorResponse)payload);
         }
-        else if (RoundStatusNotification.class.isAssignableFrom(payload.getClass())) {
-            onRoundStatusNotificationChange((RoundStatusNotification)payload);
+        else if (MixStatusNotification.class.isAssignableFrom(payload.getClass())) {
+            onMixStatusNotificationChange((MixStatusNotification)payload);
         }
         else if (RegisterInputResponse.class.isAssignableFrom(payloadClass)) {
             onRegisterInputResponse((RegisterInputResponse)payload);
@@ -308,11 +308,11 @@ public class MixClient {
     }
 
     private void onRegisterInputResponse(RegisterInputResponse payload) {
-        log.info(" > Joined round " + this.roundStatusNotification.roundId);
+        log.info(" > Joined mix " + this.mixStatusNotification.mixId);
         this.signedBordereau = payload.signedBordereau;
-        if (MixStatus.REGISTER_OUTPUT.equals(this.roundStatusNotification.status)) {
+        if (MixStatus.REGISTER_OUTPUT.equals(this.mixStatusNotification.status)) {
             if (gotPeersPaymentCode()) {
-                registerOutput((RegisterOutputRoundStatusNotification) this.roundStatusNotification);
+                registerOutput((RegisterOutputMixStatusNotification) this.mixStatusNotification);
             }
         }
     }
@@ -323,9 +323,9 @@ public class MixClient {
 
     private void onPeersPaymentCodeResponse(PeersPaymentCodesResponse payload) {
         this.peersPaymentCodesResponse = payload;
-        if (MixStatus.REGISTER_OUTPUT.equals(this.roundStatusNotification.status)) {
+        if (MixStatus.REGISTER_OUTPUT.equals(this.mixStatusNotification.status)) {
             if (gotRegisterInputResponse()) {
-                registerOutput((RegisterOutputRoundStatusNotification) this.roundStatusNotification);
+                registerOutput((RegisterOutputMixStatusNotification) this.mixStatusNotification);
             }
         }
     }
@@ -336,17 +336,17 @@ public class MixClient {
         return stompClient;
     }
 
-    public MixParams computeNextRoundParams() {
+    public MixParams computeNextMixParams() {
         IMixHandler nextMixHandler = mixParams.getMixHandler().computeMixHandlerForNextMix();
         return new MixParams(this.receiveUtxoHash, this.receiveUtxoIdx, mixParams.getPaymentCode(), nextMixHandler, true);
     }
 
-    private void resetRound() {
+    private void resetMix() {
         if (log.isDebugEnabled()) {
-            log.debug("resetRound");
+            log.debug("resetMix");
         }
-        // round data
-        this.roundStatusNotification = null;
+        // mix data
+        this.mixStatusNotification = null;
         this.errorResponse = null;
         this.serverPublicKey = null;
         this.denomination = -1;
@@ -360,23 +360,23 @@ public class MixClient {
         this.receiveAddress = null;
         this.receiveUtxoHash = null;
         this.receiveUtxoIdx = null;
-        this.roundStatusCompleted = new HashMap<>();
+        this.mixStatusCompleted = new HashMap<>();
         this.resuming = false;
     }
 
-    private void registerInput(RegisterInputRoundStatusNotification registerInputRoundStatusNotification) throws Exception {
+    private void registerInput(RegisterInputMixStatusNotification registerInputMixStatusNotification) throws Exception {
         NetworkParameters networkParameters = config.getNetworkParameters();
 
         logStep(1, "REGISTER_INPUT");
 
-        // get round settings
-        this.serverPublicKey = ClientUtils.publicKeyUnserialize(registerInputRoundStatusNotification.getPublicKey());
-        String serverNetworkId = registerInputRoundStatusNotification.getNetworkId();
+        // get mix settings
+        this.serverPublicKey = ClientUtils.publicKeyUnserialize(registerInputMixStatusNotification.getPublicKey());
+        String serverNetworkId = registerInputMixStatusNotification.getNetworkId();
         if (!networkParameters.getPaymentProtocolId().equals(serverNetworkId)) {
             throw new Exception("Client/server networkId mismatch: server is runinng "+serverNetworkId+", client is expecting "+networkParameters.getPaymentProtocolId());
         }
-        this.denomination = registerInputRoundStatusNotification.getDenomination();
-        this.minerFee = registerInputRoundStatusNotification.getMinerFee();
+        this.denomination = registerInputMixStatusNotification.getDenomination();
+        this.minerFee = registerInputMixStatusNotification.getMinerFee();
 
         IMixHandler mixHandler = mixParams.getMixHandler();
 
@@ -384,8 +384,8 @@ public class MixClient {
         registerInputRequest.utxoHash = mixParams.getUtxoHash();
         registerInputRequest.utxoIndex = mixParams.getUtxoIdx();
         registerInputRequest.pubkey = mixHandler.getPubkey();
-        registerInputRequest.signature = mixHandler.signMessage(roundStatusNotification.roundId);
-        registerInputRequest.roundId = roundStatusNotification.roundId;
+        registerInputRequest.signature = mixHandler.signMessage(mixStatusNotification.mixId);
+        registerInputRequest.mixId = mixStatusNotification.mixId;
         registerInputRequest.paymentCode = mixParams.getPaymentCode();
         registerInputRequest.liquidity = mixParams.isLiquidity();
 
@@ -398,14 +398,14 @@ public class MixClient {
         stompSession.send(whirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);
     }
 
-    private void registerOutput(RegisterOutputRoundStatusNotification registerOutputRoundStatusNotification) {
+    private void registerOutput(RegisterOutputMixStatusNotification registerOutputMixStatusNotification) {
         try {
             NetworkParameters networkParameters = config.getNetworkParameters();
             IMixHandler mixHandler = mixParams.getMixHandler();
 
             logStep(2, "REGISTER_OUTPUT");
             RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
-            registerOutputRequest.roundId = roundStatusNotification.roundId;
+            registerOutputRequest.mixId = mixStatusNotification.mixId;
             registerOutputRequest.unblindedSignedBordereau = clientCryptoService.unblind(signedBordereau, blindingParams);
             registerOutputRequest.bordereau = this.bordereau;
             registerOutputRequest.sendAddress = mixHandler.computeSendAddress(peersPaymentCodesResponse.toPaymentCode, networkParameters);
@@ -415,11 +415,11 @@ public class MixClient {
             if (log.isDebugEnabled()) {
                 log.debug("sendAddress=" + registerOutputRequest.sendAddress);
                 log.debug("receiveAddress=" + registerOutputRequest.receiveAddress);
-                log.debug("POST " + registerOutputRoundStatusNotification.getRegisterOutputUrl()+": " + ClientUtils.toJsonString(registerOutputRequest));
+                log.debug("POST " + registerOutputMixStatusNotification.getRegisterOutputUrl()+": " + ClientUtils.toJsonString(registerOutputRequest));
             }
 
             // POST request through a different identity for mix privacy
-            mixHandler.postHttpRequest(registerOutputRoundStatusNotification.getRegisterOutputUrl(), registerOutputRequest);
+            mixHandler.postHttpRequest(registerOutputMixStatusNotification.getRegisterOutputUrl(), registerOutputRequest);
 
             if (log.isDebugEnabled()) {
                 log.debug("POST completed");
@@ -433,22 +433,22 @@ public class MixClient {
 
     private void revealOutput() {
 
-        logStep(3, "REVEAL_OUTPUT_OR_BLAME (round failed, someone didn't register output)");
+        logStep(3, "REVEAL_OUTPUT_OR_BLAME (mix failed, someone didn't register output)");
         RevealOutputRequest revealOutputRequest = new RevealOutputRequest();
-        revealOutputRequest.roundId = roundStatusNotification.roundId;
+        revealOutputRequest.mixId = mixStatusNotification.mixId;
         revealOutputRequest.bordereau = this.bordereau;
 
         stompSession.send(whirlpoolProtocol.ENDPOINT_REVEAL_OUTPUT, revealOutputRequest);
     }
 
-    private void signing(SigningRoundStatusNotification signingRoundStatusNotification) throws Exception {
+    private void signing(SigningMixStatusNotification signingMixStatusNotification) throws Exception {
         NetworkParameters networkParameters = config.getNetworkParameters();
 
         logStep(3, "SIGNING");
         SigningRequest signingRequest = new SigningRequest();
-        signingRequest.roundId = roundStatusNotification.roundId;
+        signingRequest.mixId = mixStatusNotification.mixId;
 
-        Transaction tx = new Transaction(networkParameters, signingRoundStatusNotification.transaction);
+        Transaction tx = new Transaction(networkParameters, signingMixStatusNotification.transaction);
 
         Integer txOutputIndex = ClientUtils.findTxOutputIndex(this.receiveAddress, tx, networkParameters);
         if(txOutputIndex != null){
@@ -485,7 +485,7 @@ public class MixClient {
     private void logStep(int currentStep, String msg) {
         final int NB_STEPS = 4;
         log.info("("+currentStep+"/"+NB_STEPS+") " + msg);
-        this.listener.progress(this.roundStatusNotification.status, currentStep, NB_STEPS);
+        this.listener.progress(this.mixStatusNotification.status, currentStep, NB_STEPS);
     }
 
     public void exit() {
@@ -520,12 +520,12 @@ public class MixClient {
         disconnect(true);
 
         if (gotRegisterInputResponse()) {
-            log.error(" ! connection lost, reconnecting for resuming joined round...");
+            log.error(" ! connection lost, reconnecting for resuming joined mix...");
             this.resuming = true;
         }
         else {
-            log.error(" ! connection lost, reconnecting for a new round...");
-            resetRound();
+            log.error(" ! connection lost, reconnecting for a new mix...");
+            resetMix();
         }
         reconnectOrExit();
     }
@@ -575,8 +575,8 @@ public class MixClient {
         throw new Exception("Reconnecting failed");
     }
 
-    public RoundStatusNotification __getRoundStatusNotification() {
-        return roundStatusNotification;
+    public MixStatusNotification __getMixStatusNotification() {
+        return mixStatusNotification;
     }
 
     public void setLogPrefix(String logPrefix) {
@@ -586,8 +586,8 @@ public class MixClient {
     public void debugState() {
         if (log.isDebugEnabled()) {
             log.debug("stompUsername=" + stompUsername);
-            log.debug("roundStatusComplete=" + roundStatusCompleted);
-            log.debug("roundStatusNotification=" + ClientUtils.toJsonString(roundStatusNotification));
+            log.debug("mixStatusComplete=" + mixStatusCompleted);
+            log.debug("mixStatusNotification=" + ClientUtils.toJsonString(mixStatusNotification));
             if (errorResponse != null) {
                 log.debug("errorResponse=" + ClientUtils.toJsonString(errorResponse));
             }
