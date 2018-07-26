@@ -21,6 +21,7 @@ import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.ConnectionLostException;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
+import org.springframework.web.socket.WebSocketHttpHeaders;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 
@@ -102,7 +103,8 @@ public class MixClient {
 
             log.info(" • connecting to " + config.getWsUrl());
             stompClient = createWebSocketClient();
-            stompSession = stompClient.connect(config.getWsUrl(), new ClientSessionHandler(this)).get();
+            StompHeaders stompHeaders = computeStompHeaders();
+            stompSession = stompClient.connect(config.getWsUrl(), (WebSocketHttpHeaders) null, stompHeaders, new ClientSessionHandler(this)).get();
 
             // prefix logger
             Level level = ((ch.qos.logback.classic.Logger)log).getEffectiveLevel();
@@ -122,6 +124,18 @@ public class MixClient {
             stompUsername = null;
             throw e;
         }
+    }
+
+    private StompHeaders computeStompHeaders() {
+        StompHeaders stompHeaders = new StompHeaders();
+        stompHeaders.set(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION, WhirlpoolProtocol.PROTOCOL_VERSION);
+        return stompHeaders;
+    }
+
+    private StompHeaders computeStompHeaders(String destination) {
+        StompHeaders stompHeaders = computeStompHeaders();
+        stompHeaders.set(StompHeaders.DESTINATION, destination);
+        return stompHeaders;
     }
 
     private void disconnect() {
@@ -146,7 +160,7 @@ public class MixClient {
     }
 
     private void subscribe() {
-        stompSession.subscribe(whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE,
+        stompSession.subscribe(computeStompHeaders(whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE),
             new ClientFrameHandler(whirlpoolProtocol, (payload) -> {
                 if (!done) {
                     if (log.isDebugEnabled()) {
@@ -157,9 +171,9 @@ public class MixClient {
                 else {
                     log.warn("--> (" + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ") ignored (done): " + ClientUtils.toJsonString(payload));
                 }
-            })
+            }, (error) -> onProtocolError((String) error))
         );
-        stompSession.subscribe(whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY,
+        stompSession.subscribe(computeStompHeaders(whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY),
             new ClientFrameHandler(whirlpoolProtocol, (payload) -> {
                 if (!done) {
                     if (log.isDebugEnabled()) {
@@ -170,7 +184,7 @@ public class MixClient {
                 else {
                     log.warn("--> (" + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY + ") ignored (done): " + ClientUtils.toJsonString(payload));
                 }
-            })
+            }, (error) -> onProtocolError((String) error))
         );
         // will automatically receive mixStatus in response of subscription
         if (log.isDebugEnabled()) {
@@ -295,7 +309,7 @@ public class MixClient {
     private void onErrorResponse(ErrorResponse errorResponse) {
         this.errorResponse = errorResponse;
         logStep(4, "ERROR");
-        log.error(errorResponse.message);
+        log.error("ERROR: " + errorResponse.message);
         failAndExit();
     }
 
@@ -514,6 +528,12 @@ public class MixClient {
         }
     }
 
+    private void onProtocolError(String errorMessage) {
+        ErrorResponse errorResponse = new ErrorResponse();
+        errorResponse.message = errorMessage; // protocol version mismatch
+        onErrorResponse(errorResponse);
+    }
+
     public void onAfterConnected(String stompUsername) {
         this.stompUsername = stompUsername;
     }
@@ -580,7 +600,7 @@ public class MixClient {
     private void send(String destination, Object message) {
         StompHeaders stompHeaders = new StompHeaders();
         stompHeaders.setDestination(destination);
-        stompHeaders.set(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION, "foo");
+        stompHeaders.set(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION, WhirlpoolProtocol.PROTOCOL_VERSION);
         stompSession.send(stompHeaders, message);
     }
 
