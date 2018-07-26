@@ -8,7 +8,6 @@ import com.samourai.whirlpool.client.mix.handler.IMixHandler;
 import com.samourai.whirlpool.client.mix.handler.MixHandler;
 import com.samourai.whirlpool.client.utils.LogbackUtils;
 import com.samourai.whirlpool.protocol.v1.notifications.MixStatus;
-import org.apache.log4j.Level;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.DumpedPrivateKey;
 import org.bitcoinj.core.ECKey;
@@ -17,6 +16,7 @@ import org.bitcoinj.crypto.MnemonicCode;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
@@ -78,18 +78,16 @@ public class Application implements ApplicationRunner {
             }
             String wsUrl = "ws://"+requireOption(ARG_SERVER, "127.0.0.1:8080");
 
-            new Thread(() -> {
-                try {
-                    runClient(wsUrl, networkId, utxo, utxoKey, seedWords, seedPassphrase, liquidity, mixs);
-                    synchronized (this) {
-                        while(!done) {
-                            wait(1000);
-                        }
+            try {
+                runClient(wsUrl, networkId, utxo, utxoKey, seedWords, seedPassphrase, liquidity, mixs);
+                synchronized (this) {
+                    while(!done) {
+                        wait(1000);
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
-            }).start();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         catch(IllegalArgumentException e) {
             log.info("Invalid arguments: "+e.getMessage());

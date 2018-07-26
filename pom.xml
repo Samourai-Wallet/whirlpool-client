@@ -6,6 +6,10 @@
 	<artifactId>whirlpool-client</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>whirlpool-client</name>
+	<properties>
+		<spring.version>2.0.3.RELEASE</spring.version>
+		<spring-websocket.version>5.0.7.RELEASE</spring-websocket.version>
+	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>com.samouraiwallet</groupId>
@@ -22,19 +26,19 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
-			<version>1.5.12.RELEASE</version>
+			<version>${spring.version}</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-websocket</artifactId>
-			<version>4.3.16.RELEASE</version>
+			<version>${spring-websocket.version}</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-messaging</artifactId>
-			<version>4.3.16.RELEASE</version>
+			<version>${spring-websocket.version}</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
@@ -53,7 +57,37 @@
 			<artifactId>jackson-databind</artifactId>
 			<version>2.9.5</version>
 		</dependency>
-
+		<!-- test -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<version>${spring.version}</version>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>com.vaadin.external.google</groupId>
+					<artifactId>android-json</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<version>2.18.3</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.platform</groupId>
+			<artifactId>junit-platform-launcher</artifactId>
+			<version>1.2.0</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-engine</artifactId>
+			<version>5.2.0</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>
@@ -71,6 +105,7 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>${spring.version}</version>
 				<configuration>
 					<fork>true</fork>
 					<mainClass>com.samourai.whirlpool.client.Application</mainClass>
