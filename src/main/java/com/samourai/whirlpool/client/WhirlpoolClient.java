@@ -4,7 +4,7 @@ import com.samourai.whirlpool.client.beans.MixSuccess;
 import com.samourai.whirlpool.client.mix.MixClient;
 import com.samourai.whirlpool.client.mix.MixClientListener;
 import com.samourai.whirlpool.client.mix.MixParams;
-import com.samourai.whirlpool.protocol.v1.notifications.MixStatus;
+import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

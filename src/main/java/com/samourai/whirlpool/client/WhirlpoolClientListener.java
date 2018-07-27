@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client;
 
 import com.samourai.whirlpool.client.beans.MixSuccess;
-import com.samourai.whirlpool.protocol.v1.notifications.MixStatus;
+import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 
 public interface WhirlpoolClientListener {
     void success(int nbMixs);

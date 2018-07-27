@@ -7,7 +7,7 @@ import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.handler.IMixHandler;
 import com.samourai.whirlpool.client.mix.handler.MixHandler;
 import com.samourai.whirlpool.client.utils.LogbackUtils;
-import com.samourai.whirlpool.protocol.v1.notifications.MixStatus;
+import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.DumpedPrivateKey;
 import org.bitcoinj.core.ECKey;
