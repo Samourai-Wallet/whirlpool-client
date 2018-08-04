@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.beans.MixSuccess;
+import com.samourai.whirlpool.client.beans.Pools;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.handler.IMixHandler;
 import com.samourai.whirlpool.client.mix.handler.MixHandler;
@@ -40,7 +41,8 @@ public class Application implements ApplicationRunner {
     private static final String ARG_SERVER = "server";
     private static final String ARG_LIQUIDITY = "liquidity";
     private static final String ARG_MIXS = "mixs";
-    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --seed-passphrase= --seed-words= [--liquidity] [--mixs=1] [--server=host:port] [--debug]";
+    private static final String ARG_POOL_ID = "pool";
+    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --seed-passphrase= --seed-words= [--liquidity] [--mixs=1] [--pool=] [--server=host:port] [--debug]";
 
     private ApplicationArguments args;
     private boolean done;
@@ -64,29 +66,25 @@ public class Application implements ApplicationRunner {
 
         try {
             String networkId = requireOption(ARG_NETWORK_ID);
-            String utxo = requireOption(ARG_UTXO);
-            String utxoKey = requireOption(ARG_UTXO_KEY);
-            String seedWords = requireOption(ARG_SEED_WORDS);
-            String seedPassphrase = requireOption(ARG_SEED_PASSPHRASE);
-            boolean liquidity = args.containsOption(ARG_LIQUIDITY);
-            final int mixs;
-            try {
-                mixs = Integer.parseInt(requireOption(ARG_MIXS, "1"));
-            }
-            catch (Exception e) {
-                throw new IllegalArgumentException("Numeric value expected for option: "+ ARG_MIXS);
-            }
-            String wsUrl = "ws://"+requireOption(ARG_SERVER, "127.0.0.1:8080");
+            String server = requireOption(ARG_SERVER, "127.0.0.1:8080");
+            Assert.notNull(server, "server is null");
+            ////
+            NetworkParameters params = NetworkParameters.fromPmtProtocolID(networkId);
+            Assert.notNull(params, "unknown network");
 
-            try {
-                runClient(wsUrl, networkId, utxo, utxoKey, seedWords, seedPassphrase, liquidity, mixs);
-                synchronized (this) {
-                    while(!done) {
-                        wait(1000);
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+            new Context(params); // initialize bitcoinj context
+
+            // instanciate client
+            WhirlpoolClientConfig config = new WhirlpoolClientConfig(server, params);
+            WhirlpoolClient whirlpoolClient = new WhirlpoolClient(config);
+
+            String poolId = optionalOption(ARG_POOL_ID);
+            if (poolId == null) {
+                // show pools list if --pool is not provided
+                listPools(whirlpoolClient);
+            } else {
+                // go whirlpool if --pool is provided
+                whirlpool(whirlpoolClient, poolId, params);
             }
         }
         catch(IllegalArgumentException e) {
@@ -95,18 +93,62 @@ public class Application implements ApplicationRunner {
         }
     }
 
-    private WhirlpoolClient runClient(String wsUrl, String networkId, String utxo, String utxoKey, String seedWords, String seedPassphrase, boolean liquidity, int mixs) throws Exception {
-        Assert.notNull(wsUrl, "wsUrl is null");
-        NetworkParameters params = NetworkParameters.fromPmtProtocolID(networkId);
-        Assert.notNull(params, "unknown network");
+    private void listPools(WhirlpoolClient whirlpoolClient) {
+        try {
+            log.info(" • Retrieving pools...");
+            Pools pools = whirlpoolClient.listPools();
+            String lineFormat = "| %15s | %6s | %15s | %22s | %12s | %15s | %8s |\n";
+
+            StringBuilder sb = new StringBuilder();
+            sb.append(String.format(lineFormat, "POOL ID", "DENOM.", "STATUS", "USERS", "ELAPSED TIME", "ANONYMITY SET", "MINER FEE"));
+            sb.append(String.format(lineFormat, "", "(btc)", "", "(registered/connected)", "", "(target/min)", "(sat)"));
+            pools.getPools().forEach(pool -> {
+                sb.append(String.format(lineFormat, pool.getPoolId(),  satToBtc(pool.getDenomination()), pool.getMixStatus(), pool.getMixNbRegistered() + " / " + pool.getMixNbConnected(), pool.getElapsedTime()/1000 + "s", pool.getMixAnonymitySet() + " / " + pool.getMinAnonymitySet(), pool.getMinerFee()));
+            });
+            log.info("\n" + sb.toString());
+            log.info("Tip: use --pool argument to select a pool");
+        } catch(Exception e) {
+            log.error("", e);
+        }
+    }
+
+    private double satToBtc(long sat) {
+        return sat / 100000000.0;
+    }
+
+    private void whirlpool(WhirlpoolClient whirlpoolClient, String poolId, NetworkParameters params) {
+        String utxo = requireOption(ARG_UTXO);
+        String utxoKey = requireOption(ARG_UTXO_KEY);
+        String seedWords = requireOption(ARG_SEED_WORDS);
+        String seedPassphrase = requireOption(ARG_SEED_PASSPHRASE);
+        boolean liquidity = args.containsOption(ARG_LIQUIDITY);
+        final int mixs;
+        try {
+            mixs = Integer.parseInt(requireOption(ARG_MIXS, "1"));
+        }
+        catch (Exception e) {
+            throw new IllegalArgumentException("Numeric value expected for option: "+ ARG_MIXS);
+        }
+
+        try {
+            runWhirlpool(whirlpoolClient, poolId, params, utxo, utxoKey, seedWords, seedPassphrase, liquidity, mixs);
+            synchronized (this) {
+                while(!done) {
+                    wait(1000);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private WhirlpoolClient runWhirlpool(WhirlpoolClient whirlpoolClient, String poolId, NetworkParameters params, String utxo, String utxoKey, String seedWords, String seedPassphrase, boolean liquidity, int mixs) throws Exception {
+        Assert.notNull(poolId, "poolId is null");
         Assert.notNull(utxo, "utxo is null");
         Assert.notNull(utxoKey, "utxoKey is null");
         Assert.notNull(seedWords, "seedWords are null");
         Assert.notNull(seedPassphrase, "seedPassphrase is null");
         Assert.isTrue(mixs > 0, "mixs should be > 0");
-
-        // initialize bitcoinj context
-        new Context(params);
 
         // utxo key
         DumpedPrivateKey dumpedPrivateKey = new DumpedPrivateKey(params, utxoKey);
@@ -126,9 +168,6 @@ public class Application implements ApplicationRunner {
         String paymentCode = bip47w.getAccount(0).getPaymentCode();
 
         // whirlpool
-        WhirlpoolClientConfig config = new WhirlpoolClientConfig(wsUrl, params);
-        WhirlpoolClient whirlpoolClient = new WhirlpoolClient(config);
-
         String utxoSplit[] = utxo.split("-");
         String utxoHash = utxoSplit[0];
         Long utxoIdx = Long.parseLong(utxoSplit[1]);
@@ -136,7 +175,7 @@ public class Application implements ApplicationRunner {
         MixParams mixParams = new MixParams(utxoHash, utxoIdx, paymentCode, mixHandler, liquidity);
         WhirlpoolClientListener listener = computeClientListener();
 
-        whirlpoolClient.whirlpool(mixParams, mixs, listener);
+        whirlpoolClient.whirlpool(poolId, mixParams, mixs, listener);
         return whirlpoolClient;
     }
 
@@ -164,6 +203,13 @@ public class Application implements ApplicationRunner {
 
             }
         };
+    }
+
+    private String optionalOption(String name) {
+        if (!args.getOptionNames().contains(name)) {
+            return null;
+        }
+        return args.getOptionValues(name).iterator().next();
     }
 
     private String requireOption(String name) {

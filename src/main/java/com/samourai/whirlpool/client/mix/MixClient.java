@@ -36,6 +36,7 @@ public class MixClient {
 
     // server settings
     private WhirlpoolClientConfig config;
+    private String poolId;
 
     // mix settings
     private MixParams mixParams;
@@ -68,12 +69,13 @@ public class MixClient {
     private boolean resuming;
     private boolean done;
 
-    public MixClient(WhirlpoolClientConfig config) {
-        this(config, new ClientCryptoService(), new WhirlpoolProtocol());
+    public MixClient(WhirlpoolClientConfig config, String poolId) {
+        this(config, poolId, new ClientCryptoService(), new WhirlpoolProtocol());
     }
 
-    public MixClient(WhirlpoolClientConfig config, ClientCryptoService clientCryptoService, WhirlpoolProtocol whirlpoolProtocol) {
+    public MixClient(WhirlpoolClientConfig config, String poolId, ClientCryptoService clientCryptoService, WhirlpoolProtocol whirlpoolProtocol) {
         this.config = config;
+        this.poolId = poolId;
         this.clientCryptoService = clientCryptoService;
         this.whirlpoolProtocol = whirlpoolProtocol;
     }
@@ -102,10 +104,11 @@ public class MixClient {
                 return;
             }
 
-            log.info(" • connecting to " + config.getWsUrl());
+            log.info(" • connecting to " + config.getServer());
             stompClient = createWebSocketClient();
+            String wsUrl ="ws://" + config.getServer();
             StompHeaders stompHeaders = computeStompHeaders();
-            stompSession = stompClient.connect(config.getWsUrl(), (WebSocketHttpHeaders) null, stompHeaders, new ClientSessionHandler(this)).get();
+            stompSession = stompClient.connect(wsUrl, (WebSocketHttpHeaders) null, stompHeaders, new ClientSessionHandler(this)).get();
 
             // prefix logger
             Level level = ((ch.qos.logback.classic.Logger)log).getEffectiveLevel();
@@ -130,6 +133,7 @@ public class MixClient {
     private StompHeaders computeStompHeaders() {
         StompHeaders stompHeaders = new StompHeaders();
         stompHeaders.set(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION, WhirlpoolProtocol.PROTOCOL_VERSION);
+        stompHeaders.set(WhirlpoolProtocol.HEADER_POOL_ID, poolId);
         return stompHeaders;
     }
 

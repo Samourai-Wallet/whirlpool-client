@@ -1,12 +1,19 @@
 package com.samourai.whirlpool.client;
 
 import com.samourai.whirlpool.client.beans.MixSuccess;
+import com.samourai.whirlpool.client.beans.Pool;
+import com.samourai.whirlpool.client.beans.Pools;
 import com.samourai.whirlpool.client.mix.MixClient;
 import com.samourai.whirlpool.client.mix.MixClientListener;
 import com.samourai.whirlpool.client.mix.MixParams;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.rest.PoolInfo;
+import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -16,6 +23,7 @@ public class WhirlpoolClient {
     private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private WhirlpoolClientConfig config;
+    private String poolId;
     private int mixs;
     private int doneMixs;
     private String logPrefix;
@@ -28,7 +36,39 @@ public class WhirlpoolClient {
         this.logPrefix = null;
     }
 
-    public void whirlpool(MixParams mixParams, int mixs, WhirlpoolClientListener listener) {
+    public Pools listPools() throws Exception {
+        RestTemplate restTemplate = new RestTemplate();
+        String url = "http://" + this.config.getServer() + WhirlpoolProtocol.ENDPOINT_POOLS; // TODO HTTPS
+        ResponseEntity<PoolsResponse> result = restTemplate.getForEntity(url, PoolsResponse.class);
+        if (result == null || !result.getStatusCode().is2xxSuccessful()) {
+            // response error
+            throw new Exception("unable to retrieve pools");
+        }
+        return computePools(result.getBody());
+    }
+
+    private Pools computePools(PoolsResponse poolsResponse) {
+        Pools pools = new Pools();
+        List<Pool> listPools = new ArrayList<>();
+        for (PoolInfo poolInfo : poolsResponse.pools) {
+            Pool pool = new Pool();
+            pool.setPoolId(poolInfo.poolId);
+            pool.setDenomination(poolInfo.denomination);
+            pool.setMinerFee(poolInfo.minerFee);
+            pool.setMinAnonymitySet(poolInfo.minAnonymitySet);
+            pool.setMixAnonymitySet(poolInfo.mixAnonymitySet);
+            pool.setMixStatus(poolInfo.mixStatus);
+            pool.setElapsedTime(poolInfo.elapsedTime);
+            pool.setMixNbConnected(poolInfo.mixNbConnected);
+            pool.setMixNbRegistered(poolInfo.mixNbRegistered);
+            listPools.add(pool);
+        }
+        pools.setPools(listPools);
+        return pools;
+    }
+
+    public void whirlpool(String poolId, MixParams mixParams, int mixs, WhirlpoolClientListener listener) {
+        this.poolId = poolId;
         this.mixs = mixs;
         this.listener = listener;
         this.doneMixs = 0;
@@ -53,7 +93,7 @@ public class WhirlpoolClient {
     private MixClient runClient(MixParams mixParams) {
         MixClientListener mixListener = computeMixListener();
 
-        MixClient mixClient = new MixClient(config);
+        MixClient mixClient = new MixClient(config, poolId);
         if (logPrefix != null) {
             int mix = this.mixClients.size();
             mixClient.setLogPrefix(logPrefix+"["+(mix+1)+"]");

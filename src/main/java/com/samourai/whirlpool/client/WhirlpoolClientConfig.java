@@ -4,14 +4,14 @@ import org.bitcoinj.core.NetworkParameters;
 
 public class WhirlpoolClientConfig {
 
-    private String wsUrl;
+    private String server;
     private NetworkParameters networkParameters;
     private int reconnectDelay;
     private int reconnectUntil;
 
 
-    public WhirlpoolClientConfig(String wsUrl, NetworkParameters networkParameters) {
-        this.wsUrl = wsUrl;
+    public WhirlpoolClientConfig(String server, NetworkParameters networkParameters) {
+        this.server = server;
         this.networkParameters = networkParameters;
 
         // wait 5 seconds between reconnecting attempt
@@ -21,12 +21,12 @@ public class WhirlpoolClientConfig {
         this.reconnectUntil = 500;
     }
 
-    public String getWsUrl() {
-        return wsUrl;
+    public String getServer() {
+        return server;
     }
 
-    public void setWsUrl(String wsUrl) {
-        this.wsUrl = wsUrl;
+    public void setServer(String server) {
+        this.server = server;
     }
 
     public NetworkParameters getNetworkParameters() {
