@@ -47,7 +47,8 @@ public class MixClient {
     private ErrorResponse errorResponse;
     private RSAKeyParameters serverPublicKey;
     private long denomination;
-    private long minerFee;
+    private long minerFeeMin;
+    private long minerFeeMax;
     private byte[] signedBordereau; // will get it after REGISTER_INPUT
     private PeersPaymentCodesResponse peersPaymentCodesResponse; // will get it after REGISTER_INPUT
 
@@ -370,7 +371,8 @@ public class MixClient {
         this.errorResponse = null;
         this.serverPublicKey = null;
         this.denomination = -1;
-        this.minerFee = -1;
+        this.minerFeeMin = -1;
+        this.minerFeeMax = -1;
         this.signedBordereau = null;
         this.peersPaymentCodesResponse = null;
 
@@ -396,7 +398,8 @@ public class MixClient {
             throw new Exception("Client/server networkId mismatch: server is runinng "+serverNetworkId+", client is expecting "+networkParameters.getPaymentProtocolId());
         }
         this.denomination = registerInputMixStatusNotification.getDenomination();
-        this.minerFee = registerInputMixStatusNotification.getMinerFee();
+        this.minerFeeMin = registerInputMixStatusNotification.getMinerFeeMin();
+        this.minerFeeMax = registerInputMixStatusNotification.getMinerFeeMax();
 
         IMixHandler mixHandler = mixParams.getMixHandler();
 
@@ -483,7 +486,7 @@ public class MixClient {
         if (inputIndex == null) {
             throw new Exception("Input not found in tx");
         }
-        long spendAmount = computeSpendAmount();
+        long spendAmount = computeInputBalanceMin();
         mixParams.getMixHandler().signTransaction(tx, inputIndex, spendAmount, networkParameters);
 
         // verify
@@ -492,14 +495,6 @@ public class MixClient {
         // transmit
         signingRequest.witness = ClientUtils.witnessSerialize(tx.getWitness(inputIndex));
         send(whirlpoolProtocol.ENDPOINT_SIGNING, signingRequest);
-    }
-
-    private long computeSpendAmount() {
-        if (mixParams.isLiquidity()) {
-            // no minerFees for liquidities
-            return denomination;
-        }
-        return denomination + minerFee;
     }
 
     private void logStep(int currentStep, String msg) {
@@ -607,6 +602,14 @@ public class MixClient {
         stompHeaders.setDestination(destination);
         stompHeaders.set(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION, WhirlpoolProtocol.PROTOCOL_VERSION);
         stompSession.send(stompHeaders, message);
+    }
+
+    private long computeInputBalanceMin() {
+        long amount = denomination;
+        if (mixParams.isLiquidity()) {
+            amount += minerFeeMin;
+        }
+        return amount;
     }
 
     public MixStatusNotification __getMixStatusNotification() {

@@ -5,7 +5,8 @@ import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 public class Pool {
     private String poolId;
     private long denomination;
-    private long minerFee;
+    private long minerFeeMin;
+    private long minerFeeMax;
     private int minAnonymitySet;
     private int mixAnonymitySet;
     private MixStatus mixStatus;
@@ -32,12 +33,20 @@ public class Pool {
         this.denomination = denomination;
     }
 
-    public long getMinerFee() {
-        return minerFee;
+    public long getMinerFeeMin() {
+        return minerFeeMin;
     }
 
-    public void setMinerFee(long minerFee) {
-        this.minerFee = minerFee;
+    public void setMinerFeeMin(long minerFeeMin) {
+        this.minerFeeMin = minerFeeMin;
+    }
+
+    public long getMinerFeeMax() {
+        return minerFeeMax;
+    }
+
+    public void setMinerFeeMax(long minerFeeMax) {
+        this.minerFeeMax = minerFeeMax;
     }
 
     public int getMinAnonymitySet() {

@@ -54,7 +54,8 @@ public class WhirlpoolClient {
             Pool pool = new Pool();
             pool.setPoolId(poolInfo.poolId);
             pool.setDenomination(poolInfo.denomination);
-            pool.setMinerFee(poolInfo.minerFee);
+            pool.setMinerFeeMin(poolInfo.minerFeeMin);
+            pool.setMinerFeeMax(poolInfo.minerFeeMax);
             pool.setMinAnonymitySet(poolInfo.minAnonymitySet);
             pool.setMixAnonymitySet(poolInfo.mixAnonymitySet);
             pool.setMixStatus(poolInfo.mixStatus);
