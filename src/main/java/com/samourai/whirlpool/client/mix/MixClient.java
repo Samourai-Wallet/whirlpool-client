@@ -605,11 +605,7 @@ public class MixClient {
     }
 
     private long computeInputBalanceMin() {
-        long amount = denomination;
-        if (mixParams.isLiquidity()) {
-            amount += minerFeeMin;
-        }
-        return amount;
+        return WhirlpoolProtocol.computeInputBalanceMin(denomination, mixParams.isLiquidity(), minerFeeMin);
     }
 
     public MixStatusNotification __getMixStatusNotification() {
