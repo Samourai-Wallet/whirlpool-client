@@ -34,6 +34,9 @@ public class WhirlpoolClient {
     public WhirlpoolClient(WhirlpoolClientConfig config) {
         this.config = config;
         this.logPrefix = null;
+        if (log.isDebugEnabled()) {
+            log.debug("protocolVersion=" + WhirlpoolProtocol.PROTOCOL_VERSION);
+        }
     }
 
     public Pools listPools() throws Exception {
