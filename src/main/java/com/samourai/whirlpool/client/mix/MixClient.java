@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.mix;
 import ch.qos.logback.classic.Level;
 import com.samourai.whirlpool.client.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.beans.MixSuccess;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.handler.IMixHandler;
 import com.samourai.whirlpool.client.services.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -290,6 +291,9 @@ public class MixClient {
                 }
             }
         }
+        catch(NotifiableException e) {
+            onProtocolError(e.getMessage());
+        }
         catch(Exception e) {
             log.error("", e);
             failAndExit();
@@ -359,7 +363,7 @@ public class MixClient {
 
     public MixParams computeNextMixParams() {
         IMixHandler nextMixHandler = mixParams.getMixHandler().computeMixHandlerForNextMix();
-        return new MixParams(this.receiveUtxoHash, this.receiveUtxoIdx, mixParams.getPaymentCode(), nextMixHandler, true);
+        return new MixParams(this.receiveUtxoHash, this.receiveUtxoIdx, this.denomination, mixParams.getPaymentCode(), nextMixHandler, true);
     }
 
     private void resetMix() {
@@ -401,6 +405,8 @@ public class MixClient {
         this.minerFeeMin = registerInputMixStatusNotification.getMinerFeeMin();
         this.minerFeeMax = registerInputMixStatusNotification.getMinerFeeMax();
 
+        checkUtxoBalance();
+
         IMixHandler mixHandler = mixParams.getMixHandler();
 
         RegisterInputRequest registerInputRequest = new RegisterInputRequest();
@@ -419,6 +425,18 @@ public class MixClient {
         registerInputRequest.blindedBordereau = clientCryptoService.blind(this.bordereau, blindingParams);
 
         send(whirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);
+    }
+
+    private void checkUtxoBalance() throws NotifiableException {
+        long inputBalanceMin = computeInputBalanceMin();
+        long inputBalanceMax = computeInputBalanceMax();
+        if (this.mixParams.getUtxoBalance() < inputBalanceMin) {
+            throw new NotifiableException("Too low utxo-balance=" + this.mixParams.getUtxoBalance() + ". (expected: " + inputBalanceMin + " <= utxo-balance <= " + inputBalanceMax + ")");
+        }
+
+        if (this.mixParams.getUtxoBalance() > inputBalanceMax) {
+            throw new NotifiableException("Too high utxo-balance=" + this.mixParams.getUtxoBalance() + ". (expected: " + inputBalanceMin + " <= utxo-balance <= " + inputBalanceMax + ")");
+        }
     }
 
     private void registerOutput(RegisterOutputMixStatusNotification registerOutputMixStatusNotification) {
@@ -486,7 +504,7 @@ public class MixClient {
         if (inputIndex == null) {
             throw new Exception("Input not found in tx");
         }
-        long spendAmount = computeInputBalanceMin();
+        long spendAmount = mixParams.getUtxoBalance();
         mixParams.getMixHandler().signTransaction(tx, inputIndex, spendAmount, networkParameters);
 
         // verify
@@ -606,6 +624,10 @@ public class MixClient {
 
     private long computeInputBalanceMin() {
         return WhirlpoolProtocol.computeInputBalanceMin(denomination, mixParams.isLiquidity(), minerFeeMin);
+    }
+
+    private long computeInputBalanceMax() {
+        return WhirlpoolProtocol.computeInputBalanceMax(denomination, mixParams.isLiquidity(), minerFeeMax);
     }
 
     public MixStatusNotification __getMixStatusNotification() {
