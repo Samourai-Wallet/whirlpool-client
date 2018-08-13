@@ -8,15 +8,13 @@ public class MixParams {
     private long utxoBalance;
     private String paymentCode;
     private IMixHandler mixHandler;
-    private boolean liquidity;
 
-    public MixParams(String utxoHash, long utxoIdx, long utxoBalance, String paymentCode, IMixHandler mixHandler, boolean liquidity) {
+    public MixParams(String utxoHash, long utxoIdx, long utxoBalance, String paymentCode, IMixHandler mixHandler) {
         this.utxoHash = utxoHash;
         this.utxoIdx = utxoIdx;
         this.utxoBalance = utxoBalance;
         this.paymentCode = paymentCode;
         this.mixHandler = mixHandler;
-        this.liquidity = liquidity;
     }
 
     public String getUtxoHash() {
@@ -37,9 +35,5 @@ public class MixParams {
 
     public IMixHandler getMixHandler() {
         return mixHandler;
-    }
-
-    public boolean isLiquidity() {
-        return liquidity;
     }
 }

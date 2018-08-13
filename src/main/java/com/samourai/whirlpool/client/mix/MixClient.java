@@ -50,6 +50,7 @@ public class MixClient {
     private long denomination;
     private long minerFeeMin;
     private long minerFeeMax;
+    private boolean liquidity;
     private byte[] signedBordereau; // will get it after REGISTER_INPUT
     private PeersPaymentCodesResponse peersPaymentCodesResponse; // will get it after REGISTER_INPUT
 
@@ -273,7 +274,7 @@ public class MixClient {
                                 }
                             }
                         } else {
-                            if (mixParams.isLiquidity()) {
+                            if (liquidity) {
                                 log.info(" > Ready to provide liquidity");
                             } else {
                                 log.info(" > Trying to join current mix...");
@@ -363,7 +364,7 @@ public class MixClient {
 
     public MixParams computeNextMixParams() {
         IMixHandler nextMixHandler = mixParams.getMixHandler().computeMixHandlerForNextMix();
-        return new MixParams(this.receiveUtxoHash, this.receiveUtxoIdx, this.denomination, mixParams.getPaymentCode(), nextMixHandler, true);
+        return new MixParams(this.receiveUtxoHash, this.receiveUtxoIdx, this.denomination, mixParams.getPaymentCode(), nextMixHandler);
     }
 
     private void resetMix() {
@@ -404,6 +405,7 @@ public class MixClient {
         this.denomination = registerInputMixStatusNotification.getDenomination();
         this.minerFeeMin = registerInputMixStatusNotification.getMinerFeeMin();
         this.minerFeeMax = registerInputMixStatusNotification.getMinerFeeMax();
+        this.liquidity = mixParams.getUtxoBalance() == this.denomination;
 
         checkUtxoBalance();
 
@@ -416,7 +418,7 @@ public class MixClient {
         registerInputRequest.signature = mixHandler.signMessage(mixStatusNotification.mixId);
         registerInputRequest.mixId = mixStatusNotification.mixId;
         registerInputRequest.paymentCode = mixParams.getPaymentCode();
-        registerInputRequest.liquidity = mixParams.isLiquidity();
+        registerInputRequest.liquidity = this.liquidity;
 
         // keep bordereau private, but transmit blindedBordereau
         // clear bordereau will be provided with unblindedBordereau under another identity for REGISTER_OUTPUT
@@ -623,11 +625,11 @@ public class MixClient {
     }
 
     private long computeInputBalanceMin() {
-        return WhirlpoolProtocol.computeInputBalanceMin(denomination, mixParams.isLiquidity(), minerFeeMin);
+        return WhirlpoolProtocol.computeInputBalanceMin(denomination, liquidity, minerFeeMin);
     }
 
     private long computeInputBalanceMax() {
-        return WhirlpoolProtocol.computeInputBalanceMax(denomination, mixParams.isLiquidity(), minerFeeMax);
+        return WhirlpoolProtocol.computeInputBalanceMax(denomination, liquidity, minerFeeMax);
     }
 
     public MixStatusNotification __getMixStatusNotification() {

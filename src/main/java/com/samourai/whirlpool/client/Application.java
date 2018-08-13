@@ -40,10 +40,9 @@ public class Application implements ApplicationRunner {
     private static final String ARG_SEED_PASSPHRASE = "seed-passphrase";
     private static final String ARG_SEED_WORDS = "seed-words";
     private static final String ARG_SERVER = "server";
-    private static final String ARG_LIQUIDITY = "liquidity";
     private static final String ARG_MIXS = "mixs";
     private static final String ARG_POOL_ID = "pool";
-    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --utxo-balance= --seed-passphrase= --seed-words= [--liquidity] [--mixs=1] [--pool=] [--server=host:port] [--debug]";
+    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --utxo-balance= --seed-passphrase= --seed-words= [--mixs=1] [--pool=] [--server=host:port] [--debug]";
 
     private ApplicationArguments args;
     private boolean done;
@@ -129,7 +128,6 @@ public class Application implements ApplicationRunner {
         }
         String seedWords = requireOption(ARG_SEED_WORDS);
         String seedPassphrase = requireOption(ARG_SEED_PASSPHRASE);
-        boolean liquidity = args.containsOption(ARG_LIQUIDITY);
         final int mixs;
         try {
             mixs = Integer.parseInt(requireOption(ARG_MIXS, "1"));
@@ -139,7 +137,7 @@ public class Application implements ApplicationRunner {
         }
 
         try {
-            runWhirlpool(whirlpoolClient, poolId, params, utxo, utxoKey, utxoBalance, seedWords, seedPassphrase, liquidity, mixs);
+            runWhirlpool(whirlpoolClient, poolId, params, utxo, utxoKey, utxoBalance, seedWords, seedPassphrase, mixs);
             synchronized (this) {
                 while(!done) {
                     wait(1000);
@@ -150,7 +148,7 @@ public class Application implements ApplicationRunner {
         }
     }
 
-    private WhirlpoolClient runWhirlpool(WhirlpoolClient whirlpoolClient, String poolId, NetworkParameters params, String utxo, String utxoKey, long utxoBalance, String seedWords, String seedPassphrase, boolean liquidity, int mixs) throws Exception {
+    private WhirlpoolClient runWhirlpool(WhirlpoolClient whirlpoolClient, String poolId, NetworkParameters params, String utxo, String utxoKey, long utxoBalance, String seedWords, String seedPassphrase, int mixs) throws Exception {
         Assert.notNull(poolId, "poolId is null");
         Assert.notNull(utxo, "utxo is null");
         Assert.notNull(utxoKey, "utxoKey is null");
@@ -180,7 +178,7 @@ public class Application implements ApplicationRunner {
         String utxoHash = utxoSplit[0];
         Long utxoIdx = Long.parseLong(utxoSplit[1]);
         IMixHandler mixHandler = new MixHandler(ecKey, bip47w);
-        MixParams mixParams = new MixParams(utxoHash, utxoIdx, utxoBalance, paymentCode, mixHandler, liquidity);
+        MixParams mixParams = new MixParams(utxoHash, utxoIdx, utxoBalance, paymentCode, mixHandler);
         WhirlpoolClientListener listener = computeClientListener();
 
         whirlpoolClient.whirlpool(poolId, mixParams, mixs, listener);
