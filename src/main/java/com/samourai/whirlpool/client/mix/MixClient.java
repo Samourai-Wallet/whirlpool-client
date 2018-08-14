@@ -275,7 +275,7 @@ public class MixClient {
                             }
                         } else {
                             if (liquidity) {
-                                log.info(" > Ready to provide liquidity");
+                                log.info(" > Ready to provide liquidity...");
                             } else {
                                 log.info(" > Trying to join current mix...");
                             }
@@ -394,8 +394,6 @@ public class MixClient {
     private void registerInput(RegisterInputMixStatusNotification registerInputMixStatusNotification) throws Exception {
         NetworkParameters networkParameters = config.getNetworkParameters();
 
-        logStep(1, "REGISTER_INPUT");
-
         // get mix settings
         this.serverPublicKey = ClientUtils.publicKeyUnserialize(registerInputMixStatusNotification.getPublicKey());
         String serverNetworkId = registerInputMixStatusNotification.getNetworkId();
@@ -406,6 +404,8 @@ public class MixClient {
         this.minerFeeMin = registerInputMixStatusNotification.getMinerFeeMin();
         this.minerFeeMax = registerInputMixStatusNotification.getMinerFeeMax();
         this.liquidity = mixParams.getUtxoBalance() == this.denomination;
+
+        logStep(1, "REGISTER_INPUT (" + (this.liquidity ? "LIQUIDITY" : "MUSTMIX") + ")");
 
         checkUtxoBalance();
 

@@ -28,24 +28,15 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Command-line client.
+ */
 @EnableAutoConfiguration
 public class Application implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(Application.class);
 
-    private static final String ARG_DEBUG = "debug";
-    private static final String ARG_NETWORK_ID = "network";
-    private static final String ARG_UTXO = "utxo";
-    private static final String ARG_UTXO_KEY = "utxo-key";
-    private static final String ARG_UTXO_BALANCE = "utxo-balance";
-    private static final String ARG_SEED_PASSPHRASE = "seed-passphrase";
-    private static final String ARG_SEED_WORDS = "seed-words";
-    private static final String ARG_SERVER = "server";
-    private static final String ARG_MIXS = "mixs";
-    private static final String ARG_POOL_ID = "pool";
-    private static final String USAGE = "--network={main,test} --utxo= --utxo-key= --utxo-balance= --seed-passphrase= --seed-words= [--mixs=1] [--pool=] [--server=host:port] [--debug]";
-
-    private ApplicationArguments args;
-    private boolean done;
+    private ApplicationArgs appArgs;
+    private boolean done = false;
 
     public static void main(String... args) {
         SpringApplication.run(Application.class, args);
@@ -53,32 +44,25 @@ public class Application implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        this.args = args;
-        this.done = false;
+        this.appArgs = new ApplicationArgs(args);
 
-        if (args.containsOption(ARG_DEBUG)) {
-            // enable debug logs
+        // enable debug logs with --debug
+        if (appArgs.isDebug()) {
             LogbackUtils.setLogLevel("com.samourai.whirlpool.client", Level.DEBUG.toString());
         }
 
         log.info("------------ whirlpool-client ------------");
         log.info("Running whirlpool-client {}", Arrays.toString(args.getSourceArgs()));
-
         try {
-            String networkId = requireOption(ARG_NETWORK_ID);
-            String server = requireOption(ARG_SERVER, "127.0.0.1:8080");
-            Assert.notNull(server, "server is null");
-            ////
-            NetworkParameters params = NetworkParameters.fromPmtProtocolID(networkId);
-            Assert.notNull(params, "unknown network");
-
+            String server = appArgs.getServer();
+            NetworkParameters params = appArgs.getNetworkParameters();
             new Context(params); // initialize bitcoinj context
 
             // instanciate client
             WhirlpoolClientConfig config = new WhirlpoolClientConfig(server, params);
             WhirlpoolClient whirlpoolClient = new WhirlpoolClient(config);
 
-            String poolId = optionalOption(ARG_POOL_ID);
+            String poolId = appArgs.getPoolId();
             if (poolId == null) {
                 // show pools list if --pool is not provided
                 listPools(whirlpoolClient);
@@ -89,16 +73,17 @@ public class Application implements ApplicationRunner {
         }
         catch(IllegalArgumentException e) {
             log.info("Invalid arguments: "+e.getMessage());
-            log.info("Usage: whirlpool-client "+USAGE);
+            log.info("Usage: whirlpool-client "+ApplicationArgs.USAGE);
         }
     }
 
+    // show available pools
     private void listPools(WhirlpoolClient whirlpoolClient) {
+        log.info(" • Retrieving pools...");
         try {
-            log.info(" • Retrieving pools...");
-            Pools pools = whirlpoolClient.listPools();
-            String lineFormat = "| %15s | %6s | %15s | %22s | %12s | %15s | %13s |\n";
+            Pools pools = whirlpoolClient.listPools(); // request pools list
 
+            String lineFormat = "| %15s | %6s | %15s | %22s | %12s | %15s | %13s |\n";
             StringBuilder sb = new StringBuilder();
             sb.append(String.format(lineFormat, "POOL ID", "DENOM.", "STATUS", "USERS", "ELAPSED TIME", "ANONYMITY SET", "MINER FEE"));
             sb.append(String.format(lineFormat, "", "(btc)", "", "(registered/connected)", "", "(target/min)", "min-max (sat)"));
@@ -112,50 +97,25 @@ public class Application implements ApplicationRunner {
         }
     }
 
-    private double satToBtc(long sat) {
-        return sat / 100000000.0;
-    }
-
+    // start mixing in a pool
     private void whirlpool(WhirlpoolClient whirlpoolClient, String poolId, NetworkParameters params) {
-        String utxo = requireOption(ARG_UTXO);
-        String utxoKey = requireOption(ARG_UTXO_KEY);
-        long utxoBalance;
-        try {
-            utxoBalance = Integer.parseInt(requireOption(ARG_UTXO_BALANCE));
-        }
-        catch (Exception e) {
-            throw new IllegalArgumentException("Numeric value expected for option: "+ ARG_UTXO_BALANCE);
-        }
-        String seedWords = requireOption(ARG_SEED_WORDS);
-        String seedPassphrase = requireOption(ARG_SEED_PASSPHRASE);
-        final int mixs;
-        try {
-            mixs = Integer.parseInt(requireOption(ARG_MIXS, "1"));
-        }
-        catch (Exception e) {
-            throw new IllegalArgumentException("Numeric value expected for option: "+ ARG_MIXS);
-        }
+        String utxoHash = appArgs.getUtxoHash();
+        long utxoIdx = appArgs.getUtxoIdx();
+        String utxoKey = appArgs.getUtxoKey();
+        long utxoBalance = appArgs.getUtxoBalance();
+        String seedWords = appArgs.getSeedWords();
+        String seedPassphrase = appArgs.getSeedPassphrase();
+        final int mixs = appArgs.getMixs();
 
         try {
-            runWhirlpool(whirlpoolClient, poolId, params, utxo, utxoKey, utxoBalance, seedWords, seedPassphrase, mixs);
-            synchronized (this) {
-                while(!done) {
-                    wait(1000);
-                }
-            }
+            runWhirlpool(whirlpoolClient, poolId, params, utxoHash, utxoIdx, utxoKey, utxoBalance, seedWords, seedPassphrase, mixs);
+            waitDone();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private WhirlpoolClient runWhirlpool(WhirlpoolClient whirlpoolClient, String poolId, NetworkParameters params, String utxo, String utxoKey, long utxoBalance, String seedWords, String seedPassphrase, int mixs) throws Exception {
-        Assert.notNull(poolId, "poolId is null");
-        Assert.notNull(utxo, "utxo is null");
-        Assert.notNull(utxoKey, "utxoKey is null");
-        Assert.notNull(seedWords, "seedWords are null");
-        Assert.notNull(seedPassphrase, "seedPassphrase is null");
-        Assert.isTrue(mixs > 0, "mixs should be > 0");
-
+    private WhirlpoolClient runWhirlpool(WhirlpoolClient whirlpoolClient, String poolId, NetworkParameters params, String utxoHash, long utxoIdx, String utxoKey, long utxoBalance, String seedWords, String seedPassphrase, int mixs) throws Exception {
         // utxo key
         DumpedPrivateKey dumpedPrivateKey = new DumpedPrivateKey(params, utxoKey);
         ECKey ecKey = dumpedPrivateKey.getKey();
@@ -174,9 +134,7 @@ public class Application implements ApplicationRunner {
         String paymentCode = bip47w.getAccount(0).getPaymentCode();
 
         // whirlpool
-        String utxoSplit[] = utxo.split("-");
-        String utxoHash = utxoSplit[0];
-        Long utxoIdx = Long.parseLong(utxoSplit[1]);
+
         IMixHandler mixHandler = new MixHandler(ecKey, bip47w);
         MixParams mixParams = new MixParams(utxoHash, utxoIdx, utxoBalance, paymentCode, mixHandler);
         WhirlpoolClientListener listener = computeClientListener();
@@ -185,6 +143,7 @@ public class Application implements ApplicationRunner {
         return whirlpoolClient;
     }
 
+    // this listener gets notified of mix status in real time
     private WhirlpoolClientListener computeClientListener() {
         return new WhirlpoolClientListener() {
             @Override
@@ -211,24 +170,15 @@ public class Application implements ApplicationRunner {
         };
     }
 
-    private String optionalOption(String name) {
-        if (!args.getOptionNames().contains(name)) {
-            return null;
+    private void waitDone() throws InterruptedException {
+        synchronized (this) {
+            while(!done) {
+                wait(1000);
+            }
         }
-        return args.getOptionValues(name).iterator().next();
     }
 
-    private String requireOption(String name) {
-        if (!args.getOptionNames().contains(name)) {
-            throw new IllegalArgumentException("Missing required option: "+name);
-        }
-        return args.getOptionValues(name).iterator().next();
-    }
-
-    private String requireOption(String name, String defaultValue) {
-        if (!args.getOptionNames().contains(name)) {
-            return defaultValue;
-        }
-        return args.getOptionValues(name).iterator().next();
+    private double satToBtc(long sat) {
+        return sat / 100000000.0;
     }
 }
