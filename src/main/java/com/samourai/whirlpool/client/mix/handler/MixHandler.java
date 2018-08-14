@@ -40,7 +40,7 @@ public class MixHandler implements IMixHandler {
     public String computeSendAddress(String toPeerPaymentCode, NetworkParameters params) throws Exception {
         // calculates address with receiver payment code
         int idx = computeNextPaymentCodeSendIndex();
-        PaymentAddress sendAddress = BIP47Util.getInstance().getSendAddress(bip47Wallet, new PaymentCode(toPeerPaymentCode), idx, params);
+        PaymentAddress sendAddress = BIP47Util.getInstance().getSendAddress(bip47Wallet, Integer.MAX_VALUE, new PaymentCode(toPeerPaymentCode), idx, params);
 
         // sender calculates from pubkey
         SegwitAddress addressFromSender = new SegwitAddress(sendAddress.getSendECKey().getPubKey(), params);
@@ -51,7 +51,7 @@ public class MixHandler implements IMixHandler {
     public String computeReceiveAddress(String fromPeerPaymentCode, NetworkParameters params) throws Exception {
         // receiver calculates address with sender's payment code
         int idx = computeNextPaymentCodeReceiveIndex();
-        PaymentAddress receiveAddress = BIP47Util.getInstance().getReceiveAddress(bip47Wallet, new PaymentCode(fromPeerPaymentCode), idx, params);
+        PaymentAddress receiveAddress = BIP47Util.getInstance().getReceiveAddress(bip47Wallet, Integer.MAX_VALUE, new PaymentCode(fromPeerPaymentCode), idx, params);
 
         // receiver can calculate from privkey
         this.receiveKey = receiveAddress.getReceiveECKey();
