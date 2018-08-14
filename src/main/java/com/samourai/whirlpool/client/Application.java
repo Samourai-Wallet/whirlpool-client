@@ -131,7 +131,7 @@ public class Application implements ApplicationRunner {
         HD_Wallet hdw = new HD_Wallet(44, mc, params, seed, seedPassphrase, 1);
         // init BIP47 wallet for input
         BIP47Wallet bip47w = new BIP47Wallet(47, mc, params, Hex.decode(hdw.getSeedHex()), hdw.getPassphrase(), 1);
-        String paymentCode = bip47w.getAccount(0).getPaymentCode();
+        String paymentCode = bip47w.getAccount(Integer.MAX_VALUE).getPaymentCode();
 
         // whirlpool
 
