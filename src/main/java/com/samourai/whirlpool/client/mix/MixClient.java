@@ -312,6 +312,9 @@ public class MixClient {
         else if (RegisterInputResponse.class.isAssignableFrom(payloadClass)) {
             onRegisterInputResponse((RegisterInputResponse)payload);
         }
+        else if (LiquidityQueuedResponse.class.isAssignableFrom(payloadClass)) {
+            onLiquidityQueuedResponse((LiquidityQueuedResponse)payload);
+        }
         else if (PeersPaymentCodesResponse.class.isAssignableFrom(payloadClass)) {
             onPeersPaymentCodeResponse((PeersPaymentCodesResponse)payload);
         }
@@ -345,6 +348,10 @@ public class MixClient {
                 registerOutput((RegisterOutputMixStatusNotification) this.mixStatusNotification);
             }
         }
+    }
+
+    private void onLiquidityQueuedResponse(LiquidityQueuedResponse payload) {
+        log.info(" > Queued as liquidity, ready to mix...");
     }
 
     private boolean gotPeersPaymentCode() {
