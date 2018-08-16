@@ -57,10 +57,10 @@ public class ApplicationTest {
     public void whirlpool() {
         String[] args = new String[]{
                 "--network=test",
-                "--utxo=7ea75da574ebabf8d17979615b059ab53aae3011926426204e730d164a0d0f16-2",
-                "--utxo-key=cUwS52vEv4ursFBdGJWgHiZyBNqqSF5nFTsunUpocRBYGLY72z4j",
-                "--utxo-balance=1",
-                "--seed-passphrase=all10",
+                "--utxo=733a1bcb4145e3dd0ea3e6709bef9504fd252c9a26b254508539e3636db659c2-1",
+                "--utxo-key=cUe6J7Fs5mxg6jLwXE27xcDpaTPXfQZ9oKDbxs5PP6EpYMFHab2T",
+                "--utxo-balance=1000102",
+                "--seed-passphrase=w0",
                 "--seed-words=all all all all all all all all all all all all",
                 "--rounds=5",
                 "--debug",

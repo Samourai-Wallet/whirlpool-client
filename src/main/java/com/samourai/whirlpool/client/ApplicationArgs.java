@@ -19,10 +19,11 @@ public class ApplicationArgs {
     private static final String ARG_UTXO_BALANCE = "utxo-balance";
     private static final String ARG_SEED_PASSPHRASE = "seed-passphrase";
     private static final String ARG_SEED_WORDS = "seed-words";
+    private static final String ARG_PAYNYM_INDEX = "paynym-index";
     private static final String ARG_SERVER = "server";
     private static final String ARG_MIXS = "mixs";
     private static final String ARG_POOL_ID = "pool";
-    public static final String USAGE = "--network={main,test} --utxo= --utxo-key= --utxo-balance= --seed-passphrase= --seed-words= [--mixs=1] [--pool=] [--server=host:port] [--debug]";
+    public static final String USAGE = "--network={main,test} --utxo= --utxo-key= --utxo-balance= --seed-passphrase= --seed-words= [--paynym-index=0] [--mixs=1] [--pool=] [--server=host:port] [--debug]";
     private static final String UTXO_SEPARATOR = "-";
 
     private ApplicationArguments args;
@@ -100,6 +101,20 @@ public class ApplicationArgs {
         String seedPassphrase = requireOption(ARG_SEED_PASSPHRASE);
         Assert.notNull(seedPassphrase, "seedPassphrase is null");
         return seedPassphrase;
+    }
+
+    public int getPaynymIndex() {
+        int paynymIndex = 0;
+        try {
+            String paynymIndexStr = optionalOption(ARG_PAYNYM_INDEX);
+            if (paynymIndexStr != null) {
+                paynymIndex = Integer.parseInt(paynymIndexStr);
+            }
+        }
+        catch (Exception e) {
+            throw new IllegalArgumentException("Numeric value expected for option: "+ ARG_PAYNYM_INDEX);
+        }
+        return paynymIndex;
     }
 
     public int getMixs() {

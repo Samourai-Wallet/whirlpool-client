@@ -11,7 +11,7 @@ com.samourai.whirlpool.client.Application
 
 - run from commandline:
 ```
-java -jar target/whirlpool-client-0.0.1-SNAPSHOT-run.jar --network={main,test} --utxo= --utxo-key= --utxo-balance= --seed-passphrase= --seed-words= [--mixs=1] [--pool=] [--server=host:port] [--debug]
+java -jar target/whirlpool-client-0.0.1-SNAPSHOT-run.jar --network={main,test} --utxo= --utxo-key= --utxo-balance= --seed-passphrase= --seed-words= [--paynym-index=0] [--mixs=1] [--pool=] [--server=host:port] [--debug]
 ```
 
 Examples:
@@ -27,6 +27,7 @@ Arguments:
 - utxo-key: ECKey to sign the input
 - utxo-balance: utxo balance in satoshis. Whole utxo-balance balance will be spent.
 - seed-passphrase and seed-words: wallet seed from which to derive the paynym for computing output address to receive the funds
+- paynym-index: paynym index to use for computing output address to receive the funds
 - mixs: (1 to N) number of mixes to complete. Client will keep running (as a liquidity) until completing this number of mixes.
 - pool: id of the pool to join.
 - debug: (true/false) display more logs for debugging

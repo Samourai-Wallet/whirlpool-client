@@ -24,37 +24,34 @@ public class MixHandler implements IMixHandler {
     private ECKey utxoKey;
     private BIP47Wallet bip47Wallet;
     private ECKey receiveKey;
+    private int paymentCodeIndex;
 
-    public MixHandler(ECKey utxoKey, BIP47Wallet bip47Wallet) {
+    public MixHandler(ECKey utxoKey, BIP47Wallet bip47Wallet, int paymentCodeIndex) {
         this.utxoKey = utxoKey;
         this.bip47Wallet = bip47Wallet;
         this.receiveKey = null;
-    }
-
-    private int computeNextPaymentCodeSendIndex() {
-        return 0; // TODO external client should compute this value
-    }
-
-    private int computeNextPaymentCodeReceiveIndex() {
-        return 0; // TODO external client should compute this value
+        this.paymentCodeIndex = paymentCodeIndex;
     }
 
     @Override
     public String computeSendAddress(String toPeerPaymentCode, NetworkParameters params) throws Exception {
         // calculates address with receiver payment code
-        int idx = computeNextPaymentCodeSendIndex();
-        PaymentAddress sendAddress = BIP47Util.getInstance().getSendAddress(bip47Wallet, MixHandler.BIP47_ACCOUNT_IDX, new PaymentCode(toPeerPaymentCode), idx, params);
+        PaymentAddress sendAddress = BIP47Util.getInstance().getSendAddress(bip47Wallet, MixHandler.BIP47_ACCOUNT_IDX, new PaymentCode(toPeerPaymentCode), paymentCodeIndex, params);
 
         // sender calculates from pubkey
         SegwitAddress addressFromSender = new SegwitAddress(sendAddress.getSendECKey().getPubKey(), params);
-        return addressFromSender.getBech32AsString();
+
+        String bech32Address = addressFromSender.getBech32AsString();
+        if (log.isDebugEnabled()) {
+            log.debug("sendAddress: bip47account=" + MixHandler.BIP47_ACCOUNT_IDX + ", paymentCodeIndex=" + paymentCodeIndex + ", bech32Address=" + bech32Address);
+        }
+        return bech32Address;
     }
 
     @Override
     public String computeReceiveAddress(String fromPeerPaymentCode, NetworkParameters params) throws Exception {
         // receiver calculates address with sender's payment code
-        int idx = computeNextPaymentCodeReceiveIndex();
-        PaymentAddress receiveAddress = BIP47Util.getInstance().getReceiveAddress(bip47Wallet, MixHandler.BIP47_ACCOUNT_IDX, new PaymentCode(fromPeerPaymentCode), idx, params);
+        PaymentAddress receiveAddress = BIP47Util.getInstance().getReceiveAddress(bip47Wallet, MixHandler.BIP47_ACCOUNT_IDX, new PaymentCode(fromPeerPaymentCode), paymentCodeIndex, params);
 
         // receiver can calculate from privkey
         this.receiveKey = receiveAddress.getReceiveECKey();
@@ -62,7 +59,12 @@ public class MixHandler implements IMixHandler {
             log.debug("receiveECKey=" + this.receiveKey.getPrivateKeyAsWiF(params));
         }
         SegwitAddress addressToReceiver = new SegwitAddress(receiveKey, params);
-        return addressToReceiver.getBech32AsString();
+
+        String bech32Address = addressToReceiver.getBech32AsString();
+        if (log.isDebugEnabled()) {
+            log.debug("receiveAddress: bip47account=" + MixHandler.BIP47_ACCOUNT_IDX + ", paymentCodeIndex=" + paymentCodeIndex + ", bech32Address=" + bech32Address);
+        }
+        return bech32Address;
     }
 
     @Override
@@ -93,6 +95,6 @@ public class MixHandler implements IMixHandler {
 
     @Override
     public IMixHandler computeMixHandlerForNextMix() {
-        return new MixHandler(receiveKey, bip47Wallet);
+        return new MixHandler(receiveKey, bip47Wallet, paymentCodeIndex);
     }
 }

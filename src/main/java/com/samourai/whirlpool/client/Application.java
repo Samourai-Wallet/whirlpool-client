@@ -134,7 +134,7 @@ public class Application implements ApplicationRunner {
 
         // whirlpool
 
-        IMixHandler mixHandler = new MixHandler(ecKey, bip47w);
+        IMixHandler mixHandler = new MixHandler(ecKey, bip47w, appArgs.getPaynymIndex());
         MixParams mixParams = new MixParams(utxoHash, utxoIdx, utxoBalance, paymentCode, mixHandler);
         WhirlpoolClientListener listener = computeClientListener();
 
