@@ -10,19 +10,25 @@ ECKey ecKey = ...
 BIP47Wallet bip47w = ...
 IMixHandler mixHandler = new MixHandler(ecKey, bip47w);
 
-// mix params
+// mix params (input, output)
 String utxoHash = ...
 Long utxoIndex = ...
 String paymentCode = ...
 MixParams mixParams = new MixParams(utxoHash, utxoIndex, paymentCode, mixHandler);
 
-// configure client
+// client configuration (server...)
 WhirlpoolClientConfig config = new WhirlpoolClientConfig(wsUrl, params);
 
 // instanciate client
-WhirlpoolClient whirlpoolClient = new WhirlpoolClient(config);
+WhirlpoolClient whirlpoolClient = WhirlpoolClientImpl.newClient(config);
+
+// get pools list
+Pools pools = whirlpoolClient.fetchPools();
+
+String poolId = ... // select a pool
 
 // run
 WhirlpoolClientListener listener = ... // will be notified of mix status in realtime
-whirlpoolClient.whirlpool(mixParams, rounds, listener);
+int mixs = 1; // numer of mixs to achieve
+whirlpoolClient.whirlpool(poolId, mixParams, mixs, listener);
 ```

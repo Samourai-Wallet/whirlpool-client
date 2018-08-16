@@ -22,7 +22,6 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.util.Assert;
 
 import java.io.InputStream;
 import java.util.Arrays;
@@ -60,7 +59,7 @@ public class Application implements ApplicationRunner {
 
             // instanciate client
             WhirlpoolClientConfig config = new WhirlpoolClientConfig(server, params);
-            WhirlpoolClient whirlpoolClient = new WhirlpoolClient(config);
+            WhirlpoolClient whirlpoolClient = WhirlpoolClientImpl.newClient(config);
 
             String poolId = appArgs.getPoolId();
             if (poolId == null) {
@@ -81,7 +80,7 @@ public class Application implements ApplicationRunner {
     private void listPools(WhirlpoolClient whirlpoolClient) {
         log.info(" • Retrieving pools...");
         try {
-            Pools pools = whirlpoolClient.listPools(); // request pools list
+            Pools pools = whirlpoolClient.fetchPools();
 
             String lineFormat = "| %15s | %6s | %15s | %22s | %12s | %15s | %13s |\n";
             StringBuilder sb = new StringBuilder();
