@@ -1,7 +1,7 @@
 # whirlpool-client integration
 
 
-## Integration example
+## Example
 
 
 ```

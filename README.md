@@ -57,3 +57,6 @@ cd whirlpool-server
 mvn clean install -Dmaven.test.skip=true
 
 ```
+
+## Integration (developers)
+See [README-DEV.md](README-DEV.md)
