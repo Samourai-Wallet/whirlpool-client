@@ -334,8 +334,12 @@ public class MixClient {
     }
 
     private void onRegisterInputResponse(RegisterInputResponse payload) {
-        log.info(" > Joined mix " + this.mixStatusNotification.mixId);
+        log.info(" > Joined mix " + payload.mixId);
         this.signedBordereau = payload.signedBordereau;
+
+        // mixId may have changed since mixStatusNotification
+        this.mixStatusNotification.mixId = payload.mixId;
+
         if (MixStatus.REGISTER_OUTPUT.equals(this.mixStatusNotification.status)) {
             if (gotPeersPaymentCode()) {
                 registerOutput((RegisterOutputMixStatusNotification) this.mixStatusNotification);
