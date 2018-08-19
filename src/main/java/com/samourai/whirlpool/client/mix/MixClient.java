@@ -52,7 +52,6 @@ public class MixClient {
     private long minerFeeMax;
     private boolean liquidity;
     private byte[] signedBordereau; // will get it after REGISTER_INPUT
-    private PeersPaymentCodesResponse peersPaymentCodesResponse; // will get it after REGISTER_INPUT
 
     // computed values
     private String bordereau; // will generate it randomly
@@ -233,7 +232,7 @@ public class MixClient {
                         mixStatusCompleted.put(MixStatus.REGISTER_INPUT, true);
 
                     } else if (mixStatusCompleted.containsKey(MixStatus.REGISTER_INPUT)) {
-                        if (gotRegisterInputResponse() && gotPeersPaymentCode()) {
+                        if (gotRegisterInputResponse()) {
 
                             if (MixStatus.REGISTER_OUTPUT.equals(notification.status)) {
                                 this.registerOutput((RegisterOutputMixStatusNotification) mixStatusNotification);
@@ -315,9 +314,6 @@ public class MixClient {
         else if (LiquidityQueuedResponse.class.isAssignableFrom(payloadClass)) {
             onLiquidityQueuedResponse((LiquidityQueuedResponse)payload);
         }
-        else if (PeersPaymentCodesResponse.class.isAssignableFrom(payloadClass)) {
-            onPeersPaymentCodeResponse((PeersPaymentCodesResponse)payload);
-        }
     }
 
     private void onErrorResponse(ErrorResponse errorResponse) {
@@ -344,27 +340,12 @@ public class MixClient {
         this.mixStatusNotification.mixId = payload.mixId;
 
         if (MixStatus.REGISTER_OUTPUT.equals(this.mixStatusNotification.status)) {
-            if (gotPeersPaymentCode()) {
-                registerOutput((RegisterOutputMixStatusNotification) this.mixStatusNotification);
-            }
+            registerOutput((RegisterOutputMixStatusNotification) this.mixStatusNotification);
         }
     }
 
     private void onLiquidityQueuedResponse(LiquidityQueuedResponse payload) {
         log.info(" > Queued as liquidity, ready to mix...");
-    }
-
-    private boolean gotPeersPaymentCode() {
-        return (this.peersPaymentCodesResponse != null);
-    }
-
-    private void onPeersPaymentCodeResponse(PeersPaymentCodesResponse payload) {
-        this.peersPaymentCodesResponse = payload;
-        if (MixStatus.REGISTER_OUTPUT.equals(this.mixStatusNotification.status)) {
-            if (gotRegisterInputResponse()) {
-                registerOutput((RegisterOutputMixStatusNotification) this.mixStatusNotification);
-            }
-        }
     }
 
     private WebSocketStompClient createWebSocketClient() {
@@ -375,7 +356,7 @@ public class MixClient {
 
     public MixParams computeNextMixParams() {
         IMixHandler nextMixHandler = mixParams.getMixHandler().computeMixHandlerForNextMix();
-        return new MixParams(this.receiveUtxoHash, this.receiveUtxoIdx, this.denomination, mixParams.getPaymentCode(), nextMixHandler);
+        return new MixParams(this.receiveUtxoHash, this.receiveUtxoIdx, this.denomination, nextMixHandler);
     }
 
     private void resetMix() {
@@ -390,7 +371,6 @@ public class MixClient {
         this.minerFeeMin = -1;
         this.minerFeeMax = -1;
         this.signedBordereau = null;
-        this.peersPaymentCodesResponse = null;
 
         // computed values
         this.bordereau = null;
@@ -428,7 +408,6 @@ public class MixClient {
         registerInputRequest.pubkey = mixHandler.getPubkey();
         registerInputRequest.signature = mixHandler.signMessage(mixStatusNotification.mixId);
         registerInputRequest.mixId = mixStatusNotification.mixId;
-        registerInputRequest.paymentCode = mixParams.getPaymentCode();
         registerInputRequest.liquidity = this.liquidity;
 
         // keep bordereau private, but transmit blindedBordereau
@@ -462,13 +441,10 @@ public class MixClient {
             registerOutputRequest.mixId = mixStatusNotification.mixId;
             registerOutputRequest.unblindedSignedBordereau = clientCryptoService.unblind(signedBordereau, blindingParams);
             registerOutputRequest.bordereau = this.bordereau;
-            registerOutputRequest.sendAddress = mixHandler.computeSendAddress(peersPaymentCodesResponse.toPaymentCode, networkParameters);
-            this.receiveAddress = mixHandler.computeReceiveAddress(peersPaymentCodesResponse.fromPaymentCode, networkParameters);
+            this.receiveAddress = mixHandler.computeReceiveAddress(networkParameters);
             registerOutputRequest.receiveAddress = this.receiveAddress;
 
             if (log.isDebugEnabled()) {
-                log.debug("sendAddress=" + registerOutputRequest.sendAddress);
-                log.debug("receiveAddress=" + registerOutputRequest.receiveAddress);
                 log.debug("POST " + registerOutputMixStatusNotification.getRegisterOutputUrl()+": " + ClientUtils.toJsonString(registerOutputRequest));
             }
 

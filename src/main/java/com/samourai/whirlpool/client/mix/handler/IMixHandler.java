@@ -5,9 +5,7 @@ import org.bitcoinj.core.Transaction;
 
 public interface IMixHandler {
 
-    String computeSendAddress(String toPeerPaymentCode, NetworkParameters params) throws Exception;
-
-    String computeReceiveAddress(String fromPeerPaymentCode, NetworkParameters params) throws Exception;
+    String computeReceiveAddress(NetworkParameters params) throws Exception;
 
     void signTransaction(Transaction tx, int inputIndex, long spendAmount, NetworkParameters params)  throws Exception;
 
