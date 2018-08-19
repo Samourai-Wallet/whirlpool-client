@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.beans;
+package com.samourai.whirlpool.client.mix.listener;
 
 public class MixSuccess {
     private String receiveAddress;

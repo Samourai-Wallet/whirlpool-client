@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.beans;
+package com.samourai.whirlpool.client.whirlpool.beans;
 
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 

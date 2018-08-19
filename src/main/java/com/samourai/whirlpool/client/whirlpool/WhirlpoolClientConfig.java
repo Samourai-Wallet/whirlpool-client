@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client;
+package com.samourai.whirlpool.client.whirlpool;
 
 import org.bitcoinj.core.NetworkParameters;
 

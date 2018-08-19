@@ -1,11 +1,13 @@
 package com.samourai.whirlpool.client.mix;
 
-import ch.qos.logback.classic.Level;
-import com.samourai.whirlpool.client.WhirlpoolClientConfig;
-import com.samourai.whirlpool.client.beans.MixSuccess;
+import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
+import com.samourai.whirlpool.client.mix.listener.MixStep;
+import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.handler.IMixHandler;
-import com.samourai.whirlpool.client.services.ClientCryptoService;
+import com.samourai.whirlpool.client.mix.listener.MixClientListener;
+import com.samourai.whirlpool.client.mix.listener.MixClientListenerHandler;
+import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.websocket.ClientFrameHandler;
 import com.samourai.whirlpool.client.websocket.ClientSessionHandler;
@@ -41,7 +43,7 @@ public class MixClient {
 
     // mix settings
     private MixParams mixParams;
-    private MixClientListener listener;
+    private MixClientListenerHandler listener;
 
     // mix data
     private MixStatusNotification mixStatusNotification;
@@ -51,7 +53,8 @@ public class MixClient {
     private long minerFeeMin;
     private long minerFeeMax;
     private boolean liquidity;
-    private byte[] signedBordereau; // will get it after REGISTER_INPUT
+    private byte[] signedBordereau; // will get it after joining a mix
+    private LiquidityQueuedResponse liquidityQueuedResponse; // will get when connecting as liquidity
 
     // computed values
     private String bordereau; // will generate it randomly
@@ -84,19 +87,18 @@ public class MixClient {
 
     public void whirlpool(MixParams mixParams, MixClientListener listener) {
         this.mixParams = mixParams;
-        this.listener = listener;
+        this.listener = new MixClientListenerHandler(listener);
 
         try {
-            connectAndJoin();
+            connect();
         }
         catch (Exception e) {
             reconnectOrExit();
         }
     }
 
-    private void connectAndJoin() throws Exception {
-        connect();
-        subscribe();
+    private void listenerProgress(MixStep mixClientStatus) {
+        this.listener.progress(mixClientStatus);
     }
 
     private void connect() throws Exception {
@@ -106,22 +108,23 @@ public class MixClient {
                 return;
             }
 
-            log.info(" • connecting to " + config.getServer());
+            listenerProgress(MixStep.CONNECTING);
             stompClient = createWebSocketClient();
             String wsUrl ="ws://" + config.getServer();
+            if (log.isDebugEnabled()) {
+                log.debug("connecting to server: " + wsUrl);
+            }
+
             StompHeaders stompHeaders = computeStompHeaders();
             stompSession = stompClient.connect(wsUrl, (WebSocketHttpHeaders) null, stompHeaders, new ClientSessionHandler(this)).get();
 
-            // prefix logger
-            Level level = ((ch.qos.logback.classic.Logger)log).getEffectiveLevel();
-            String loggerName = logPrefix != null ? logPrefix : stompSession.getSessionId();
-            log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass()+"("+loggerName+")");
-            ((ch.qos.logback.classic.Logger)log).setLevel(level);
-            log.info(" • connected");
-            if (log.isDebugEnabled()) {
-                log.debug("stompSessionId=" + stompSession.getSessionId() + ", stompUsername=" + stompUsername);
+            // prefix logger with sessionId
+            if (logPrefix == null) {
+                log = ClientUtils.prefixLogger(log, stompSession.getSessionId());
             }
-
+            if (log.isDebugEnabled()) {
+                log.debug("connected to server, stompSessionId=" + stompSession.getSessionId());
+            }
         }
         catch(Exception e) {
             log.error(" ! connection failed: "+e.getMessage());
@@ -130,6 +133,9 @@ public class MixClient {
             stompUsername = null;
             throw e;
         }
+
+        subscribe();
+        listenerProgress(MixStep.CONNECTED);
     }
 
     private StompHeaders computeStompHeaders() {
@@ -146,11 +152,13 @@ public class MixClient {
     }
 
     private void disconnect() {
-        log.info(" • disconnecting...");
         disconnect(false);
     }
 
     private void disconnect(boolean connectionLost) {
+        if (log.isDebugEnabled()) {
+            log.debug("Disconnecting... " + (connectionLost ? "(connection lost)" : ""));
+        }
         if (stompSession != null) {
             // don't disconnect session if connectionLost, to avoid forever delays
             if (!connectionLost) {
@@ -163,7 +171,9 @@ public class MixClient {
             stompClient.stop();
             stompClient = null;
         }
-        log.info(" • disconnected");
+        if (log.isDebugEnabled()) {
+            log.debug("Disconnected.");
+        }
     }
 
     private void subscribe() {
@@ -195,7 +205,7 @@ public class MixClient {
         );
         // will automatically receive mixStatus in response of subscription
         if (log.isDebugEnabled()) {
-            log.debug(" • subscribed to server");
+            log.debug("subscribed to server");
         }
     }
 
@@ -210,9 +220,11 @@ public class MixClient {
             if (this.mixStatusNotification != null && !this.mixStatusNotification.mixId.equals(notification.mixId)) {
                 // mixId changed, reset...
                 if (resuming) {
-                    log.error(" ! Unable to resume joined mix: new mix detected");
+                    log.warn(" ! Unable to resume joined mix: new mix detected");
                 } else {
-                    log.info("new mix detected: " + notification.mixId);
+                    if (log.isDebugEnabled()) {
+                        log.debug("new mix detected: " + notification.mixId);
+                    }
                 }
                 this.resetMix();
             }
@@ -222,7 +234,6 @@ public class MixClient {
                 if (!mixStatusCompleted.containsKey(notification.status)) {
 
                     if (MixStatus.FAIL.equals(notification.status)) {
-                        logStep(4, "FAILURE");
                         failAndExit();
                         return;
                     }
@@ -250,15 +261,11 @@ public class MixClient {
                                 } else if (mixStatusCompleted.containsKey(MixStatus.SIGNING)) {
 
                                     if (MixStatus.SUCCESS.equals(notification.status)) {
-                                        logStep(4, "SUCCESS");
-                                        log.info("Funds will be received at " + this.receiveAddress + ", utxo " + this.receiveUtxoHash + ":" + this.receiveUtxoIdx);
-
+                                        this.listener.progress(MixStep.SUCCESS);
                                         MixSuccess mixSuccess = new MixSuccess(this.receiveAddress, this.receiveUtxoHash, this.receiveUtxoIdx);
                                         this.listener.success(mixSuccess);
                                         exit();
                                         return;
-                                    } else {
-
                                     }
                                 } else {
                                     log.warn(" x SIGNING not completed");
@@ -274,7 +281,11 @@ public class MixClient {
                             }
                         } else {
                             if (liquidity) {
-                                log.info(" > Ready to provide liquidity...");
+                                if (gotLiquidityQueuedResponse()) {
+                                    log.info(" > Ready to provide liquidity...");
+                                } else {
+                                    log.info(" > Connecting as liquidity...");
+                                }
                             } else {
                                 log.info(" > Trying to join current mix...");
                             }
@@ -318,12 +329,12 @@ public class MixClient {
 
     private void onErrorResponse(ErrorResponse errorResponse) {
         this.errorResponse = errorResponse;
-        logStep(4, "ERROR");
         log.error("ERROR: " + errorResponse.message);
         failAndExit();
     }
 
     private void failAndExit() {
+        this.listener.progress(MixStep.FAIL);
         this.listener.fail();
         exit();
     }
@@ -333,7 +344,10 @@ public class MixClient {
     }
 
     private void onRegisterInputResponse(RegisterInputResponse payload) {
-        log.info(" > Joined mix " + payload.mixId);
+        listenerProgress(MixStep.REGISTERED_INPUT);
+        if (log.isDebugEnabled()) {
+            log.debug("joined mix: mixId=" + payload.mixId);
+        }
         this.signedBordereau = payload.signedBordereau;
 
         // mixId may have changed since mixStatusNotification
@@ -344,8 +358,13 @@ public class MixClient {
         }
     }
 
+    private boolean gotLiquidityQueuedResponse() {
+        return (this.liquidityQueuedResponse != null);
+    }
+
     private void onLiquidityQueuedResponse(LiquidityQueuedResponse payload) {
-        log.info(" > Queued as liquidity, ready to mix...");
+        listenerProgress(MixStep.QUEUED_LIQUIDITY);
+        this.liquidityQueuedResponse = payload;
     }
 
     private WebSocketStompClient createWebSocketClient() {
@@ -371,6 +390,7 @@ public class MixClient {
         this.minerFeeMin = -1;
         this.minerFeeMax = -1;
         this.signedBordereau = null;
+        this.liquidityQueuedResponse = null;
 
         // computed values
         this.bordereau = null;
@@ -396,7 +416,10 @@ public class MixClient {
         this.minerFeeMax = registerInputMixStatusNotification.getMinerFeeMax();
         this.liquidity = mixParams.getUtxoBalance() == this.denomination;
 
-        logStep(1, "REGISTER_INPUT (" + (this.liquidity ? "LIQUIDITY" : "MUSTMIX") + ")");
+        listenerProgress(MixStep.REGISTERING_INPUT);
+        if (log.isDebugEnabled()) {
+            log.debug("Registering input as " + (this.liquidity ? "LIQUIDITY" : "MUSTMIX"));
+        }
 
         checkUtxoBalance();
 
@@ -436,7 +459,7 @@ public class MixClient {
             NetworkParameters networkParameters = config.getNetworkParameters();
             IMixHandler mixHandler = mixParams.getMixHandler();
 
-            logStep(2, "REGISTER_OUTPUT");
+            listenerProgress(MixStep.REGISTERING_OUTPUT);
             RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
             registerOutputRequest.mixId = mixStatusNotification.mixId;
             registerOutputRequest.unblindedSignedBordereau = clientCryptoService.unblind(signedBordereau, blindingParams);
@@ -451,9 +474,7 @@ public class MixClient {
             // POST request through a different identity for mix privacy
             mixHandler.postHttpRequest(registerOutputMixStatusNotification.getRegisterOutputUrl(), registerOutputRequest);
 
-            if (log.isDebugEnabled()) {
-                log.debug("POST completed");
-            }
+            listenerProgress(MixStep.REGISTERED_OUTPUT);
         }
         catch(Exception e) {
             log.error("failed to registerOutput", e);
@@ -462,19 +483,18 @@ public class MixClient {
     }
 
     private void revealOutput() {
+        listenerProgress(MixStep.REVEALING_OUTPUT);
 
-        logStep(3, "REVEAL_OUTPUT_OR_BLAME (mix failed, someone didn't register output)");
         RevealOutputRequest revealOutputRequest = new RevealOutputRequest();
         revealOutputRequest.mixId = mixStatusNotification.mixId;
         revealOutputRequest.bordereau = this.bordereau;
-
         send(whirlpoolProtocol.ENDPOINT_REVEAL_OUTPUT, revealOutputRequest);
     }
 
     private void signing(SigningMixStatusNotification signingMixStatusNotification) throws Exception {
+        listenerProgress(MixStep.SIGNING);
         NetworkParameters networkParameters = config.getNetworkParameters();
 
-        logStep(3, "SIGNING");
         SigningRequest signingRequest = new SigningRequest();
         signingRequest.mixId = mixStatusNotification.mixId;
 
@@ -502,13 +522,8 @@ public class MixClient {
         // transmit
         signingRequest.witness = ClientUtils.witnessSerialize(tx.getWitness(inputIndex));
         send(whirlpoolProtocol.ENDPOINT_SIGNING, signingRequest);
-    }
 
-    private void logStep(int currentStep, String msg) {
-        final int NB_STEPS = 4;
-        log.info("("+currentStep+"/"+NB_STEPS+") " + msg);
-        MixStatus mixStatus = (this.mixStatusNotification != null ? this.mixStatusNotification.status : MixStatus.REGISTER_INPUT); // null when protocol error on REGISTER_INPUT
-        this.listener.progress(mixStatus, currentStep, NB_STEPS);
+        listenerProgress(MixStep.SIGNED);
     }
 
     public void exit() {
@@ -543,6 +558,9 @@ public class MixClient {
 
     public void onAfterConnected(String stompUsername) {
         this.stompUsername = stompUsername;
+        if (log.isDebugEnabled()) {
+            log.debug("stompUsername=" + stompUsername);
+        }
     }
 
     private void onConnectionLost() {
@@ -575,7 +593,7 @@ public class MixClient {
         long elapsedTime;
         do {
             try {
-                connectAndJoin();
+                connect();
 
                 // success
                 reconnecting = false;
@@ -625,6 +643,7 @@ public class MixClient {
 
     public void setLogPrefix(String logPrefix) {
         this.logPrefix = logPrefix;
+        log = ClientUtils.prefixLogger(log, logPrefix);
     }
 
     public void debugState() {

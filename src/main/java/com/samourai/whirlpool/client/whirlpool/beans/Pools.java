@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.beans;
+package com.samourai.whirlpool.client.whirlpool.beans;
 
 import java.util.Collection;
 

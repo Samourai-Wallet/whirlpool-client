@@ -1,15 +1,17 @@
-package com.samourai.whirlpool.client;
+package com.samourai.whirlpool.client.whirlpool;
 
-import com.samourai.whirlpool.client.beans.MixSuccess;
-import com.samourai.whirlpool.client.beans.Pool;
-import com.samourai.whirlpool.client.beans.Pools;
+import com.samourai.whirlpool.client.WhirlpoolClient;
+import com.samourai.whirlpool.client.mix.listener.MixStep;
+import com.samourai.whirlpool.client.mix.listener.MixSuccess;
+import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.client.mix.MixClient;
-import com.samourai.whirlpool.client.mix.MixClientListener;
+import com.samourai.whirlpool.client.mix.listener.MixClientListener;
 import com.samourai.whirlpool.client.mix.MixParams;
+import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
-import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -128,7 +130,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
         this.doneMixs++;
         if (doneMixs == mixs) {
             // all mixs done
-            listener.success(doneMixs);
+            listener.success(mixs, mixSuccess);
         }
         else {
             // go to next mix
@@ -151,8 +153,8 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
             }
 
             @Override
-            public void progress(MixStatus mixStatus, int currentStep, int nbSteps) {
-                listener.progress(doneMixs+1, mixs, mixStatus, currentStep, nbSteps);
+            public void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps) {
+                listener.progress(doneMixs+1, mixs, step, stepInfo, stepNumber, nbSteps);
             }
         };
     }

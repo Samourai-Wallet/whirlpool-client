@@ -2,13 +2,17 @@ package com.samourai.whirlpool.client;
 
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.hd.HD_Wallet;
-import com.samourai.whirlpool.client.beans.MixSuccess;
-import com.samourai.whirlpool.client.beans.Pools;
+import com.samourai.whirlpool.client.mix.listener.MixStep;
+import com.samourai.whirlpool.client.mix.listener.MixSuccess;
+import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.handler.IMixHandler;
 import com.samourai.whirlpool.client.mix.handler.MixHandler;
 import com.samourai.whirlpool.client.utils.LogbackUtils;
-import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
+import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientListener;
+import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
+import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
+import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.DumpedPrivateKey;
 import org.bitcoinj.core.ECKey;
@@ -143,27 +147,33 @@ public class Application implements ApplicationRunner {
 
     // this listener gets notified of mix status in real time
     private WhirlpoolClientListener computeClientListener() {
-        return new WhirlpoolClientListener() {
+        return new LoggingWhirlpoolClientListener(){
             @Override
-            public void success(int nbMixs) {
-                done = true;
-                log.info("***** ALL " + nbMixs + " MIXS SUCCESS *****");
+            public void success(int nbMixs, MixSuccess mixSuccess) {
+                super.success(nbMixs, mixSuccess);
+
+                // override with custom code here: all mixs success
             }
 
             @Override
             public void fail(int currentMix, int nbMixs) {
-                done = true;
-                log.info("***** MIX " + currentMix + "/" + nbMixs + " FAILED *****");
+                super.fail(currentMix, nbMixs);
+
+                // override with custom code here: failure
+            }
+
+            @Override
+            public void progress(int currentMix, int nbMixs, MixStep step, String stepInfo, int stepNumber, int nbSteps) {
+                super.progress(currentMix, nbMixs, step, stepInfo, stepNumber, nbSteps);
+
+                // override with custom code here: mix progress
             }
 
             @Override
             public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
-                log.info("***** MIX " + currentMix + "/" + nbMixs + " SUCCESS *****");
-            }
+                super.mixSuccess(currentMix, nbMixs, mixSuccess);
 
-            @Override
-            public void progress(int currentMix, int nbMixs, MixStatus mixStatus, int currentStep, int nbSteps) {
-
+                // override with custom code here: one mix success (check if more mixs remaining with currentMix==nbMixs)
             }
         };
     }

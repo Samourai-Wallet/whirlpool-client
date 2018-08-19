@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.services;
+package com.samourai.whirlpool.client.utils;
 
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.digests.SHA256Digest;
@@ -7,11 +7,9 @@ import org.bouncycastle.crypto.generators.RSABlindingFactorGenerator;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.signers.PSSSigner;
-import org.springframework.stereotype.Service;
 
 import java.math.BigInteger;
 
-@Service
 public class ClientCryptoService {
 
     public ClientCryptoService() {
