@@ -29,7 +29,7 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
 
     @Override
     public void fail(int currentMix, int nbMixs) {
-        log.info("⣿ WHIRLPOOL FAILED ⣿ Mix "+currentMix+"/"+nbMixs+") failed. Check logs for errors.");
+        log.info("⣿ WHIRLPOOL FAILED ⣿ Mix "+currentMix+"/"+nbMixs+" failed. Check logs for errors.");
     }
 
     @Override

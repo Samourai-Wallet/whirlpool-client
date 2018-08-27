@@ -151,6 +151,7 @@ public class Application implements ApplicationRunner {
             @Override
             public void success(int nbMixs, MixSuccess mixSuccess) {
                 super.success(nbMixs, mixSuccess);
+                done = true;
 
                 // override with custom code here: all mixs success
             }
@@ -158,6 +159,7 @@ public class Application implements ApplicationRunner {
             @Override
             public void fail(int currentMix, int nbMixs) {
                 super.fail(currentMix, nbMixs);
+                done = true;
 
                 // override with custom code here: failure
             }
