@@ -12,11 +12,13 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.websocket.ClientFrameHandler;
 import com.samourai.whirlpool.client.websocket.ClientSessionHandler;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
 import com.samourai.whirlpool.protocol.websocket.messages.*;
 import com.samourai.whirlpool.protocol.websocket.notifications.*;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
@@ -30,8 +32,11 @@ import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 
 import java.lang.invoke.MethodHandles;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class MixClient {
     // non-static logger to prefix it with stomp sessionId
@@ -55,6 +60,7 @@ public class MixClient {
     private boolean liquidity;
     private byte[] signedBordereau; // will get it after joining a mix
     private LiquidityQueuedResponse liquidityQueuedResponse; // will get when connecting as liquidity
+    private String inputsHash; // will get it on REGISTER_OUTPUT
 
     // computed values
     private String bordereau; // will generate it randomly
@@ -391,6 +397,7 @@ public class MixClient {
         this.minerFeeMax = -1;
         this.signedBordereau = null;
         this.liquidityQueuedResponse = null;
+        this.inputsHash = null;
 
         // computed values
         this.bordereau = null;
@@ -458,10 +465,11 @@ public class MixClient {
         try {
             NetworkParameters networkParameters = config.getNetworkParameters();
             IMixHandler mixHandler = mixParams.getMixHandler();
+            this.inputsHash = registerOutputMixStatusNotification.getInputsHash();
 
             listenerProgress(MixStep.REGISTERING_OUTPUT);
             RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
-            registerOutputRequest.mixId = mixStatusNotification.mixId;
+            registerOutputRequest.inputsHash = this.inputsHash;
             registerOutputRequest.unblindedSignedBordereau = clientCryptoService.unblind(signedBordereau, blindingParams);
             registerOutputRequest.bordereau = this.bordereau;
             this.receiveAddress = mixHandler.computeReceiveAddress(networkParameters);
@@ -501,6 +509,13 @@ public class MixClient {
 
         Transaction tx = new Transaction(networkParameters, signingMixStatusNotification.transaction);
 
+        // verify inputsHash
+        String txInputsHash = computeInputsHash(tx.getInputs());
+        if (!txInputsHash.equals(inputsHash)) {
+            throw new Exception("Inputs hash mismatch. Aborting.");
+        }
+
+        // verify my output
         Integer txOutputIndex = ClientUtils.findTxOutputIndex(this.receiveAddress, tx, networkParameters);
         if(txOutputIndex != null){
             receiveUtxoHash = tx.getHashAsString();
@@ -510,6 +525,7 @@ public class MixClient {
             throw new Exception("Output not found in tx");
         }
 
+        // verify my input
         Integer inputIndex = ClientUtils.findInputIndex(mixParams.getUtxoHash(), mixParams.getUtxoIdx(), tx);
         if (inputIndex == null) {
             throw new Exception("Input not found in tx");
@@ -525,6 +541,11 @@ public class MixClient {
         send(whirlpoolProtocol.ENDPOINT_SIGNING, signingRequest);
 
         listenerProgress(MixStep.SIGNED);
+    }
+
+    private String computeInputsHash(List<TransactionInput> inputs) {
+        Collection<Utxo> inputsUtxos = inputs.parallelStream().map(input -> new Utxo(input.getOutpoint().getHash().toString(), input.getOutpoint().getIndex())).collect(Collectors.toList());
+        return WhirlpoolProtocol.computeInputsHash(inputsUtxos);
     }
 
     public void exit() {
