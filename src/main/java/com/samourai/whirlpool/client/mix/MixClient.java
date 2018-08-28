@@ -467,12 +467,13 @@ public class MixClient {
             this.receiveAddress = mixHandler.computeReceiveAddress(networkParameters);
             registerOutputRequest.receiveAddress = this.receiveAddress;
 
+            String registerOutputUrl = WhirlpoolProtocol.computeRegisterOutputUrl(config.getServer());
             if (log.isDebugEnabled()) {
-                log.debug("POST " + registerOutputMixStatusNotification.getRegisterOutputUrl()+": " + ClientUtils.toJsonString(registerOutputRequest));
+                log.debug("POST " + registerOutputUrl + ": " + ClientUtils.toJsonString(registerOutputRequest));
             }
 
             // POST request through a different identity for mix privacy
-            mixHandler.postHttpRequest(registerOutputMixStatusNotification.getRegisterOutputUrl(), registerOutputRequest);
+            mixHandler.postHttpRequest(registerOutputUrl, registerOutputRequest);
 
             listenerProgress(MixStep.REGISTERED_OUTPUT);
         }
