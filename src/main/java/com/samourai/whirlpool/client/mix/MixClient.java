@@ -436,7 +436,7 @@ public class MixClient {
         // keep bordereau private, but transmit blindedBordereau
         // clear bordereau will be provided with unblindedBordereau under another identity for REGISTER_OUTPUT
         this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
-        this.bordereau = ClientUtils.generateUniqueBordereau();
+        this.bordereau = ClientUtils.generateUniqueString();
         registerInputRequest.blindedBordereau = clientCryptoService.blind(this.bordereau, blindingParams);
 
         send(whirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);

@@ -4,8 +4,6 @@ import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32Util;
-import org.apache.commons.text.CharacterPredicates;
-import org.apache.commons.text.RandomStringGenerator;
 import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.TransactionSignature;
 import org.bitcoinj.script.Script;
@@ -18,6 +16,7 @@ import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
+import java.util.UUID;
 
 public class ClientUtils {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -49,16 +48,8 @@ public class ClientUtils {
         return null;
     }
 
-    public static String getRandomString(int length) {
-        RandomStringGenerator randomStringGenerator =
-                new RandomStringGenerator.Builder()
-                        .filteredBy(CharacterPredicates.ASCII_ALPHA_NUMERALS)
-                        .build();
-        return randomStringGenerator.generate(length);
-    }
-
-    public static String generateUniqueBordereau() {
-        return getRandomString(256);
+    public static String generateUniqueString() {
+        return UUID.randomUUID().toString().replace("-", "");
     }
 
     public static byte[][] witnessSerialize(TransactionWitness witness) {
