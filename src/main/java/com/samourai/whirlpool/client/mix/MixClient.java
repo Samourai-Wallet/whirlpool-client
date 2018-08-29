@@ -19,6 +19,7 @@ import com.samourai.whirlpool.protocol.websocket.notifications.*;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
@@ -509,6 +510,25 @@ public class MixClient {
 
         Transaction tx = new Transaction(networkParameters, signingMixStatusNotification.transaction);
 
+        // verify tx
+        int inputIndex = verifyTx(tx);
+
+        long spendAmount = mixParams.getUtxoBalance();
+        mixParams.getMixHandler().signTransaction(tx, inputIndex, spendAmount, networkParameters);
+
+        // verify signature
+        tx.verify();
+
+        // transmit
+        signingRequest.witness = ClientUtils.witnessSerialize(tx.getWitness(inputIndex));
+        send(whirlpoolProtocol.ENDPOINT_SIGNING, signingRequest);
+
+        listenerProgress(MixStep.SIGNED);
+    }
+
+    private int verifyTx(Transaction tx) throws Exception {
+        NetworkParameters networkParameters = config.getNetworkParameters();
+
         // verify inputsHash
         String txInputsHash = computeInputsHash(tx.getInputs());
         if (!txInputsHash.equals(inputsHash)) {
@@ -530,17 +550,22 @@ public class MixClient {
         if (inputIndex == null) {
             throw new Exception("Input not found in tx");
         }
-        long spendAmount = mixParams.getUtxoBalance();
-        mixParams.getMixHandler().signTransaction(tx, inputIndex, spendAmount, networkParameters);
 
-        // verify
-        tx.verify();
+        // as many inputs as outputs
+        if (tx.getInputs().size() != tx.getOutputs().size()) {
+            log.error("inputs.size = " + tx.getInputs().size() + ", outputs.size=" + tx.getOutputs().size());
+            throw new Exception("Inputs size vs outputs size mismatch");
+        }
 
-        // transmit
-        signingRequest.witness = ClientUtils.witnessSerialize(tx.getWitness(inputIndex));
-        send(whirlpoolProtocol.ENDPOINT_SIGNING, signingRequest);
+        // each output value should be denomination
+        for (TransactionOutput output : tx.getOutputs()) {
+            if (output.getValue().getValue() != denomination) {
+                log.error("outputValue=" + output.getValue().getValue() + ", denomination=" + denomination);
+                throw new Exception("Output value mismatch");
+            }
+        }
 
-        listenerProgress(MixStep.SIGNED);
+        return inputIndex;
     }
 
     private String computeInputsHash(List<TransactionInput> inputs) {
