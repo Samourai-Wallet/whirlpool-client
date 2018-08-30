@@ -43,6 +43,9 @@ public class MixClient {
     // non-static logger to prefix it with stomp sessionId
     private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
+    // hard limit for acceptable fees
+    private static final long MAX_ACCEPTABLE_FEES = 100000;
+
     // server settings
     private WhirlpoolClientConfig config;
     private String poolId;
@@ -429,6 +432,10 @@ public class MixClient {
             log.debug("Registering input as " + (this.liquidity ? "LIQUIDITY" : "MUSTMIX"));
         }
 
+        // verify fees acceptable
+        checkDenomination();
+
+        // verify balance
         checkUtxoBalance();
 
         IMixHandler mixHandler = mixParams.getMixHandler();
@@ -448,6 +455,14 @@ public class MixClient {
         registerInputRequest.blindedBordereau = clientCryptoService.blind(this.bordereau, blindingParams);
 
         send(whirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);
+    }
+
+    private void checkDenomination() throws NotifiableException {
+        long myFees = mixParams.getUtxoBalance() - denomination;
+        if (myFees > MAX_ACCEPTABLE_FEES) {
+            log.error("Fees too high, aborting. myFees=" + myFees + ", MAX_ACCEPTABLE_FEES=" + MAX_ACCEPTABLE_FEES);
+            throw new NotifiableException("Fees too high, aborting.");
+        }
     }
 
     private void checkUtxoBalance() throws NotifiableException {
@@ -536,20 +551,12 @@ public class MixClient {
         }
 
         // verify my output
-        Integer txOutputIndex = ClientUtils.findTxOutputIndex(this.receiveAddress, tx, networkParameters);
-        if(txOutputIndex != null){
-            receiveUtxoHash = tx.getHashAsString();
-            receiveUtxoIdx = txOutputIndex;
-        }
-        else {
-            throw new Exception("Output not found in tx");
-        }
+        int txOutputIndex = ClientUtils.findTxOutputIndex(this.receiveAddress, tx, networkParameters).orElseThrow(() -> new Exception("Output not found in tx"));
+        receiveUtxoHash = tx.getHashAsString();
+        receiveUtxoIdx = txOutputIndex;
 
         // verify my input
-        Integer inputIndex = ClientUtils.findInputIndex(mixParams.getUtxoHash(), mixParams.getUtxoIdx(), tx);
-        if (inputIndex == null) {
-            throw new Exception("Input not found in tx");
-        }
+        int inputIndex = ClientUtils.findTxInputIndex(mixParams.getUtxoHash(), mixParams.getUtxoIdx(), tx).orElseThrow(() -> new Exception("Input not found in tx"));
 
         // as many inputs as outputs
         if (tx.getInputs().size() != tx.getOutputs().size()) {
