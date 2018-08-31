@@ -36,11 +36,6 @@ public class ApplicationTest {
     public void listPools() {
         String[] args = new String[]{
             "--network=test",
-            "--utxo=7ea75da574ebabf8d17979615b059ab53aae3011926426204e730d164a0d0f16-2",
-            "--utxo-key=cUwS52vEv4ursFBdGJWgHiZyBNqqSF5nFTsunUpocRBYGLY72z4j",
-            "--seed-passphrase=all10",
-            "--seed-words=all all all all all all all all all all all all",
-            "--rounds=5",
             "--debug"
         };
         ApplicationArguments appArgs = new DefaultApplicationArguments(args);
@@ -62,7 +57,7 @@ public class ApplicationTest {
                 "--utxo-balance=1000102",
                 "--seed-passphrase=w0",
                 "--seed-words=all all all all all all all all all all all all",
-                "--rounds=5",
+                "--mixs=5",
                 "--debug",
                 "--pool=1btc"
         };
