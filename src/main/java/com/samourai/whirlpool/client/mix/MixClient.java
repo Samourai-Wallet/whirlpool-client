@@ -67,7 +67,6 @@ public class MixClient {
     private String inputsHash; // will get it on REGISTER_OUTPUT
 
     // computed values
-    private String bordereau; // will generate it randomly
     private RSABlindingParameters blindingParams;
     private String receiveAddress;
     private String receiveUtxoHash;
@@ -404,7 +403,6 @@ public class MixClient {
         this.inputsHash = null;
 
         // computed values
-        this.bordereau = null;
         this.blindingParams = null;
         this.receiveAddress = null;
         this.receiveUtxoHash = null;
@@ -448,11 +446,11 @@ public class MixClient {
         registerInputRequest.mixId = mixStatusNotification.mixId;
         registerInputRequest.liquidity = this.liquidity;
 
-        // keep bordereau private, but transmit blindedBordereau
-        // clear bordereau will be provided with unblindedBordereau under another identity for REGISTER_OUTPUT
+        // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
+        // clear receiveAddress will be provided with unblindedSignedBordereau under another identity for REGISTER_OUTPUT
         this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
-        this.bordereau = ClientUtils.generateUniqueString();
-        registerInputRequest.blindedBordereau = clientCryptoService.blind(this.bordereau, blindingParams);
+        this.receiveAddress = mixHandler.computeReceiveAddress(networkParameters);
+        registerInputRequest.blindedBordereau = clientCryptoService.blind(this.receiveAddress, blindingParams);
 
         send(whirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);
     }
@@ -487,8 +485,6 @@ public class MixClient {
             RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
             registerOutputRequest.inputsHash = this.inputsHash;
             registerOutputRequest.unblindedSignedBordereau = clientCryptoService.unblind(signedBordereau, blindingParams);
-            registerOutputRequest.bordereau = this.bordereau;
-            this.receiveAddress = mixHandler.computeReceiveAddress(networkParameters);
             registerOutputRequest.receiveAddress = this.receiveAddress;
 
             String registerOutputUrl = WhirlpoolProtocol.computeRegisterOutputUrl(config.getServer());
@@ -512,7 +508,7 @@ public class MixClient {
 
         RevealOutputRequest revealOutputRequest = new RevealOutputRequest();
         revealOutputRequest.mixId = mixStatusNotification.mixId;
-        revealOutputRequest.bordereau = this.bordereau;
+        revealOutputRequest.receiveAddress = this.receiveAddress;
         send(whirlpoolProtocol.ENDPOINT_REVEAL_OUTPUT, revealOutputRequest);
     }
 
