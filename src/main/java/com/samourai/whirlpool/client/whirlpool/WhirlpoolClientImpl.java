@@ -1,13 +1,14 @@
 package com.samourai.whirlpool.client.whirlpool;
 
 import com.samourai.whirlpool.client.WhirlpoolClient;
+import com.samourai.whirlpool.client.mix.MixClient;
+import com.samourai.whirlpool.client.mix.MixParams;
+import com.samourai.whirlpool.client.mix.listener.MixClientListener;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
-import com.samourai.whirlpool.client.mix.MixClient;
-import com.samourai.whirlpool.client.mix.listener.MixClientListener;
-import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
@@ -15,6 +16,7 @@ import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.lang.invoke.MethodHandles;
@@ -54,12 +56,17 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     public Pools fetchPools() throws Exception {
         RestTemplate restTemplate = new RestTemplate();
         String url = "http://" + this.config.getServer() + WhirlpoolProtocol.ENDPOINT_POOLS; // TODO HTTPS
-        ResponseEntity<PoolsResponse> result = restTemplate.getForEntity(url, PoolsResponse.class);
-        if (result == null || !result.getStatusCode().is2xxSuccessful()) {
-            // response error
-            throw new Exception("unable to retrieve pools");
+        try {
+            ResponseEntity<PoolsResponse> result = restTemplate.getForEntity(url, PoolsResponse.class);
+            if (result == null || !result.getStatusCode().is2xxSuccessful()) {
+                // response error
+                throw new Exception("unable to retrieve pools");
+            }
+            return computePools(result.getBody());
+        } catch(HttpServerErrorException e) {
+            String restErrorMessage = ClientUtils.parseRestErrorMessage(e).orElse("unknown reason");
+            throw new Exception("unable to retrieve pools: " + restErrorMessage);
         }
-        return computePools(result.getBody());
     }
 
     private Pools computePools(PoolsResponse poolsResponse) {

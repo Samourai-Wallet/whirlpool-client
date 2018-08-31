@@ -4,12 +4,14 @@ import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32Util;
+import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.TransactionSignature;
 import org.bitcoinj.script.Script;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.lang.invoke.MethodHandles;
 import java.security.KeyFactory;
@@ -88,10 +90,31 @@ public class ClientUtils {
         return null;
     }
 
+    public static <T> T fromJson(String json, Class<T> type) throws Exception {
+        return objectMapper.readValue(json, type);
+    }
+
     public static Logger prefixLogger(Logger log, String logPrefix) {
         Level level = ((ch.qos.logback.classic.Logger)log).getEffectiveLevel();
         Logger newLog = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass()+"["+logPrefix+"]");
         ((ch.qos.logback.classic.Logger)newLog).setLevel(level);
         return newLog;
+    }
+
+    private static Optional<String> parseRestErrorMessage(String responseBody) {
+        try {
+            RestErrorResponse restErrorResponse = ClientUtils.fromJson(responseBody, RestErrorResponse.class);
+            return Optional.of(restErrorResponse.message);
+        } catch(Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    public static Optional<String> parseRestErrorMessage(HttpServerErrorException e) {
+        String responseBody = e.getResponseBodyAsString();
+        if (log.isDebugEnabled()) {
+            log.error("registerOutput error: responseCode=" + e.getRawStatusCode() + ", responseBody=" + responseBody);
+        }
+        return parseRestErrorMessage(responseBody);
     }
 }
