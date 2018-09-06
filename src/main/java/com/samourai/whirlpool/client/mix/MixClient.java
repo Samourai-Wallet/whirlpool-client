@@ -259,25 +259,35 @@ public class MixClient {
                                 mixStatusCompleted.put(MixStatus.REGISTER_OUTPUT, true);
 
                             } else if (mixStatusCompleted.containsKey(MixStatus.REGISTER_OUTPUT)) {
-                                if (MixStatus.REVEAL_OUTPUT.equals(notification.status)) {
+
+                                // don't reveal output if already signed
+                                if (!mixStatusCompleted.containsKey(MixStatus.SIGNING) && MixStatus.REVEAL_OUTPUT.equals(notification.status)) {
                                     this.revealOutput();
                                     mixStatusCompleted.put(MixStatus.REVEAL_OUTPUT, true);
 
-                                } else if (MixStatus.SIGNING.equals(notification.status)) {
-                                    this.signing((SigningMixStatusNotification) mixStatusNotification);
-                                    mixStatusCompleted.put(MixStatus.SIGNING, true);
+                                } else if (!mixStatusCompleted.containsKey(MixStatus.REVEAL_OUTPUT)) { // don't sign or success if output was revealed
 
-                                } else if (mixStatusCompleted.containsKey(MixStatus.SIGNING)) {
+                                    if (MixStatus.SIGNING.equals(notification.status)) {
+                                        this.signing((SigningMixStatusNotification) mixStatusNotification);
+                                        mixStatusCompleted.put(MixStatus.SIGNING, true);
 
-                                    if (MixStatus.SUCCESS.equals(notification.status)) {
-                                        this.listener.progress(MixStep.SUCCESS);
-                                        MixSuccess mixSuccess = new MixSuccess(this.receiveAddress, this.receiveUtxoHash, this.receiveUtxoIdx);
-                                        this.listener.success(mixSuccess);
-                                        exit();
-                                        return;
+                                    } else if (mixStatusCompleted.containsKey(MixStatus.SIGNING)) {
+
+                                        if (MixStatus.SUCCESS.equals(notification.status)) {
+                                            this.listener.progress(MixStep.SUCCESS);
+                                            MixSuccess mixSuccess = new MixSuccess(this.receiveAddress, this.receiveUtxoHash, this.receiveUtxoIdx);
+                                            this.listener.success(mixSuccess);
+                                            exit();
+                                            return;
+                                        }
+                                    } else {
+                                        log.warn(" x SIGNING not completed");
+                                        if (log.isDebugEnabled()) {
+                                            log.error("Ignoring mixStatusNotification: " + ClientUtils.toJsonString(mixStatusNotification));
+                                        }
                                     }
                                 } else {
-                                    log.warn(" x SIGNING not completed");
+                                    log.warn(" x REVEAL_OUTPUT already completed");
                                     if (log.isDebugEnabled()) {
                                         log.error("Ignoring mixStatusNotification: " + ClientUtils.toJsonString(mixStatusNotification));
                                     }
