@@ -20,6 +20,8 @@ public class WhirlpoolClientConfig {
 
         // retry reconnecting for 5 minutes
         this.reconnectUntil = 500;
+
+        this.testMode = false;
     }
 
     public String getServer() {

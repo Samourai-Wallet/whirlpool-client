@@ -1,8 +1,40 @@
 # whirlpool-client integration
 
+## Dependency
+Add maven/gradle dependency: com.samouraiwallet:whirlpool-client:VERSION
 
-## Example
+This will fetch the following dependencies:
+ * whirlpool-protocol
+ * ext-lib-j
+ * bitcoinj
 
+
+## Instanciate client
+```
+// client configuration (server...)
+String server = "hostname:port";
+NetworkParameters networkParameters = TestNet3Params.get();
+WhirlpoolClientConfig config = new WhirlpoolClientConfig(server, networkParameters);
+
+// instanciate client
+WhirlpoolClient whirlpoolClient = WhirlpoolClientImpl.newClient(config);
+```
+
+
+## Fetch pools
+```
+// fetch pools from server with simple REST request (no websocket here)
+Pools pools = whirlpoolClient.fetchPools();
+
+// read server response
+for (PoolInfo poolInfo: pools.getPools()) {
+    System.out.println(poolInfo.getPoolId());
+    System.out.println(poolInfo.getDenomination());
+    // more info in 'poolInfo' object...
+}
+```
+
+## Start mixing
 
 ```
 // mix handler
@@ -16,16 +48,7 @@ Long utxoIndex = ...
 String paymentCode = ...
 MixParams mixParams = new MixParams(utxoHash, utxoIndex, paymentCode, mixHandler);
 
-// client configuration (server...)
-WhirlpoolClientConfig config = new WhirlpoolClientConfig(wsUrl, params);
-
-// instanciate client
-WhirlpoolClient whirlpoolClient = WhirlpoolClientImpl.newClient(config);
-
-// get pools list
-Pools pools = whirlpoolClient.fetchPools();
-
-String poolId = ... // select a pool
+String poolId = ... // obtained from pools fetched earlier
 
 // listener will be notified of whirlpool progress in realtime
 WhirlpoolClientListener listener = new LoggingWhirlpoolClientListener(){
@@ -53,8 +76,9 @@ WhirlpoolClientListener listener = new LoggingWhirlpoolClientListener(){
        // override with custom code here: one mix success (check if more mixs remaining with currentMix==nbMixs)
    }
 };
-int mixs = 1; // numer of mixs to achieve
+
+int nbMixs = 1; // numer of mixs to achieve
 
 // start mixing
-whirlpoolClient.whirlpool(poolId, mixParams, mixs, listener);
+whirlpoolClient.whirlpool(poolId, mixParams, nbMixs, listener);
 ```
