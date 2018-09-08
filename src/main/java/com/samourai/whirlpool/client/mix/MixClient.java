@@ -119,7 +119,7 @@ public class MixClient {
 
             listenerProgress(MixStep.CONNECTING);
             stompClient = createWebSocketClient();
-            String wsUrl ="ws://" + config.getServer();
+            String wsUrl ="ws://" + config.getServer() + WhirlpoolProtocol.ENDPOINT_CONNECT;
             if (log.isDebugEnabled()) {
                 log.debug("connecting to server: " + wsUrl);
             }
