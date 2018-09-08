@@ -8,6 +8,7 @@ public class WhirlpoolClientConfig {
     private NetworkParameters networkParameters;
     private int reconnectDelay;
     private int reconnectUntil;
+    private boolean testMode;
 
 
     public WhirlpoolClientConfig(String server, NetworkParameters networkParameters) {
@@ -51,5 +52,13 @@ public class WhirlpoolClientConfig {
 
     public void setReconnectUntil(int reconnectUntil) {
         this.reconnectUntil = reconnectUntil;
+    }
+
+    public void setTestMode(boolean testMode) {
+        this.testMode = testMode;
+    }
+
+    public boolean isTestMode() {
+        return testMode;
     }
 }

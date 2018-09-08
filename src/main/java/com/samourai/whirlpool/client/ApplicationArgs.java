@@ -23,7 +23,8 @@ public class ApplicationArgs {
     private static final String ARG_SERVER = "server";
     private static final String ARG_MIXS = "mixs";
     private static final String ARG_POOL_ID = "pool";
-    public static final String USAGE = "--network={main,test} --utxo= --utxo-key= --utxo-balance= --seed-passphrase= --seed-words= [--paynym-index=0] [--mixs=1] [--pool=] [--server=host:port] [--debug]";
+    private static final String ARG_TESTMODE = "test-mode";
+    public static final String USAGE = "--network={main,test} --utxo= --utxo-key= --utxo-balance= --seed-passphrase= --seed-words= [--paynym-index=0] [--mixs=1] [--pool=] [--test-mode] [--server=host:port] [--debug]";
     private static final String UTXO_SEPARATOR = "-";
 
     private ApplicationArguments args;
@@ -127,6 +128,10 @@ public class ApplicationArgs {
             throw new IllegalArgumentException("Numeric value expected for option: "+ ARG_MIXS);
         }
         return mixs;
+    }
+
+    public boolean isTestMode() {
+        return args.containsOption(ARG_TESTMODE);
     }
 
     private String optionalOption(String name) {

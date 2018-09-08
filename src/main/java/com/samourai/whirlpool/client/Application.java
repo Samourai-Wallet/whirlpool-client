@@ -63,6 +63,12 @@ public class Application implements ApplicationRunner {
 
             // instanciate client
             WhirlpoolClientConfig config = new WhirlpoolClientConfig(server, params);
+            if (appArgs.isTestMode()) {
+                config.setTestMode(true);
+                if (log.isDebugEnabled()) {
+                    log.debug("--test-mode: tx0 verifications will be skiped (if server allows it)");
+                }
+            }
             WhirlpoolClient whirlpoolClient = WhirlpoolClientImpl.newClient(config);
 
             String poolId = appArgs.getPoolId();

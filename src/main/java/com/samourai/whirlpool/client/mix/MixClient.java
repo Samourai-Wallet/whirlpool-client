@@ -455,6 +455,7 @@ public class MixClient {
         registerInputRequest.signature = mixHandler.signMessage(mixStatusNotification.mixId);
         registerInputRequest.mixId = mixStatusNotification.mixId;
         registerInputRequest.liquidity = this.liquidity;
+        registerInputRequest.testMode = config.isTestMode();
 
         // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
         // clear receiveAddress will be provided with unblindedSignedBordereau under another identity for REGISTER_OUTPUT
