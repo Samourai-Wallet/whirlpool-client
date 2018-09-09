@@ -219,8 +219,4 @@ public class MixSession {
     protected StompTransport __getTransport() {
         return transport;
     }
-
-    protected MixDialog __getDialog() {
-        return dialog;
-    }
 }

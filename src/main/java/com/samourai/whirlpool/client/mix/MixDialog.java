@@ -233,8 +233,4 @@ public class MixDialog {
     public String getMixId() {
         return mixId;
     }
-
-    protected MixStatus __getMixStatus() {
-        return mixStatus;
-    }
 }

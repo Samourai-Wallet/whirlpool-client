@@ -174,15 +174,6 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
         }
     }
 
-    public void debugState() {
-        if (log.isDebugEnabled()) {
-            log.debug("Mix "+doneMixs+"/"+ mixs);
-            for (MixClient mixClient : mixClients) {
-                mixClient.debugState();
-            }
-        }
-    }
-
     public void setLogPrefix(String logPrefix) {
         this.logPrefix = logPrefix;
     }

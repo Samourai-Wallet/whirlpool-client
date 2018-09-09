@@ -335,19 +335,6 @@ public class MixClient {
         log = ClientUtils.prefixLogger(log, logPrefix);
     }
 
-    public void debugState() {
-        if (log.isDebugEnabled()) {
-            String username = mixSession != null && mixSession.__getTransport() != null ? mixSession.__getTransport().getStompUsername() : "null";
-            String mixStatus = __getMixStatus() != null ? __getMixStatus().toString() : "null";
-            log.debug("stompUsername=" + username);
-            log.debug("mixStatus=" + mixStatus);
-        }
-    }
-
-    public MixStatus __getMixStatus() {
-        return mixSession != null &&  mixSession.__getDialog() != null && mixSession.__getDialog().__getMixStatus() != null ? mixSession.__getDialog().__getMixStatus() : null;
-    }
-
     private MixDialogListener computeMixDialogListener() {
         return new MixDialogListener() {
             @Override
