@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.mix.transport;
+package com.samourai.whirlpool.client.mix.dialog;
 
 import com.samourai.whirlpool.protocol.websocket.messages.*;
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterInputMixStatusNotification;
@@ -8,20 +8,19 @@ import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusN
 
 public interface MixDialogListener {
 
-    void onFail();
-    void exitOnProtocolError();
-    void exitOnResponseError(String notifiableError);
-    void exitOnConnectionLost();
-
     RegisterInputRequest registerInput(RegisterInputMixStatusNotification registerInputMixStatusNotification) throws Exception;
     void postRegisterOutput(RegisterOutputMixStatusNotification registerOutputMixStatusNotification, String registerOutputUrl) throws Exception;
     RevealOutputRequest revealOutput(RevealOutputMixStatusNotification revealOutputMixStatusNotification) throws Exception;
     SigningRequest signing(SigningMixStatusNotification signingMixStatusNotification) throws Exception;
 
+    void onRegisterInputResponse(RegisterInputResponse registerInputResponse) throws Exception;
+    void onLiquidityQueuedResponse(LiquidityQueuedResponse liquidityQueuedResponse) throws Exception;
+
     void onSuccess();
-
-    void onRegisterInputResponse(RegisterInputResponse registerInputResponse);
-    void onLiquidityQueuedResponse(LiquidityQueuedResponse liquidityQueuedResponse);
-
+    void onFail();
     void onResetMix();
+
+    void exitOnProtocolError();
+    void exitOnResponseError(String notifiableError);
+    void exitOnConnectionLost();
 }

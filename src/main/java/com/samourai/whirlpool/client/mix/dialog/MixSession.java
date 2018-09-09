@@ -1,6 +1,5 @@
-package com.samourai.whirlpool.client.mix;
+package com.samourai.whirlpool.client.mix.dialog;
 
-import com.samourai.whirlpool.client.mix.transport.MixDialogListener;
 import com.samourai.whirlpool.client.mix.transport.StompTransport;
 import com.samourai.whirlpool.client.mix.transport.TransportListener;
 import com.samourai.whirlpool.client.utils.ClientUtils;
