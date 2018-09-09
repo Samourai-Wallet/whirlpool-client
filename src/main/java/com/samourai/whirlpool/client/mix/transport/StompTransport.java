@@ -43,7 +43,10 @@ public class StompTransport {
         return stompSessionId;
     }
 
-    public void subscribe(StompHeaders subscribeHeaders, Consumer<Object> frameHandler, Consumer<Object> errorHandler) {
+    public void subscribe(StompHeaders subscribeHeaders, Consumer<Object> frameHandler, Consumer<String> errorHandler) {
+        if (log.isDebugEnabled()) {
+            log.debug("subscribe:" + subscribeHeaders.getDestination());
+        }
         final StompHeaders completeHeaders = completeHeaders(subscribeHeaders);
         stompSession.subscribe(subscribeHeaders,
             new StompFrameHandler((payload) -> {
@@ -56,7 +59,10 @@ public class StompTransport {
                 else {
                     log.warn("frame ignored (done) (" + completeHeaders.getDestination() + "): " + ClientUtils.toJsonString(payload));
                 }
-            }, errorHandler));
+            }, (error) -> {
+                errorHandler.accept((String)error);
+            })
+        );
     }
 
     private StompSessionHandlerAdapter computeStompSessionHandler() {

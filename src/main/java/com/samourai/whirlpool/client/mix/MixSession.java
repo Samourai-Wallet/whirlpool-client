@@ -106,31 +106,39 @@ public class MixSession {
     }
 
     private void subscribe() {
-        // subscribe mixStatusNotifications
-        transport.subscribe(computeStompHeaders(whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE),
-                (payload) -> {
-                    Optional<WhirlpoolMessage> whirlpoolMessage = checkMessage(payload);
-                    if (whirlpoolMessage.isPresent()) {
-                        dialog.onBroadcastReceived(whirlpoolMessage.get());
-                    }
-                },
-                (e) -> {
-                    log.error("subscribe error", e);
-                    listener.exitOnProtocolError();
-                }
-        );
-
-        // subscribe private responses
+        // subscribe to private responses first (to receive error responses)
         String privateQueue = whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY;
         transport.subscribe(computeStompHeaders(privateQueue),
                 (payload) -> {
                     Optional<WhirlpoolMessage> whirlpoolMessage = checkMessage(payload);
                     if (whirlpoolMessage.isPresent()) {
                         dialog.onPrivateReceived(whirlpoolMessage.get());
+                    } else {
+                        log.error("--> " + privateQueue + ": not a WhirlpoolMessage: " + ClientUtils.toJsonString(payload));
+                        listener.exitOnProtocolError();
                     }
                 },
-                (e) -> {
-                    log.error("subscribe error", e);
+                (errorMessage) -> {
+                    log.error("--> " + privateQueue + ": subscribe error: " + errorMessage);
+                    listener.exitOnResponseError(errorMessage); // probably a version mismatch
+                    listener.exitOnProtocolError();
+                }
+        );
+
+        // subscribe mixStatusNotifications
+        transport.subscribe(computeStompHeaders(whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE),
+                (payload) -> {
+                    Optional<WhirlpoolMessage> whirlpoolMessage = checkMessage(payload);
+                    if (whirlpoolMessage.isPresent()) {
+                        dialog.onBroadcastReceived(whirlpoolMessage.get());
+                    } else {
+                        log.error("--> " + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ": not a WhirlpoolMessage: " + ClientUtils.toJsonString(payload));
+                        listener.exitOnProtocolError();
+                    }
+                },
+                (errorMessage) -> {
+                    log.error("--> " + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ": subscribe error: " + errorMessage);
+                    listener.exitOnResponseError(errorMessage); // probably a version mismatch
                     listener.exitOnProtocolError();
                 }
         );
