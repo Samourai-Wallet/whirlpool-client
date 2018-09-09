@@ -1,30 +1,27 @@
-package com.samourai.whirlpool.client.websocket;
+package com.samourai.whirlpool.client.mix.transport;
 
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Type;
 import java.util.function.Consumer;
 
-public class ClientFrameHandler implements StompFrameHandler {
+public class StompFrameHandler implements org.springframework.messaging.simp.stomp.StompFrameHandler {
     private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
-    private WhirlpoolProtocol whirlpoolProtocol;
     private final Consumer<Object> frameHandler;
     private final Consumer<Object> errorHandler;
 
-    public ClientFrameHandler(WhirlpoolProtocol whirlpoolProtocol, Consumer<Object> frameHandler, Consumer<Object> errorHandler) {
-        this.whirlpoolProtocol = whirlpoolProtocol;
+    public StompFrameHandler(Consumer<Object> frameHandler, Consumer<Object> errorHandler) {
         this.frameHandler = frameHandler;
         this.errorHandler = errorHandler;
     }
 
     @Override
     public Type getPayloadType(StompHeaders headers) {
-        String messageType = headers.get(whirlpoolProtocol.HEADER_MESSAGE_TYPE).get(0);
+        String messageType = headers.get(WhirlpoolProtocol.HEADER_MESSAGE_TYPE).get(0);
         try {
             return Class.forName(messageType);
         }

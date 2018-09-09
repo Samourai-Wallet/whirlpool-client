@@ -11,7 +11,7 @@ import org.bitcoinj.script.Script;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
 
 import java.lang.invoke.MethodHandles;
 import java.security.KeyFactory;
@@ -110,11 +110,8 @@ public class ClientUtils {
         }
     }
 
-    public static Optional<String> parseRestErrorMessage(HttpServerErrorException e) {
+    public static Optional<String> parseRestErrorMessage(HttpStatusCodeException e) {
         String responseBody = e.getResponseBodyAsString();
-        if (log.isDebugEnabled()) {
-            log.error("registerOutput error: responseCode=" + e.getRawStatusCode() + ", responseBody=" + responseBody);
-        }
         return parseRestErrorMessage(responseBody);
     }
 }

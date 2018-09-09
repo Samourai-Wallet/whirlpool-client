@@ -16,7 +16,7 @@ import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import java.lang.invoke.MethodHandles;
@@ -28,6 +28,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
 
     private WhirlpoolClientConfig config;
     private String poolId;
+    private long denomination;
     private int mixs;
     private int doneMixs;
     private String logPrefix;
@@ -63,8 +64,8 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
                 throw new Exception("unable to retrieve pools");
             }
             return computePools(result.getBody());
-        } catch(HttpServerErrorException e) {
-            String restErrorMessage = ClientUtils.parseRestErrorMessage(e).orElse("unknown reason");
+        } catch(HttpStatusCodeException e) {
+            String restErrorMessage = ClientUtils.parseRestErrorMessage(e).orElse(e.getMessage());
             throw new Exception("unable to retrieve pools: " + restErrorMessage);
         }
     }
@@ -91,8 +92,9 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     }
 
     @Override
-    public void whirlpool(String poolId, MixParams mixParams, int mixs, WhirlpoolClientListener listener) {
+    public void whirlpool(String poolId, long denomination, MixParams mixParams, int mixs, WhirlpoolClientListener listener) {
         this.poolId = poolId;
+        this.denomination = denomination;
         this.mixs = mixs;
         this.listener = listener;
         this.doneMixs = 0;
@@ -117,7 +119,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     private MixClient runClient(MixParams mixParams) {
         MixClientListener mixListener = computeMixListener();
 
-        MixClient mixClient = new MixClient(config, poolId);
+        MixClient mixClient = new MixClient(config, poolId, denomination);
         if (logPrefix != null) {
             int mix = this.mixClients.size();
             mixClient.setLogPrefix(logPrefix+"["+(mix+1)+"]");
@@ -131,7 +133,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
         return mixClients.get(mixClients.size() - 1);
     }
 
-    private void onMixsuccess(MixSuccess mixSuccess) {
+    private void onMixsuccess(MixSuccess mixSuccess, MixParams nextMixParams) {
         listener.mixSuccess(doneMixs+1, mixs, mixSuccess);
 
         this.doneMixs++;
@@ -141,8 +143,6 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
         }
         else {
             // go to next mix
-            MixClient mixClient = getLastWhirlpoolClient();
-            MixParams nextMixParams = mixClient.computeNextMixParams();
             runClient(nextMixParams);
         }
     }
@@ -150,8 +150,8 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     private MixClientListener computeMixListener() {
         return new MixClientListener() {
             @Override
-            public void success(MixSuccess mixSuccess) {
-                onMixsuccess(mixSuccess);
+            public void success(MixSuccess mixSuccess, MixParams nextMixParams) {
+                onMixsuccess(mixSuccess, nextMixParams);
             }
 
             @Override

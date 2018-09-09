@@ -1,5 +1,7 @@
 package com.samourai.whirlpool.client.mix.listener;
 
+import com.samourai.whirlpool.client.mix.MixParams;
+
 public class MixClientListenerHandler {
     private MixClientListener mixClientListener;
 
@@ -7,8 +9,8 @@ public class MixClientListenerHandler {
         this.mixClientListener = mixClientListener;
     }
 
-    public void success(MixSuccess mixSuccess) {
-        mixClientListener.success(mixSuccess);
+    public void success(MixSuccess mixSuccess, MixParams nextMixParams) {
+        mixClientListener.success(mixSuccess, nextMixParams);
     }
 
     public void fail() {

@@ -23,7 +23,7 @@ public interface WhirlpoolClient {
      * @param mixs number of mix to achieve (1-N)
      * @param listener listener to get notified of mix progress (in real time)
      */
-    void whirlpool(String poolId, MixParams mixParams, int mixs, WhirlpoolClientListener listener);
+    void whirlpool(String poolId, long denomination, MixParams mixParams, int mixs, WhirlpoolClientListener listener);
 
     /**
      * Abort mix.

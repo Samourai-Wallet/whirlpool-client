@@ -48,7 +48,9 @@ Long utxoIndex = ...
 String paymentCode = ...
 MixParams mixParams = new MixParams(utxoHash, utxoIndex, paymentCode, mixHandler);
 
-String poolId = ... // obtained from pools fetched earlier
+PoolInfo poolInfo = ... // user chooses a pool among those fetched earlier
+String poolId = poolInfo.getPoolId();
+long denomination = poolInfo.getDenomination();
 
 // listener will be notified of whirlpool progress in realtime
 WhirlpoolClientListener listener = new LoggingWhirlpoolClientListener(){
@@ -80,5 +82,5 @@ WhirlpoolClientListener listener = new LoggingWhirlpoolClientListener(){
 int nbMixs = 1; // numer of mixs to achieve
 
 // start mixing
-whirlpoolClient.whirlpool(poolId, mixParams, nbMixs, listener);
+whirlpoolClient.whirlpool(poolId, denomination, mixParams, nbMixs, listener);
 ```

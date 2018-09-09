@@ -1,16 +1,15 @@
 package com.samourai.whirlpool.client.mix;
 
-import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
-import com.samourai.whirlpool.client.mix.listener.MixStep;
-import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.handler.IMixHandler;
 import com.samourai.whirlpool.client.mix.listener.MixClientListener;
 import com.samourai.whirlpool.client.mix.listener.MixClientListenerHandler;
+import com.samourai.whirlpool.client.mix.listener.MixStep;
+import com.samourai.whirlpool.client.mix.listener.MixSuccess;
+import com.samourai.whirlpool.client.mix.transport.MixDialogListener;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.websocket.ClientFrameHandler;
-import com.samourai.whirlpool.client.websocket.ClientSessionHandler;
+import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
@@ -24,19 +23,10 @@ import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.messaging.converter.MappingJackson2MessageConverter;
-import org.springframework.messaging.simp.stomp.ConnectionLostException;
-import org.springframework.messaging.simp.stomp.StompHeaders;
-import org.springframework.messaging.simp.stomp.StompSession;
-import org.springframework.web.socket.WebSocketHttpHeaders;
-import org.springframework.web.socket.client.standard.StandardWebSocketClient;
-import org.springframework.web.socket.messaging.WebSocketStompClient;
 
 import java.lang.invoke.MethodHandles;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class MixClient {
@@ -49,47 +39,36 @@ public class MixClient {
     // server settings
     private WhirlpoolClientConfig config;
     private String poolId;
+    private long denomination;
 
     // mix settings
     private MixParams mixParams;
     private MixClientListenerHandler listener;
 
     // mix data
-    private MixStatusNotification mixStatusNotification;
-    private ErrorResponse errorResponse;
-    private RSAKeyParameters serverPublicKey;
-    private long denomination;
-    private long minerFeeMin;
-    private long minerFeeMax;
-    private boolean liquidity;
-    private byte[] signedBordereau; // will get it after joining a mix
-    private LiquidityQueuedResponse liquidityQueuedResponse; // will get when connecting as liquidity
+    private byte[] signedBordereau; // will get it on RegisterInputResponse
     private String inputsHash; // will get it on REGISTER_OUTPUT
 
     // computed values
+    private boolean liquidity;
     private RSABlindingParameters blindingParams;
     private String receiveAddress;
     private String receiveUtxoHash;
     private Integer receiveUtxoIdx;
-    private Map<MixStatus,Boolean> mixStatusCompleted = new HashMap<>();
 
     private ClientCryptoService clientCryptoService;
     private WhirlpoolProtocol whirlpoolProtocol;
-    private WebSocketStompClient stompClient;
-    private StompSession stompSession;
-    private String stompUsername;
-    private String logPrefix;
-    private boolean reconnecting;
-    private boolean resuming;
+    private MixSession mixSession;
     private boolean done;
 
-    public MixClient(WhirlpoolClientConfig config, String poolId) {
-        this(config, poolId, new ClientCryptoService(), new WhirlpoolProtocol());
+    public MixClient(WhirlpoolClientConfig config, String poolId, long denomination) {
+        this(config, poolId, denomination, new ClientCryptoService(), new WhirlpoolProtocol());
     }
 
-    public MixClient(WhirlpoolClientConfig config, String poolId, ClientCryptoService clientCryptoService, WhirlpoolProtocol whirlpoolProtocol) {
+    public MixClient(WhirlpoolClientConfig config, String poolId, long denomination, ClientCryptoService clientCryptoService, WhirlpoolProtocol whirlpoolProtocol) {
         this.config = config;
         this.poolId = poolId;
+        this.denomination = denomination;
         this.clientCryptoService = clientCryptoService;
         this.whirlpoolProtocol = whirlpoolProtocol;
     }
@@ -98,258 +77,36 @@ public class MixClient {
         this.mixParams = mixParams;
         this.listener = new MixClientListenerHandler(listener);
 
-        try {
-            connect();
-        }
-        catch (Exception e) {
-            reconnectOrExit();
-        }
+        connect();
     }
 
     private void listenerProgress(MixStep mixClientStatus) {
         this.listener.progress(mixClientStatus);
     }
 
-    private void connect() throws Exception {
+    private void connect() {
+        if (this.mixSession != null) {
+            log.warn("connect() : already connected");
+            return;
+        }
+
+        listenerProgress(MixStep.CONNECTING);
         try {
-            if (this.stompClient != null) {
-                log.warn("connect() : already connected");
-                return;
-            }
+            mixSession = new MixSession(computeMixDialogListener(), whirlpoolProtocol, config, poolId);
+            mixSession.connect();
 
-            listenerProgress(MixStep.CONNECTING);
-            stompClient = createWebSocketClient();
-            String wsUrl ="ws://" + config.getServer() + WhirlpoolProtocol.ENDPOINT_CONNECT;
-            if (log.isDebugEnabled()) {
-                log.debug("connecting to server: " + wsUrl);
-            }
-
-            StompHeaders stompHeaders = computeStompHeaders();
-            stompSession = stompClient.connect(wsUrl, (WebSocketHttpHeaders) null, stompHeaders, new ClientSessionHandler(this)).get();
-
-            // prefix logger with sessionId
-            if (logPrefix == null) {
-                log = ClientUtils.prefixLogger(log, stompSession.getSessionId());
-            }
-            if (log.isDebugEnabled()) {
-                log.debug("connected to server, stompSessionId=" + stompSession.getSessionId());
-            }
-        }
-        catch(Exception e) {
-            log.error(" ! connection failed: "+e.getMessage());
-            stompClient = null;
-            stompSession = null;
-            stompUsername = null;
-            throw e;
-        }
-
-        subscribe();
-        listenerProgress(MixStep.CONNECTED);
-    }
-
-    private StompHeaders computeStompHeaders() {
-        StompHeaders stompHeaders = new StompHeaders();
-        stompHeaders.set(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION, WhirlpoolProtocol.PROTOCOL_VERSION);
-        stompHeaders.set(WhirlpoolProtocol.HEADER_POOL_ID, poolId);
-        return stompHeaders;
-    }
-
-    private StompHeaders computeStompHeaders(String destination) {
-        StompHeaders stompHeaders = computeStompHeaders();
-        stompHeaders.set(StompHeaders.DESTINATION, destination);
-        return stompHeaders;
-    }
-
-    private void disconnect() {
-        disconnect(false);
-    }
-
-    private void disconnect(boolean connectionLost) {
-        if (log.isDebugEnabled()) {
-            log.debug("Disconnecting... " + (connectionLost ? "(connection lost)" : ""));
-        }
-        if (stompSession != null) {
-            // don't disconnect session if connectionLost, to avoid forever delays
-            if (!connectionLost) {
-                stompSession.disconnect();
-            }
-            stompSession = null;
-            stompUsername = null;
-        }
-        if (stompClient != null) {
-            stompClient.stop();
-            stompClient = null;
-        }
-        if (log.isDebugEnabled()) {
-            log.debug("Disconnected.");
-        }
-    }
-
-    private void subscribe() {
-        stompSession.subscribe(computeStompHeaders(whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE),
-            new ClientFrameHandler(whirlpoolProtocol, (payload) -> {
-                if (!done) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("--> (" + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ") " + ClientUtils.toJsonString(payload));
-                    }
-                    onBroadcastReceived(payload);
-                }
-                else {
-                    log.warn("--> (" + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ") ignored (done): " + ClientUtils.toJsonString(payload));
-                }
-            }, (error) -> onProtocolError((String) error))
-        );
-        stompSession.subscribe(computeStompHeaders(whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY),
-            new ClientFrameHandler(whirlpoolProtocol, (payload) -> {
-                if (!done) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("--> (" + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY + ") " + ClientUtils.toJsonString(payload));
-                    }
-                    onPrivateReceived(payload);
-                }
-                else {
-                    log.warn("--> (" + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY + ") ignored (done): " + ClientUtils.toJsonString(payload));
-                }
-            }, (error) -> onProtocolError((String) error))
-        );
-        // will automatically receive mixStatus in response of subscription
-        if (log.isDebugEnabled()) {
-            log.debug("subscribed to server");
-        }
-    }
-
-    private void onBroadcastReceived(Object payload) {
-        if (MixStatusNotification.class.isAssignableFrom(payload.getClass())) {
-            onMixStatusNotificationChange((MixStatusNotification)payload);
-        }
-    }
-
-    private synchronized void onMixStatusNotificationChange(MixStatusNotification notification) {
-        try {
-            if (this.mixStatusNotification != null && !this.mixStatusNotification.mixId.equals(notification.mixId)) {
-                // mixId changed, reset...
-                if (resuming) {
-                    log.warn(" ! Unable to resume joined mix: new mix detected");
-                } else {
-                    if (log.isDebugEnabled()) {
-                        log.debug("new mix detected: " + notification.mixId);
-                    }
-                }
-                this.resetMix();
-            }
-            if (this.mixStatusNotification == null || !notification.status.equals(this.mixStatusNotification.status)) {
-                this.mixStatusNotification = notification;
-                // ignore duplicate mixStatus
-                if (!mixStatusCompleted.containsKey(notification.status)) {
-
-                    if (MixStatus.FAIL.equals(notification.status)) {
-                        failAndExit();
-                        return;
-                    }
-
-                    if (MixStatus.REGISTER_INPUT.equals(notification.status)) {
-                        registerInput((RegisterInputMixStatusNotification) mixStatusNotification);
-                        mixStatusCompleted.put(MixStatus.REGISTER_INPUT, true);
-
-                    } else if (mixStatusCompleted.containsKey(MixStatus.REGISTER_INPUT)) {
-                        if (gotRegisterInputResponse()) {
-
-                            if (MixStatus.REGISTER_OUTPUT.equals(notification.status)) {
-                                this.registerOutput((RegisterOutputMixStatusNotification) mixStatusNotification);
-                                mixStatusCompleted.put(MixStatus.REGISTER_OUTPUT, true);
-
-                            } else if (mixStatusCompleted.containsKey(MixStatus.REGISTER_OUTPUT)) {
-
-                                // don't reveal output if already signed
-                                if (!mixStatusCompleted.containsKey(MixStatus.SIGNING) && MixStatus.REVEAL_OUTPUT.equals(notification.status)) {
-                                    this.revealOutput();
-                                    mixStatusCompleted.put(MixStatus.REVEAL_OUTPUT, true);
-
-                                } else if (!mixStatusCompleted.containsKey(MixStatus.REVEAL_OUTPUT)) { // don't sign or success if output was revealed
-
-                                    if (MixStatus.SIGNING.equals(notification.status)) {
-                                        this.signing((SigningMixStatusNotification) mixStatusNotification);
-                                        mixStatusCompleted.put(MixStatus.SIGNING, true);
-
-                                    } else if (mixStatusCompleted.containsKey(MixStatus.SIGNING)) {
-
-                                        if (MixStatus.SUCCESS.equals(notification.status)) {
-                                            this.listener.progress(MixStep.SUCCESS);
-                                            MixSuccess mixSuccess = new MixSuccess(this.receiveAddress, this.receiveUtxoHash, this.receiveUtxoIdx);
-                                            this.listener.success(mixSuccess);
-                                            exit();
-                                            return;
-                                        }
-                                    } else {
-                                        log.warn(" x SIGNING not completed");
-                                        if (log.isDebugEnabled()) {
-                                            log.error("Ignoring mixStatusNotification: " + ClientUtils.toJsonString(mixStatusNotification));
-                                        }
-                                    }
-                                } else {
-                                    log.warn(" x REVEAL_OUTPUT already completed");
-                                    if (log.isDebugEnabled()) {
-                                        log.error("Ignoring mixStatusNotification: " + ClientUtils.toJsonString(mixStatusNotification));
-                                    }
-                                }
-                            } else {
-                                log.warn(" x REGISTER_OUTPUT not completed");
-                                if (log.isDebugEnabled()) {
-                                    log.error("Ignoring mixStatusNotification: " + ClientUtils.toJsonString(mixStatusNotification));
-                                }
-                            }
-                        } else {
-                            if (liquidity) {
-                                if (gotLiquidityQueuedResponse()) {
-                                    log.info(" > Ready to provide liquidity...");
-                                } else {
-                                    log.info(" > Connecting as liquidity...");
-                                }
-                            } else {
-                                log.info(" > Trying to join current mix...");
-                            }
-                        }
-                    } else {
-                        log.info(" > Waiting for next mix...");
-                        if (log.isDebugEnabled()) {
-                            log.debug("Current mix status: " + notification.status);
-                        }
-                    }
-                }
-                else {
-                    log.warn("Ignoring duplicate mixStatus: "+mixStatusNotification.status);
-                }
-            }
-        }
-        catch(NotifiableException e) {
-            onProtocolError(e.getMessage());
-        }
-        catch(Exception e) {
-            log.error("", e);
+            listenerProgress(MixStep.CONNECTED);
+        } catch(Exception e) {
+            log.error("Unable to connect", e);
             failAndExit();
         }
     }
 
-    private synchronized void onPrivateReceived(Object payload) {
-        Class payloadClass = payload.getClass();
-        if (ErrorResponse.class.isAssignableFrom(payloadClass)) {
-            onErrorResponse((ErrorResponse)payload);
+    private void disconnect() {
+        if (mixSession != null) {
+            mixSession.disconnect();
+            mixSession = null;
         }
-        else if (MixStatusNotification.class.isAssignableFrom(payload.getClass())) {
-            onMixStatusNotificationChange((MixStatusNotification)payload);
-        }
-        else if (RegisterInputResponse.class.isAssignableFrom(payloadClass)) {
-            onRegisterInputResponse((RegisterInputResponse)payload);
-        }
-        else if (LiquidityQueuedResponse.class.isAssignableFrom(payloadClass)) {
-            onLiquidityQueuedResponse((LiquidityQueuedResponse)payload);
-        }
-    }
-
-    private void onErrorResponse(ErrorResponse errorResponse) {
-        this.errorResponse = errorResponse;
-        log.error("ERROR: " + errorResponse.message);
-        failAndExit();
     }
 
     private void failAndExit() {
@@ -358,84 +115,41 @@ public class MixClient {
         exit();
     }
 
-    private boolean gotRegisterInputResponse() {
-        return (this.signedBordereau != null);
-    }
-
-    private void onRegisterInputResponse(RegisterInputResponse payload) {
-        listenerProgress(MixStep.REGISTERED_INPUT);
-        if (log.isDebugEnabled()) {
-            log.debug("joined mix: mixId=" + payload.mixId);
-        }
-        this.signedBordereau = payload.signedBordereau;
-
-        // mixId may have changed since mixStatusNotification
-        this.mixStatusNotification.mixId = payload.mixId;
-
-        if (MixStatus.REGISTER_OUTPUT.equals(this.mixStatusNotification.status)) {
-            registerOutput((RegisterOutputMixStatusNotification) this.mixStatusNotification);
-        }
-    }
-
-    private boolean gotLiquidityQueuedResponse() {
-        return (this.liquidityQueuedResponse != null);
-    }
-
-    private void onLiquidityQueuedResponse(LiquidityQueuedResponse payload) {
-        listenerProgress(MixStep.QUEUED_LIQUIDITY);
-        this.liquidityQueuedResponse = payload;
-    }
-
-    private WebSocketStompClient createWebSocketClient() {
-        WebSocketStompClient stompClient = new WebSocketStompClient(new StandardWebSocketClient());
-        stompClient.setMessageConverter(new MappingJackson2MessageConverter());
-        return stompClient;
-    }
-
-    public MixParams computeNextMixParams() {
-        IMixHandler nextMixHandler = mixParams.getMixHandler().computeMixHandlerForNextMix();
-        return new MixParams(this.receiveUtxoHash, this.receiveUtxoIdx, this.denomination, nextMixHandler);
-    }
-
-    private void resetMix() {
+    private void onResetMix() {
         if (log.isDebugEnabled()) {
             log.debug("resetMix");
         }
+
         // mix data
-        this.mixStatusNotification = null;
-        this.errorResponse = null;
-        this.serverPublicKey = null;
-        this.denomination = -1;
-        this.minerFeeMin = -1;
-        this.minerFeeMax = -1;
         this.signedBordereau = null;
-        this.liquidityQueuedResponse = null;
         this.inputsHash = null;
 
         // computed values
+        this.liquidity = false;
         this.blindingParams = null;
         this.receiveAddress = null;
         this.receiveUtxoHash = null;
         this.receiveUtxoIdx = null;
-        this.mixStatusCompleted = new HashMap<>();
-        this.resuming = false;
     }
 
-    private void registerInput(RegisterInputMixStatusNotification registerInputMixStatusNotification) throws Exception {
-        NetworkParameters networkParameters = config.getNetworkParameters();
+    private RegisterInputRequest registerInput(RegisterInputMixStatusNotification registerInputMixStatusNotification) throws Exception {
+        listenerProgress(MixStep.REGISTERING_INPUT);
+
+        // check denomination
+        long actualDenomination = registerInputMixStatusNotification.getDenomination();
+        if (denomination != actualDenomination) {
+            log.error("Invalid denomination: expected=" + denomination + ", actual=" + actualDenomination);
+            throw new NotifiableException("Unexpected denomination from server");
+        }
 
         // get mix settings
-        this.serverPublicKey = ClientUtils.publicKeyUnserialize(registerInputMixStatusNotification.getPublicKey());
+        NetworkParameters networkParameters = config.getNetworkParameters();
         String serverNetworkId = registerInputMixStatusNotification.getNetworkId();
         if (!networkParameters.getPaymentProtocolId().equals(serverNetworkId)) {
             throw new Exception("Client/server networkId mismatch: server is runinng "+serverNetworkId+", client is expecting "+networkParameters.getPaymentProtocolId());
         }
-        this.denomination = registerInputMixStatusNotification.getDenomination();
-        this.minerFeeMin = registerInputMixStatusNotification.getMinerFeeMin();
-        this.minerFeeMax = registerInputMixStatusNotification.getMinerFeeMax();
         this.liquidity = mixParams.getUtxoBalance() == this.denomination;
 
-        listenerProgress(MixStep.REGISTERING_INPUT);
         if (log.isDebugEnabled()) {
             log.debug("Registering input as " + (this.liquidity ? "LIQUIDITY" : "MUSTMIX"));
         }
@@ -444,26 +158,29 @@ public class MixClient {
         checkDenomination();
 
         // verify balance
-        checkUtxoBalance();
+        long minerFeeMin = registerInputMixStatusNotification.getMinerFeeMin();
+        long minerFeeMax = registerInputMixStatusNotification.getMinerFeeMax();
+        checkUtxoBalance(minerFeeMin, minerFeeMax);
 
         IMixHandler mixHandler = mixParams.getMixHandler();
+        String mixId = registerInputMixStatusNotification.mixId;
 
         RegisterInputRequest registerInputRequest = new RegisterInputRequest();
         registerInputRequest.utxoHash = mixParams.getUtxoHash();
         registerInputRequest.utxoIndex = mixParams.getUtxoIdx();
         registerInputRequest.pubkey = mixHandler.getPubkey();
-        registerInputRequest.signature = mixHandler.signMessage(mixStatusNotification.mixId);
-        registerInputRequest.mixId = mixStatusNotification.mixId;
+        registerInputRequest.signature = mixHandler.signMessage(mixId);
+        registerInputRequest.mixId = mixId;
         registerInputRequest.liquidity = this.liquidity;
         registerInputRequest.testMode = config.isTestMode();
 
         // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
-        // clear receiveAddress will be provided with unblindedSignedBordereau under another identity for REGISTER_OUTPUT
+        // clear receiveAddress will be provided with unblindedSignedBordereau by connecting with another identity for REGISTER_OUTPUT
+        RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(registerInputMixStatusNotification.getPublicKey());
         this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
         this.receiveAddress = mixHandler.computeReceiveAddress(networkParameters);
         registerInputRequest.blindedBordereau = clientCryptoService.blind(this.receiveAddress, blindingParams);
-
-        send(whirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);
+        return registerInputRequest;
     }
 
     private void checkDenomination() throws NotifiableException {
@@ -474,9 +191,9 @@ public class MixClient {
         }
     }
 
-    private void checkUtxoBalance() throws NotifiableException {
-        long inputBalanceMin = computeInputBalanceMin();
-        long inputBalanceMax = computeInputBalanceMax();
+    private void checkUtxoBalance(long minerFeeMin, long minerFeeMax) throws NotifiableException {
+        long inputBalanceMin = WhirlpoolProtocol.computeInputBalanceMin(denomination, liquidity, minerFeeMin);
+        long inputBalanceMax = WhirlpoolProtocol.computeInputBalanceMax(denomination, liquidity, minerFeeMax);
         if (this.mixParams.getUtxoBalance() < inputBalanceMin) {
             throw new NotifiableException("Too low utxo-balance=" + this.mixParams.getUtxoBalance() + ". (expected: " + inputBalanceMin + " <= utxo-balance <= " + inputBalanceMax + ")");
         }
@@ -486,49 +203,41 @@ public class MixClient {
         }
     }
 
-    private void registerOutput(RegisterOutputMixStatusNotification registerOutputMixStatusNotification) {
-        try {
-            NetworkParameters networkParameters = config.getNetworkParameters();
-            IMixHandler mixHandler = mixParams.getMixHandler();
-            this.inputsHash = registerOutputMixStatusNotification.getInputsHash();
+    private void postRegisterOutput(RegisterOutputMixStatusNotification registerOutputMixStatusNotification, String registerOutputUrl) throws Exception {
+        listenerProgress(MixStep.REGISTERING_OUTPUT);
+        this.inputsHash = registerOutputMixStatusNotification.getInputsHash();
 
-            listenerProgress(MixStep.REGISTERING_OUTPUT);
-            RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
-            registerOutputRequest.inputsHash = this.inputsHash;
-            registerOutputRequest.unblindedSignedBordereau = clientCryptoService.unblind(signedBordereau, blindingParams);
-            registerOutputRequest.receiveAddress = this.receiveAddress;
+        RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
+        registerOutputRequest.inputsHash = inputsHash;
+        registerOutputRequest.unblindedSignedBordereau = clientCryptoService.unblind(signedBordereau, blindingParams);
+        registerOutputRequest.receiveAddress = this.receiveAddress;
 
-            String registerOutputUrl = WhirlpoolProtocol.computeRegisterOutputUrl(config.getServer());
-            if (log.isDebugEnabled()) {
-                log.debug("POST " + registerOutputUrl + ": " + ClientUtils.toJsonString(registerOutputRequest));
-            }
-
-            // POST request through a different identity for mix privacy
-            mixHandler.postHttpRequest(registerOutputUrl, registerOutputRequest);
-
-            listenerProgress(MixStep.REGISTERED_OUTPUT);
+        // POST request through a different identity for mix privacy
+        if (log.isDebugEnabled()) {
+            log.debug("POST " + registerOutputUrl + ": " + ClientUtils.toJsonString(registerOutputRequest));
         }
-        catch(Exception e) {
-            log.error("failed to registerOutput", e);
-            failAndExit();
-        }
+        mixParams.getMixHandler().postHttpRequest(registerOutputUrl, registerOutputRequest);
+
+        listenerProgress(MixStep.REGISTERED_OUTPUT);
     }
 
-    private void revealOutput() {
+    private RevealOutputRequest revealOutput(RevealOutputMixStatusNotification revealOutputMixStatusNotification) {
         listenerProgress(MixStep.REVEALING_OUTPUT);
 
         RevealOutputRequest revealOutputRequest = new RevealOutputRequest();
-        revealOutputRequest.mixId = mixStatusNotification.mixId;
+        revealOutputRequest.mixId = revealOutputMixStatusNotification.mixId;
         revealOutputRequest.receiveAddress = this.receiveAddress;
-        send(whirlpoolProtocol.ENDPOINT_REVEAL_OUTPUT, revealOutputRequest);
+
+        listenerProgress(MixStep.REVEALED_OUTPUT);
+        return revealOutputRequest;
     }
 
-    private void signing(SigningMixStatusNotification signingMixStatusNotification) throws Exception {
+    private SigningRequest signing(SigningMixStatusNotification signingMixStatusNotification) throws Exception {
         listenerProgress(MixStep.SIGNING);
         NetworkParameters networkParameters = config.getNetworkParameters();
 
         SigningRequest signingRequest = new SigningRequest();
-        signingRequest.mixId = mixStatusNotification.mixId;
+        signingRequest.mixId = signingMixStatusNotification.mixId;
 
         Transaction tx = new Transaction(networkParameters, signingMixStatusNotification.transaction);
 
@@ -543,9 +252,9 @@ public class MixClient {
 
         // transmit
         signingRequest.witness = ClientUtils.witnessSerialize(tx.getWitness(inputIndex));
-        send(whirlpoolProtocol.ENDPOINT_SIGNING, signingRequest);
 
         listenerProgress(MixStep.SIGNED);
+        return signingRequest;
     }
 
     private int verifyTx(Transaction tx) throws Exception {
@@ -582,6 +291,32 @@ public class MixClient {
         return inputIndex;
     }
 
+    private void onRegisterInputResponse(RegisterInputResponse registerInputResponse) {
+        this.signedBordereau = registerInputResponse.signedBordereau;
+
+        listenerProgress(MixStep.REGISTERED_INPUT);
+        if (log.isDebugEnabled()) {
+            log.debug("joined mix: mixId=" + registerInputResponse.mixId);
+        }
+    }
+
+    private void onLiquidityQueuedResponse(LiquidityQueuedResponse liquidityQueuedResponse) {
+        listenerProgress(MixStep.QUEUED_LIQUIDITY);
+    }
+
+    private void onSuccess() {
+        this.listener.progress(MixStep.SUCCESS);
+        MixSuccess mixSuccess = new MixSuccess(this.receiveAddress, this.receiveUtxoHash, this.receiveUtxoIdx);
+        MixParams nextMixParams = computeNextMixParams();
+        this.listener.success(mixSuccess, nextMixParams);
+        exit();
+    }
+
+    private MixParams computeNextMixParams() {
+        IMixHandler nextMixHandler = mixParams.getMixHandler().computeMixHandlerForNextMix();
+        return new MixParams(this.receiveUtxoHash, this.receiveUtxoIdx, this.denomination, nextMixHandler);
+    }
+
     private String computeInputsHash(List<TransactionInput> inputs) {
         Collection<Utxo> inputsUtxos = inputs.parallelStream().map(input -> new Utxo(input.getOutpoint().getHash().toString(), input.getOutpoint().getIndex())).collect(Collectors.toList());
         return WhirlpoolProtocol.computeInputsHash(inputsUtxos);
@@ -596,125 +331,87 @@ public class MixClient {
         return done;
     }
 
-    public void onTransportError(Throwable exception) {
-        if (exception instanceof ConnectionLostException) {
-            // ignore connectionLost when reconnecting (already managed)
-            if (!reconnecting) {
-                if (log.isDebugEnabled()) {
-                    log.debug(" ! transportError : " + exception.getMessage());
-                }
-                onConnectionLost();
-            }
-        }
-        else {
-            log.error(" ! transportError : " + exception.getMessage());
-        }
-    }
-
-    private void onProtocolError(String errorMessage) {
-        ErrorResponse errorResponse = new ErrorResponse();
-        errorResponse.message = errorMessage; // protocol version mismatch
-        onErrorResponse(errorResponse);
-    }
-
-    public void onAfterConnected(String stompUsername) {
-        this.stompUsername = stompUsername;
-        if (log.isDebugEnabled()) {
-            log.debug("stompUsername=" + stompUsername);
-        }
-    }
-
-    private void onConnectionLost() {
-        disconnect(true);
-
-        if (gotRegisterInputResponse()) {
-            log.error(" ! connection lost, reconnecting for resuming joined mix...");
-            this.resuming = true;
-        }
-        else {
-            log.error(" ! connection lost, reconnecting for a new mix...");
-            resetMix();
-        }
-        reconnectOrExit();
-    }
-
-    private void reconnectOrExit() {
-        try {
-            reconnect();
-        }
-        catch(Exception e) {
-            log.info(" ! Failed to connect to server. Please check your connectivity or retry later.");
-            failAndExit();
-        }
-    }
-
-    private void reconnect() throws Exception {
-        reconnecting = true;
-        long beginTime = System.currentTimeMillis();
-        long elapsedTime;
-        do {
-            try {
-                connect();
-
-                // success
-                reconnecting = false;
-                return;
-            }
-            catch(Exception e) {
-            }
-
-            log.info(" ! Reconnection failed, retrying in "+config.getReconnectDelay()+"s");
-
-            // wait delay before retrying
-            synchronized (this) {
-                try {
-                    wait(config.getReconnectDelay() * 1000);
-                }
-                catch(Exception e) {
-                    log.error("", e);
-                }
-            }
-            elapsedTime = System.currentTimeMillis() - beginTime;
-        }
-        while(elapsedTime < config.getReconnectUntil() * 1000);
-
-        // aborting
-        reconnecting = false;
-        throw new Exception("Reconnecting failed");
-    }
-
-    private void send(String destination, Object message) {
-        StompHeaders stompHeaders = new StompHeaders();
-        stompHeaders.setDestination(destination);
-        stompHeaders.set(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION, WhirlpoolProtocol.PROTOCOL_VERSION);
-        stompSession.send(stompHeaders, message);
-    }
-
-    private long computeInputBalanceMin() {
-        return WhirlpoolProtocol.computeInputBalanceMin(denomination, liquidity, minerFeeMin);
-    }
-
-    private long computeInputBalanceMax() {
-        return WhirlpoolProtocol.computeInputBalanceMax(denomination, liquidity, minerFeeMax);
-    }
-
-    public MixStatusNotification __getMixStatusNotification() {
-        return mixStatusNotification;
-    }
-
     public void setLogPrefix(String logPrefix) {
-        this.logPrefix = logPrefix;
         log = ClientUtils.prefixLogger(log, logPrefix);
     }
 
     public void debugState() {
         if (log.isDebugEnabled()) {
-            log.debug("stompUsername=" + stompUsername);
-            log.debug("mixStatusComplete=" + mixStatusCompleted);
-            log.debug("mixStatusNotification=" + ClientUtils.toJsonString(mixStatusNotification));
-            if (errorResponse != null) {
-                log.debug("errorResponse=" + ClientUtils.toJsonString(errorResponse));
-            }
+            String username = mixSession != null && mixSession.__getTransport() != null ? mixSession.__getTransport().getStompUsername() : "null";
+            String mixStatus = __getMixStatus() != null ? __getMixStatus().toString() : "null";
+            log.debug("stompUsername=" + username);
+            log.debug("mixStatus=" + mixStatus);
         }
+    }
+
+    public MixStatus __getMixStatus() {
+        return mixSession != null &&  mixSession.__getDialog() != null && mixSession.__getDialog().__getMixStatus() != null ? mixSession.__getDialog().__getMixStatus() : null;
+    }
+
+    private MixDialogListener computeMixDialogListener() {
+        return new MixDialogListener() {
+            @Override
+            public void onFail() {
+                failAndExit();
+            }
+
+            @Override
+            public void exitOnProtocolError() {
+                log.error("ERROR: protocol error, this may be a bug");
+                failAndExit();
+            }
+
+            @Override
+            public void exitOnResponseError(String notifiableError) {
+                log.error("ERROR: " + notifiableError);
+                failAndExit();
+            }
+
+            @Override
+            public void exitOnConnectionLost() {
+                log.error("Connection lost");
+                failAndExit();
+            }
+
+            @Override
+            public RegisterInputRequest registerInput(RegisterInputMixStatusNotification registerInputMixStatusNotification) throws Exception {
+                return MixClient.this.registerInput(registerInputMixStatusNotification);
+            }
+
+            @Override
+            public void postRegisterOutput(RegisterOutputMixStatusNotification registerOutputMixStatusNotification, String registerOutputUrl) throws Exception {
+                MixClient.this.postRegisterOutput(registerOutputMixStatusNotification, registerOutputUrl);
+            }
+
+            @Override
+            public RevealOutputRequest revealOutput(RevealOutputMixStatusNotification revealOutputMixStatusNotification) throws Exception {
+                return MixClient.this.revealOutput(revealOutputMixStatusNotification);
+            }
+
+            @Override
+            public SigningRequest signing(SigningMixStatusNotification signingMixStatusNotification) throws Exception {
+                return MixClient.this.signing(signingMixStatusNotification);
+            }
+
+            @Override
+            public void onRegisterInputResponse(RegisterInputResponse registerInputResponse) {
+                MixClient.this.onRegisterInputResponse(registerInputResponse);
+            }
+
+            @Override
+            public void onLiquidityQueuedResponse(LiquidityQueuedResponse liquidityQueuedResponse) {
+                MixClient.this.onLiquidityQueuedResponse(liquidityQueuedResponse);
+            }
+
+            @Override
+            public void onSuccess() {
+                MixClient.this.onSuccess();
+            }
+
+            @Override
+            public void onResetMix() {
+                MixClient.this.onResetMix();
+            }
+        };
     }
 }

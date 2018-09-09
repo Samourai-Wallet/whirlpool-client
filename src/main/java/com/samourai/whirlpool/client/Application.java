@@ -2,16 +2,17 @@ package com.samourai.whirlpool.client;
 
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.hd.HD_Wallet;
-import com.samourai.whirlpool.client.mix.listener.MixStep;
-import com.samourai.whirlpool.client.mix.listener.MixSuccess;
-import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.handler.IMixHandler;
 import com.samourai.whirlpool.client.mix.handler.MixHandler;
+import com.samourai.whirlpool.client.mix.listener.MixStep;
+import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.utils.LogbackUtils;
-import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientListener;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
+import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import com.samourai.whirlpool.client.whirlpool.beans.Pools;
+import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientListener;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import org.bitcoinj.core.Context;
 import org.bitcoinj.core.DumpedPrivateKey;
@@ -30,6 +31,7 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Command-line client.
@@ -71,13 +73,29 @@ public class Application implements ApplicationRunner {
             }
             WhirlpoolClient whirlpoolClient = WhirlpoolClientImpl.newClient(config);
 
-            String poolId = appArgs.getPoolId();
-            if (poolId == null) {
-                // show pools list if --pool is not provided
-                listPools(whirlpoolClient);
-            } else {
-                // go whirlpool if --pool is provided
-                whirlpool(whirlpoolClient, poolId, params);
+            // fetch pools
+            try {
+                log.info(" • Retrieving pools...");
+                Pools pools = whirlpoolClient.fetchPools();
+
+                String poolId = appArgs.getPoolId();
+                if (poolId != null) {
+                    // if --pool is provided, find pool
+                   Optional<Pool> poolQuery = pools.getPools().stream().filter(pool -> pool.getPoolId().equals(poolId)).findFirst();
+                   if (poolQuery.isPresent()) {
+                       // pool found, go whirlpool
+                       Pool pool = poolQuery.get();
+                       whirlpool(whirlpoolClient, pool.getPoolId(), pool.getDenomination(), params);
+                       return;
+                   } else {
+                       log.error("Pool not found: " + poolId);
+                   }
+                }
+
+                // show pools list if --pool is not provided/found
+                printPools(pools);
+            } catch(Exception e) {
+                log.error("", e);
             }
         }
         catch(IllegalArgumentException e) {
@@ -87,11 +105,8 @@ public class Application implements ApplicationRunner {
     }
 
     // show available pools
-    private void listPools(WhirlpoolClient whirlpoolClient) {
-        log.info(" • Retrieving pools...");
+    private void printPools(Pools pools) {
         try {
-            Pools pools = whirlpoolClient.fetchPools();
-
             String lineFormat = "| %15s | %6s | %15s | %22s | %12s | %15s | %13s |\n";
             StringBuilder sb = new StringBuilder();
             sb.append(String.format(lineFormat, "POOL ID", "DENOM.", "STATUS", "USERS", "ELAPSED TIME", "ANONYMITY SET", "MINER FEE"));
@@ -107,7 +122,7 @@ public class Application implements ApplicationRunner {
     }
 
     // start mixing in a pool
-    private void whirlpool(WhirlpoolClient whirlpoolClient, String poolId, NetworkParameters params) {
+    private void whirlpool(WhirlpoolClient whirlpoolClient, String poolId, long denomination, NetworkParameters params) {
         String utxoHash = appArgs.getUtxoHash();
         long utxoIdx = appArgs.getUtxoIdx();
         String utxoKey = appArgs.getUtxoKey();
@@ -117,14 +132,14 @@ public class Application implements ApplicationRunner {
         final int mixs = appArgs.getMixs();
 
         try {
-            runWhirlpool(whirlpoolClient, poolId, params, utxoHash, utxoIdx, utxoKey, utxoBalance, seedWords, seedPassphrase, mixs);
+            runWhirlpool(whirlpoolClient, poolId, denomination, params, utxoHash, utxoIdx, utxoKey, utxoBalance, seedWords, seedPassphrase, mixs);
             waitDone();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private WhirlpoolClient runWhirlpool(WhirlpoolClient whirlpoolClient, String poolId, NetworkParameters params, String utxoHash, long utxoIdx, String utxoKey, long utxoBalance, String seedWords, String seedPassphrase, int mixs) throws Exception {
+    private WhirlpoolClient runWhirlpool(WhirlpoolClient whirlpoolClient, String poolId, long denomination, NetworkParameters params, String utxoHash, long utxoIdx, String utxoKey, long utxoBalance, String seedWords, String seedPassphrase, int mixs) throws Exception {
         // utxo key
         DumpedPrivateKey dumpedPrivateKey = new DumpedPrivateKey(params, utxoKey);
         ECKey ecKey = dumpedPrivateKey.getKey();
@@ -147,7 +162,7 @@ public class Application implements ApplicationRunner {
         MixParams mixParams = new MixParams(utxoHash, utxoIdx, utxoBalance, mixHandler);
         WhirlpoolClientListener listener = computeClientListener();
 
-        whirlpoolClient.whirlpool(poolId, mixParams, mixs, listener);
+        whirlpoolClient.whirlpool(poolId, denomination, mixParams, mixs, listener);
         return whirlpoolClient;
     }
 

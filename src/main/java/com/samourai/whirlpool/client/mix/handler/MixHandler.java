@@ -79,15 +79,10 @@ public class MixHandler implements IMixHandler {
     public void postHttpRequest(String url, Object requestBody) throws Exception {
         // TODO use TOR
         RestTemplate restTemplate = new RestTemplate();
-        try {
-            ResponseEntity result = restTemplate.postForEntity(url, requestBody, null);
-            if (result == null || !result.getStatusCode().is2xxSuccessful()) {
-                // response error
-                throw new Exception("unable to registerOutput");
-            }
-        } catch(HttpServerErrorException e) {
-            String restErrorMessage = ClientUtils.parseRestErrorMessage(e).orElse("unknown reason");
-            throw new Exception("unable to registerOutput: " + restErrorMessage);
+        ResponseEntity result = restTemplate.postForEntity(url, requestBody, null);
+        if (result == null || !result.getStatusCode().is2xxSuccessful()) {
+            // response error
+            throw new Exception("unable to registerOutput");
         }
     }
 
