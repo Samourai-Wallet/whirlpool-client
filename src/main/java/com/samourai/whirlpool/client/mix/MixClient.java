@@ -155,7 +155,7 @@ public class MixClient {
         }
 
         // verify fees acceptable
-        checkDenomination();
+        checkFees(mixParams.getUtxoBalance(), denomination);
 
         // verify balance
         long minerFeeMin = registerInputMixStatusNotification.getMinerFeeMin();
@@ -183,11 +183,15 @@ public class MixClient {
         return registerInputRequest;
     }
 
-    private void checkDenomination() throws NotifiableException {
-        long myFees = mixParams.getUtxoBalance() - denomination;
-        if (myFees > MAX_ACCEPTABLE_FEES) {
-            log.error("Fees too high, aborting. myFees=" + myFees + ", MAX_ACCEPTABLE_FEES=" + MAX_ACCEPTABLE_FEES);
-            throw new NotifiableException("Fees too high, aborting.");
+    private void checkFees(long inputValue, long outputValue) throws NotifiableException {
+        long fees = inputValue - outputValue;
+
+        if (liquidity && fees > 0) {
+            throw new NotifiableException("Should not pay fees as a liquidity");
+        }
+        if (fees > MAX_ACCEPTABLE_FEES) {
+            log.error("Fees abnormally abnormally: fees=" + fees + ", MAX_ACCEPTABLE_FEES=" + MAX_ACCEPTABLE_FEES);
+            throw new NotifiableException("Fees abnormally high");
         }
     }
 
@@ -267,12 +271,17 @@ public class MixClient {
         }
 
         // verify my output
-        int txOutputIndex = ClientUtils.findTxOutputIndex(this.receiveAddress, tx, networkParameters).orElseThrow(() -> new Exception("Output not found in tx"));
+        int outputIndex = ClientUtils.findTxOutputIndex(this.receiveAddress, tx, networkParameters).orElseThrow(() -> new Exception("Output not found in tx"));
         receiveUtxoHash = tx.getHashAsString();
-        receiveUtxoIdx = txOutputIndex;
+        receiveUtxoIdx = outputIndex;
 
         // verify my input
         int inputIndex = ClientUtils.findTxInputIndex(mixParams.getUtxoHash(), mixParams.getUtxoIdx(), tx).orElseThrow(() -> new Exception("Input not found in tx"));
+
+        // check fees again
+        long inputValue = mixParams.getUtxoBalance(); //tx.getInput(inputIndex).getValue().getValue(); is null
+        long outputValue = tx.getOutput(outputIndex).getValue().getValue();
+        checkFees(inputValue, outputValue);
 
         // as many inputs as outputs
         if (tx.getInputs().size() != tx.getOutputs().size()) {
