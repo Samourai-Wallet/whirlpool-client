@@ -36,19 +36,11 @@ Arguments:
 
 ## Build instructions
 Before using whirlpool-client, install dependencies in this order:
-- bitcoinj (latest samourai version)
-- ExtLibJ
 - whirlpool-protocol
 - whirlpool-client
 - whirlpool-server
 
 ```
-cd bitcoinj
-mvn clean install -Dmaven.test.skip=true
-
-cd ExtLibJ
-mvn clean install -Dmaven.test.skip=true
-
 cd whirlpool-protocol
 mvn clean install -Dmaven.test.skip=true
 
