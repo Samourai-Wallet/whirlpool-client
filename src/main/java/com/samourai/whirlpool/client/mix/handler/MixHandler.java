@@ -11,9 +11,6 @@ import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import java.lang.invoke.MethodHandles;
 
@@ -73,17 +70,6 @@ public class MixHandler implements IMixHandler {
     @Override
     public byte[] getPubkey() {
         return utxoKey.getPubKey();
-    }
-
-    @Override
-    public void postHttpRequest(String url, Object requestBody) throws Exception {
-        // TODO use TOR
-        RestTemplate restTemplate = new RestTemplate();
-        ResponseEntity result = restTemplate.postForEntity(url, requestBody, null);
-        if (result == null || !result.getStatusCode().is2xxSuccessful()) {
-            // response error
-            throw new Exception("unable to registerOutput");
-        }
     }
 
     @Override

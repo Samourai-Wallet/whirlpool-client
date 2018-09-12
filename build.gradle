@@ -15,17 +15,12 @@ repositories {
     mavenLocal()
 }
 dependencies {
-    compile group: 'com.samouraiwallet', name: 'whirlpool-protocol', version:'0.0.1-SNAPSHOT'
-    compile group: 'com.github.Samourai-Wallet', name: 'extlibj', version:'adapt-for-whirlpool-SNAPSHOT'
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter', version:'2.0.3.RELEASE'
-    compile group: 'com.github.NaikSoftware', name: 'StompProtocolAndroid', version:'1.5.4'
-    compile group: 'org.apache.commons', name: 'commons-text', version:'1.2'
-    compile group: 'org.glassfish.tyrus.bundles', name: 'tyrus-standalone-client', version:'1.12'
-    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version:'2.9.5'
-    testCompile(group: 'org.springframework.boot', name: 'spring-boot-starter-test', version:'2.0.3.RELEASE') {
-        exclude(module: 'android-json')
-    }
-    testCompile group: 'org.mockito', name: 'mockito-core', version:'2.18.3'
-    testCompile group: 'org.junit.platform', name: 'junit-platform-launcher', version:'1.2.0'
-    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version:'5.2.0'
+    implementation 'com.samouraiwallet:whirlpool-protocol:0.0.1-SNAPSHOT'
+    implementation 'com.github.Samourai-Wallet:extlibj:adapt-for-whirlpool-SNAPSHOT'
+    implementation 'org.apache.commons:commons-text:1.2'
+    implementation 'org.glassfish.tyrus.bundles:tyrus-standalone-client:1.12'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.9.5'
+    testCompile 'org.mockito:mockito-core:2.18.3'
+    testCompile 'org.junit.platform:junit-platform-launcher:1.2.0'
+    testCompile 'org.junit.jupiter:junit-jupiter-engine:5.2.0'
 }

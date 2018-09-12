@@ -8,9 +8,10 @@ import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.websocket.WhirlpoolMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.messaging.simp.stomp.StompHeaders;
 
 import java.lang.invoke.MethodHandles;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 public class MixSession {
@@ -54,7 +55,7 @@ public class MixSession {
         }
 
         // connect
-        StompHeaders connectHeaders = computeStompHeaders(null);
+        Map<String,String> connectHeaders = computeStompHeaders(null);
         stompSessionId = transport.connect(wsUrl, connectHeaders);
         setLogPrefix(stompSessionId);
         if (log.isDebugEnabled()) {
@@ -185,11 +186,11 @@ public class MixSession {
 
     //
 
-    private StompHeaders computeStompHeaders(String destination) {
-        StompHeaders stompHeaders = new StompHeaders();
-        stompHeaders.set(WhirlpoolProtocol.HEADER_POOL_ID, poolId);
+    private Map<String,String> computeStompHeaders(String destination) {
+        Map<String,String> stompHeaders = new HashMap<>();
+        stompHeaders.put(WhirlpoolProtocol.HEADER_POOL_ID, poolId);
         if (destination != null) {
-            stompHeaders.setDestination(destination);
+            stompHeaders.put(StompTransport.HEADER_DESTINATION, destination);
         }
         return stompHeaders;
     }

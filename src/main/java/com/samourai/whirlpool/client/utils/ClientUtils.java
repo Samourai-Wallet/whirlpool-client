@@ -1,9 +1,9 @@
 package com.samourai.whirlpool.client.utils;
 
-import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32Util;
+import com.samourai.whirlpool.client.whirlpool.httpClient.HttpException;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.TransactionSignature;
@@ -11,7 +11,6 @@ import org.bitcoinj.script.Script;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.client.HttpStatusCodeException;
 
 import java.lang.invoke.MethodHandles;
 import java.security.KeyFactory;
@@ -95,10 +94,11 @@ public class ClientUtils {
     }
 
     public static Logger prefixLogger(Logger log, String logPrefix) {
-        Level level = ((ch.qos.logback.classic.Logger)log).getEffectiveLevel();
+        /*Level level = ((ch.qos.logback.classic.Logger)log).getEffectiveLevel();
         Logger newLog = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass()+"["+logPrefix+"]");
         ((ch.qos.logback.classic.Logger)newLog).setLevel(level);
-        return newLog;
+        return newLog;*/
+        return log; // TODO
     }
 
     private static Optional<String> parseRestErrorMessage(String responseBody) {
@@ -110,8 +110,11 @@ public class ClientUtils {
         }
     }
 
-    public static Optional<String> parseRestErrorMessage(HttpStatusCodeException e) {
-        String responseBody = e.getResponseBodyAsString();
+    public static Optional<String> parseRestErrorMessage(HttpException e) {
+        String responseBody = e.getResponseBody();
+        if (responseBody == null) {
+            return Optional.empty();
+        }
         return parseRestErrorMessage(responseBody);
     }
 }
