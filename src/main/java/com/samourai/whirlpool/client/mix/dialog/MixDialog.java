@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 public class MixDialog {
@@ -213,9 +212,9 @@ public class MixDialog {
             String registerOutputUrl = WhirlpoolProtocol.computeRegisterOutputUrl(clientConfig.getServer());
             listener.postRegisterOutput(registerOutputMixStatusNotification, registerOutputUrl);
         } catch(HttpException e) {
-            Optional<String> restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
-            if (restErrorResponseMessage.isPresent()) {
-                throw new NotifiableException(restErrorResponseMessage.get());
+            String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
+            if (restErrorResponseMessage != null) {
+                throw new NotifiableException(restErrorResponseMessage);
             }
             throw e;
         }

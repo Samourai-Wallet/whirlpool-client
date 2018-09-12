@@ -5,10 +5,10 @@ import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.websocket.MessageHandler;
 import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  * STOMP communication.
@@ -30,17 +30,21 @@ public class StompTransport {
     }
 
     public String connect(String wsUrl, Map<String,String> connectHeaders) throws Exception {
-        Consumer<String> onConnect = (stompUsername) -> {
-            this.stompUsername = stompUsername;
-            if (log.isDebugEnabled()) {
-                log.debug("stompUsername=" + stompUsername);
+        stompClient.connect(wsUrl, connectHeaders, new MessageHandler.Whole<String>(){
+            @Override
+            public void onMessage(String myStompUsername) {
+                stompUsername = myStompUsername;
+                if (log.isDebugEnabled()) {
+                    log.debug("stompUsername=" + stompUsername);
+                }
             }
-        };
-        Consumer<Exception> onDisconnect = (exception) -> {
-            disconnect(true);
-            listener.onTransportConnectionLost(exception);
-        };
-        stompClient.connect(wsUrl, connectHeaders, onConnect, onDisconnect);
+        }, new MessageHandler.Whole<Exception>(){
+            @Override
+            public void onMessage(Exception exception) {
+                disconnect(true);
+                listener.onTransportConnectionLost(exception);
+            }
+        });
         done = false;
 
         String stompSessionId = stompClient.getSessionId();
@@ -49,13 +53,15 @@ public class StompTransport {
         return stompSessionId;
     }
 
-    public void subscribe(Map<String,String> subscribeHeaders, Consumer<Object> frameHandler, Consumer<String> errorHandler) {
+    public void subscribe(Map<String,String> subscribeHeaders, MessageHandler.Whole<Object> frameHandler, MessageHandler.Whole<String> errorHandler) {
         if (log.isDebugEnabled()) {
             log.debug("subscribe:" + subscribeHeaders.get(HEADER_DESTINATION));
         }
         final Map<String,String> completeHeaders = completeHeaders(subscribeHeaders);
-        stompClient.subscribe(subscribeHeaders,
-            (payload) -> {
+
+        MessageHandler.Whole<Object> onMessage = new MessageHandler.Whole<Object>() {
+            @Override
+            public void onMessage(Object payload) {
                 if (!done) {
                     if (log.isDebugEnabled()) {
                         log.debug("--> (" + completeHeaders.get(HEADER_DESTINATION) + ") " + ClientUtils.toJsonString(payload));
@@ -67,16 +73,15 @@ public class StompTransport {
                     if (!WhirlpoolProtocol.PROTOCOL_VERSION.equals(protocolVersion)) {
                         String errorMessage = "Version mismatch: server=" + (protocolVersion != null ? protocolVersion : "unknown") + ", client=" + WhirlpoolProtocol.PROTOCOL_VERSION;
                         errorHandler.accept(errorMessage);
-                    }
-                    else {
-                        frameHandler.accept(payload);
                     }*/
 
                     // TODO !!!!!!!!!!
                     // unserialize payload
                     /*String messageType = headers.get(WhirlpoolProtocol.HEADER_MESSAGE_TYPE).get(0);
                     try {
-                        return Class.forName(messageType);
+                        type = Class.forName(messageType);
+                        ... deserialize
+                        frameHandler.accept(payload);
                     }
                     catch(ClassNotFoundException e) {
                         log.error("unknown message type: " + messageType, e);
@@ -86,10 +91,10 @@ public class StompTransport {
                 else {
                     log.warn("frame ignored (done) (" + completeHeaders.get(HEADER_DESTINATION) + "): " + ClientUtils.toJsonString(payload));
                 }
-            }, (error) -> {
-                errorHandler.accept((String)error);
             }
-        );
+        };
+
+        stompClient.subscribe(subscribeHeaders, onMessage, errorHandler);
     }
 
     public void disconnect() {

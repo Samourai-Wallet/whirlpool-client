@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class WhirlpoolClientImpl implements WhirlpoolClient {
     private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -64,9 +63,9 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
             PoolsResponse poolsResponse = this.httpClient.getForEntity(url, PoolsResponse.class);
             return computePools(poolsResponse);
         } catch(HttpException e) {
-            Optional<String> restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
-            if (restErrorResponseMessage.isPresent()) {
-                throw new NotifiableException(restErrorResponseMessage.get());
+            String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
+            if (restErrorResponseMessage != null) {
+                throw new NotifiableException(restErrorResponseMessage);
             }
             throw e;
         }
@@ -94,7 +93,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     }
 
     @Override
-    public void whirlpool(String poolId, long denomination, MixParams mixParams, int mixs, WhirlpoolClientListener listener) {
+    public void whirlpool(String poolId, long denomination, final MixParams mixParams, int mixs, WhirlpoolClientListener listener) {
         this.poolId = poolId;
         this.denomination = denomination;
         this.mixs = mixs;
@@ -102,20 +101,22 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
         this.doneMixs = 0;
         this.mixClients = new ArrayList<>();
 
-        new Thread(() -> {
-            try {
-                MixClient mixClient = runClient(mixParams);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    MixClient mixClient = runClient(mixParams);
 
-                synchronized (this) {
-                    while(!mixClient.isDone()) {
-                        wait(1000);
+                    synchronized (this) {
+                        while(!mixClient.isDone()) {
+                            wait(1000);
+                        }
                     }
+                } catch (Exception e) {
+                    log.error("", e);
                 }
-            } catch (Exception e) {
-                log.error("", e);
             }
         }).start();
-
     }
 
     private MixClient runClient(MixParams mixParams) {

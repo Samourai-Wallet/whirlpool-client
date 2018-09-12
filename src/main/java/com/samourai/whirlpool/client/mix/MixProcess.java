@@ -24,9 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.invoke.MethodHandles;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class MixProcess {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
@@ -231,12 +230,18 @@ public class MixProcess {
         }
 
         // verify my output
-        int outputIndex = ClientUtils.findTxOutputIndex(this.receiveAddress, tx, networkParameters).orElseThrow(() -> new Exception("Output not found in tx"));
+        Integer outputIndex = ClientUtils.findTxOutputIndex(this.receiveAddress, tx, networkParameters);
+        if (outputIndex == null) {
+            throw new Exception("Output not found in tx");
+        }
         receiveUtxoHash = tx.getHashAsString();
         receiveUtxoIdx = outputIndex;
 
         // verify my input
-        int inputIndex = ClientUtils.findTxInputIndex(mixParams.getUtxoHash(), mixParams.getUtxoIdx(), tx).orElseThrow(() -> new Exception("Input not found in tx"));
+        Integer inputIndex = ClientUtils.findTxInputIndex(mixParams.getUtxoHash(), mixParams.getUtxoIdx(), tx);
+        if (outputIndex == null) {
+            throw new Exception("Input not found in tx");
+        }
 
         // check fees again
         long inputValue = mixParams.getUtxoBalance(); //tx.getInput(inputIndex).getValue().getValue(); is null
@@ -260,8 +265,12 @@ public class MixProcess {
     }
 
     private String computeInputsHash(List<TransactionInput> inputs) {
-        Collection<Utxo> inputsUtxos = inputs.parallelStream().map(input -> new Utxo(input.getOutpoint().getHash().toString(), input.getOutpoint().getIndex())).collect(Collectors.toList());
-        return WhirlpoolProtocol.computeInputsHash(inputsUtxos);
+        List<Utxo> utxos = new ArrayList<>();
+        for (TransactionInput input : inputs) {
+            Utxo utxo = new Utxo(input.getOutpoint().getHash().toString(), input.getOutpoint().getIndex());
+            utxos.add(utxo);
+        }
+        return WhirlpoolProtocol.computeInputsHash(utxos);
     }
 
     private boolean throwProtocolException() throws Exception {

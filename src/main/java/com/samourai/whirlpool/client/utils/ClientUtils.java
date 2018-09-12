@@ -17,37 +17,36 @@ import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.UUID;
 
 public class ClientUtils {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public static Optional<Integer> findTxOutputIndex(String outputAddressBech32, Transaction tx, NetworkParameters params) {
+    public static Integer findTxOutputIndex(String outputAddressBech32, Transaction tx, NetworkParameters params) {
         try {
             byte[] expectedScriptBytes = Bech32Util.getInstance().computeScriptPubKey(outputAddressBech32, params);
             for (TransactionOutput output : tx.getOutputs()) {
                 if (Arrays.equals(output.getScriptBytes(), expectedScriptBytes)) {
-                    return Optional.of(output.getIndex());
+                    return output.getIndex();
                 }
             }
         }
         catch(Exception e) {
             log.error("findTxOutput failed", e);
         }
-        return Optional.empty();
+        return null;
     }
 
-    public static Optional<Integer> findTxInputIndex(String utxoHash, long utxoIdx, Transaction tx) {
+    public static Integer findTxInputIndex(String utxoHash, long utxoIdx, Transaction tx) {
         for (int index = 0; index < tx.getInputs().size(); index++) {
             TransactionInput input = tx.getInput(index);
             TransactionOutPoint transactionOutPoint = input.getOutpoint();
             if (transactionOutPoint.getHash().toString().equals(utxoHash) && transactionOutPoint.getIndex() == utxoIdx) {
-                return Optional.of(index);
+                return index;
             }
         }
-        return Optional.empty();
+        return null;
     }
 
     public static String generateUniqueString() {
@@ -98,22 +97,22 @@ public class ClientUtils {
         Logger newLog = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass()+"["+logPrefix+"]");
         ((ch.qos.logback.classic.Logger)newLog).setLevel(level);
         return newLog;*/
-        return log; // TODO
+        return log; // TODO !!!!!!
     }
 
-    private static Optional<String> parseRestErrorMessage(String responseBody) {
+    private static String parseRestErrorMessage(String responseBody) {
         try {
             RestErrorResponse restErrorResponse = ClientUtils.fromJson(responseBody, RestErrorResponse.class);
-            return Optional.of(restErrorResponse.message);
+            return restErrorResponse.message;
         } catch(Exception e) {
-            return Optional.empty();
+            return null;
         }
     }
 
-    public static Optional<String> parseRestErrorMessage(HttpException e) {
+    public static String parseRestErrorMessage(HttpException e) {
         String responseBody = e.getResponseBody();
         if (responseBody == null) {
-            return Optional.empty();
+            return null;
         }
         return parseRestErrorMessage(responseBody);
     }
