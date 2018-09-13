@@ -24,18 +24,18 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
 
     @Override
     public void success(int nbMixs, MixSuccess mixSuccess) {
-        log.info("⣿ WHIRLPOOL SUCCESS ⣿ Funds will be received at " + mixSuccess.getReceiveAddress() + ", utxo " + mixSuccess.getReceiveUtxoHash() + ":" + mixSuccess.getReceiveUtxoIdx());
+        log("⣿ WHIRLPOOL SUCCESS ⣿ Funds will be received at " + mixSuccess.getReceiveAddress() + ", utxo " + mixSuccess.getReceiveUtxoHash() + ":" + mixSuccess.getReceiveUtxoIdx());
     }
 
     @Override
     public void fail(int currentMix, int nbMixs) {
-        log.info("⣿ WHIRLPOOL FAILED ⣿ Mix "+currentMix+"/"+nbMixs+" failed. Check logs for errors.");
+        log("⣿ WHIRLPOOL FAILED ⣿ Mix "+currentMix+"/"+nbMixs+" failed. Check logs for errors.");
     }
 
     @Override
     public void progress(int currentMix, int nbMixs, MixStep step, String stepInfo, int stepNumber, int nbSteps) {
         String asciiProgress = renderProgress(stepNumber, nbSteps);
-        log.info(format(currentMix, nbMixs, asciiProgress + " " + step + " : " + stepInfo));
+        log(format(currentMix, nbMixs, asciiProgress + " " + step + " : " + stepInfo));
     }
 
     private String renderProgress(int stepNumber, int nbSteps) {
@@ -49,6 +49,10 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
 
     @Override
     public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
-        log.info(format(currentMix, nbMixs, "SUCCESS - Funds will be received at " + mixSuccess.getReceiveAddress() + ", utxo " + mixSuccess.getReceiveUtxoHash() + ":" + mixSuccess.getReceiveUtxoIdx()));
+        log(format(currentMix, nbMixs, "SUCCESS - Funds will be received at " + mixSuccess.getReceiveAddress() + ", utxo " + mixSuccess.getReceiveUtxoHash() + ":" + mixSuccess.getReceiveUtxoIdx()));
+    }
+
+    protected void log(String message) {
+        log.info(message);
     }
 }
