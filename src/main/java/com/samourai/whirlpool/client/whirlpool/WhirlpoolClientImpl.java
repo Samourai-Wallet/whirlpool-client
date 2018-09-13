@@ -27,7 +27,6 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private WhirlpoolClientConfig config;
-    private IWhirlpoolHttpClient httpClient;
 
     private String poolId;
     private long denomination;
@@ -43,13 +42,12 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
      * @param config client configuration (server...)
      * @return
      */
-    public static WhirlpoolClient newClient(WhirlpoolClientConfig config, IWhirlpoolHttpClient httpClient) {
-        return new WhirlpoolClientImpl(config, httpClient);
+    public static WhirlpoolClient newClient(WhirlpoolClientConfig config) {
+        return new WhirlpoolClientImpl(config);
     }
 
-    private WhirlpoolClientImpl(WhirlpoolClientConfig config, IWhirlpoolHttpClient httpClient) {
+    private WhirlpoolClientImpl(WhirlpoolClientConfig config) {
         this.config = config;
-        this.httpClient = httpClient;
         this.logPrefix = null;
         if (log.isDebugEnabled()) {
             log.debug("protocolVersion=" + WhirlpoolProtocol.PROTOCOL_VERSION);
@@ -60,7 +58,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     public Pools fetchPools() throws WhirlpoolHttpException, NotifiableException {
         String url = "http://" + this.config.getServer() + WhirlpoolProtocol.ENDPOINT_POOLS; // TODO HTTPS
         try {
-            PoolsResponse poolsResponse = this.httpClient.getJsonAsEntity(url, PoolsResponse.class);
+            PoolsResponse poolsResponse = config.getHttpClient().getJsonAsEntity(url, PoolsResponse.class);
             return computePools(poolsResponse);
         } catch(WhirlpoolHttpException e) {
             String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
@@ -122,7 +120,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     private MixClient runClient(MixParams mixParams) {
         MixClientListener mixListener = computeMixListener();
 
-        MixClient mixClient = new MixClient(config, httpClient, poolId, denomination);
+        MixClient mixClient = new MixClient(config, poolId, denomination);
         if (logPrefix != null) {
             int mix = this.mixClients.size();
             mixClient.setLogPrefix(logPrefix+"["+(mix+1)+"]");

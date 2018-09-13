@@ -8,6 +8,15 @@ public class Pools {
     public Pools() {
     }
 
+    public Pool findPoolById(String poolId) {
+        for (Pool pool : pools) {
+            if (pool.getPoolId().equals(poolId)) {
+                return pool;
+            }
+        }
+        return null;
+    }
+
     public Collection<Pool> getPools() {
         return pools;
     }

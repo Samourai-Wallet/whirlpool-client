@@ -36,7 +36,7 @@ public class MixSession {
         this.whirlpoolProtocol = whirlpoolProtocol;
         this.config = config;
         this.poolId = poolId;
-        this.transport = new StompTransport(computeTransportListener());
+        this.transport = new StompTransport(config.getStompClient(), computeTransportListener());
         resetDialog();
     }
 
