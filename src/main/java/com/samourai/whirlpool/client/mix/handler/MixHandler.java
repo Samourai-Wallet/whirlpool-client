@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.mix.handler;
 
-import com.samourai.wallet.bip47.BIP47Util;
+import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bip47.rpc.PaymentAddress;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
@@ -44,7 +44,7 @@ public class MixHandler implements IMixHandler {
     public String computeReceiveAddress(NetworkParameters params) throws Exception {
         // compute receiveAddress with our own paymentCode counterparty
         PaymentCode paymentCodeCounter = computePaymentCodeCounterparty();
-        PaymentAddress receiveAddress = BIP47Util.getInstance().getReceiveAddress(bip47Wallet, BIP47_ACCOUNT_RECEIVE, paymentCodeCounter, this.paymentCodeIndex, params);
+        PaymentAddress receiveAddress = BIP47UtilGeneric.getInstance().getReceiveAddress(bip47Wallet, BIP47_ACCOUNT_RECEIVE, paymentCodeCounter, this.paymentCodeIndex, params);
 
         // bech32
         this.receiveKey = receiveAddress.getReceiveECKey();
