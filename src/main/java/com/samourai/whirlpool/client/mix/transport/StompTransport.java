@@ -19,13 +19,14 @@ public class StompTransport {
     private static final String HEADER_USERNAME = "user-name";
     public static final String HEADER_DESTINATION = "destination";
 
+    private IStompClient stompClient;
     private TransportListener listener;
 
-    private StompClient stompClient;
     private String stompUsername;
     private boolean done;
 
-    public StompTransport(TransportListener listener) {
+    public StompTransport(IStompClient stompClient, TransportListener listener) {
+        this.stompClient = stompClient;
         this.listener = listener;
     }
 
@@ -38,9 +39,9 @@ public class StompTransport {
                     log.debug("stompUsername=" + stompUsername);
                 }
             }
-        }, new MessageHandler.Whole<Exception>(){
+        }, new MessageHandler.Whole<Throwable>(){
             @Override
-            public void onMessage(Exception exception) {
+            public void onMessage(Throwable exception) {
                 disconnect(true);
                 listener.onTransportConnectionLost(exception);
             }
@@ -53,7 +54,7 @@ public class StompTransport {
         return stompSessionId;
     }
 
-    public void subscribe(Map<String,String> subscribeHeaders, MessageHandler.Whole<Object> frameHandler, MessageHandler.Whole<String> errorHandler) {
+    public void subscribe(Map<String,String> subscribeHeaders, final MessageHandler.Whole<Object> frameHandler, MessageHandler.Whole<String> errorHandler) {
         if (log.isDebugEnabled()) {
             log.debug("subscribe:" + subscribeHeaders.get(HEADER_DESTINATION));
         }
@@ -66,27 +67,7 @@ public class StompTransport {
                     if (log.isDebugEnabled()) {
                         log.debug("--> (" + completeHeaders.get(HEADER_DESTINATION) + ") " + ClientUtils.toJsonString(payload));
                     }
-
-                    // TODO !!!!!!!!!
-                    // check protocol version
-                    /*String protocolVersion = headers.getFirst(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION);
-                    if (!WhirlpoolProtocol.PROTOCOL_VERSION.equals(protocolVersion)) {
-                        String errorMessage = "Version mismatch: server=" + (protocolVersion != null ? protocolVersion : "unknown") + ", client=" + WhirlpoolProtocol.PROTOCOL_VERSION;
-                        errorHandler.accept(errorMessage);
-                    }*/
-
-                    // TODO !!!!!!!!!!
-                    // unserialize payload
-                    /*String messageType = headers.get(WhirlpoolProtocol.HEADER_MESSAGE_TYPE).get(0);
-                    try {
-                        type = Class.forName(messageType);
-                        ... deserialize
-                        frameHandler.accept(payload);
-                    }
-                    catch(ClassNotFoundException e) {
-                        log.error("unknown message type: " + messageType, e);
-                        return null;
-                    }*/
+                    frameHandler.onMessage(payload);
                 }
                 else {
                     log.warn("frame ignored (done) (" + completeHeaders.get(HEADER_DESTINATION) + "): " + ClientUtils.toJsonString(payload));

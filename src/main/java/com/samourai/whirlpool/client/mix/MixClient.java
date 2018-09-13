@@ -1,14 +1,13 @@
 package com.samourai.whirlpool.client.mix;
 
+import com.samourai.whirlpool.client.mix.dialog.MixDialogListener;
 import com.samourai.whirlpool.client.mix.dialog.MixSession;
 import com.samourai.whirlpool.client.mix.listener.MixClientListener;
 import com.samourai.whirlpool.client.mix.listener.MixClientListenerHandler;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
-import com.samourai.whirlpool.client.mix.dialog.MixDialogListener;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
-import com.samourai.whirlpool.client.whirlpool.httpClient.IWhirlpoolHttpClient;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
 import com.samourai.whirlpool.protocol.websocket.messages.*;
@@ -27,7 +26,6 @@ public class MixClient {
 
     // server settings
     private WhirlpoolClientConfig config;
-    private IWhirlpoolHttpClient httpClient;
     private String poolId;
     private long denomination;
 
@@ -40,13 +38,12 @@ public class MixClient {
     private MixSession mixSession;
     private boolean done;
 
-    public MixClient(WhirlpoolClientConfig config, IWhirlpoolHttpClient httpClient, String poolId, long denomination) {
-        this(config, httpClient, poolId, denomination, new ClientCryptoService(), new WhirlpoolProtocol());
+    public MixClient(WhirlpoolClientConfig config, String poolId, long denomination) {
+        this(config, poolId, denomination, new ClientCryptoService(), new WhirlpoolProtocol());
     }
 
-    public MixClient(WhirlpoolClientConfig config, IWhirlpoolHttpClient httpClient, String poolId, long denomination, ClientCryptoService clientCryptoService, WhirlpoolProtocol whirlpoolProtocol) {
+    public MixClient(WhirlpoolClientConfig config, String poolId, long denomination, ClientCryptoService clientCryptoService, WhirlpoolProtocol whirlpoolProtocol) {
         this.config = config;
-        this.httpClient = httpClient;
         this.poolId = poolId;
         this.denomination = denomination;
         this.clientCryptoService = clientCryptoService;
@@ -168,7 +165,7 @@ public class MixClient {
                 if (log.isDebugEnabled()) {
                     log.debug("POST " + registerOutputUrl + ": " + ClientUtils.toJsonString(registerOutputRequest));
                 }
-                httpClient.postJsonOverTor(registerOutputUrl, registerOutputRequest);
+                config.getHttpClient().postJsonOverTor(registerOutputUrl, registerOutputRequest);
                 listenerProgress(MixStep.REGISTERED_OUTPUT);
             }
 
@@ -204,4 +201,5 @@ public class MixClient {
             }
         };
     }
+
 }
