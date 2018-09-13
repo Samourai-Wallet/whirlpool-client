@@ -4,17 +4,16 @@ import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.transport.StompTransport;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
+import com.samourai.whirlpool.client.whirlpool.httpClient.WhirlpoolHttpException;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.websocket.WhirlpoolMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.*;
 import com.samourai.whirlpool.protocol.websocket.notifications.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.client.HttpStatusCodeException;
 
 import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 public class MixDialog {
@@ -212,10 +211,10 @@ public class MixDialog {
         try {
             String registerOutputUrl = WhirlpoolProtocol.computeRegisterOutputUrl(clientConfig.getServer());
             listener.postRegisterOutput(registerOutputMixStatusNotification, registerOutputUrl);
-        } catch(HttpStatusCodeException e) {
-            Optional<String> restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
-            if (restErrorResponseMessage.isPresent()) {
-                throw new NotifiableException(restErrorResponseMessage.get());
+        } catch(WhirlpoolHttpException e) {
+            String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
+            if (restErrorResponseMessage != null) {
+                throw new NotifiableException(restErrorResponseMessage);
             }
             throw e;
         }

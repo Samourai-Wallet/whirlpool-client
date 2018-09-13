@@ -8,10 +8,11 @@ import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.websocket.WhirlpoolMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.messaging.simp.stomp.StompHeaders;
 
+import javax.websocket.MessageHandler;
 import java.lang.invoke.MethodHandles;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MixSession {
     // non-static logger to prefix it with stomp sessionId
@@ -54,7 +55,7 @@ public class MixSession {
         }
 
         // connect
-        StompHeaders connectHeaders = computeStompHeaders(null);
+        Map<String,String> connectHeaders = computeStompHeaders(null);
         stompSessionId = transport.connect(wsUrl, connectHeaders);
         setLogPrefix(stompSessionId);
         if (log.isDebugEnabled()) {
@@ -105,42 +106,49 @@ public class MixSession {
     }
 
     private void subscribe() {
-        // subscribe to private responses first (to receive error responses)
-        String privateQueue = whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY;
-        transport.subscribe(computeStompHeaders(privateQueue),
-                (payload) -> {
-                    Optional<WhirlpoolMessage> whirlpoolMessage = checkMessage(payload);
-                    if (whirlpoolMessage.isPresent()) {
-                        dialog.onPrivateReceived(whirlpoolMessage.get());
-                    } else {
-                        log.error("--> " + privateQueue + ": not a WhirlpoolMessage: " + ClientUtils.toJsonString(payload));
-                        listener.exitOnProtocolError();
-                    }
-                },
-                (errorMessage) -> {
-                    log.error("--> " + privateQueue + ": subscribe error: " + errorMessage);
-                    listener.exitOnResponseError(errorMessage); // probably a version mismatch
+        // subscribe to private queue first (to receive error responses)
+        final String privateQueue = whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY;
+        transport.subscribe(computeStompHeaders(privateQueue), new MessageHandler.Whole<Object>() {
+            @Override
+            public void onMessage(Object payload) {
+                // should be a WhirlpoolMessage
+                WhirlpoolMessage whirlpoolMessage = checkMessage(payload);
+                if (whirlpoolMessage != null) {
+                    dialog.onPrivateReceived(whirlpoolMessage);
+                } else {
+                    log.error("--> " + privateQueue + ": not a WhirlpoolMessage: " + ClientUtils.toJsonString(payload));
                     listener.exitOnProtocolError();
                 }
-        );
+            }
+        }, new MessageHandler.Whole<String>() {
+            @Override
+            public void onMessage(String errorMessage) {
+                log.error("--> " + privateQueue + ": subscribe error: " + errorMessage);
+                listener.exitOnResponseError(errorMessage); // probably a version mismatch
+                listener.exitOnProtocolError();
+            }
+        });
 
         // subscribe mixStatusNotifications
-        transport.subscribe(computeStompHeaders(whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE),
-                (payload) -> {
-                    Optional<WhirlpoolMessage> whirlpoolMessage = checkMessage(payload);
-                    if (whirlpoolMessage.isPresent()) {
-                        dialog.onBroadcastReceived(whirlpoolMessage.get());
-                    } else {
-                        log.error("--> " + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ": not a WhirlpoolMessage: " + ClientUtils.toJsonString(payload));
-                        listener.exitOnProtocolError();
-                    }
-                },
-                (errorMessage) -> {
-                    log.error("--> " + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ": subscribe error: " + errorMessage);
-                    listener.exitOnResponseError(errorMessage); // probably a version mismatch
+        transport.subscribe(computeStompHeaders(whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE), new MessageHandler.Whole<Object>() {
+            @Override
+            public void onMessage(Object payload) {
+                WhirlpoolMessage whirlpoolMessage = checkMessage(payload);
+                if (whirlpoolMessage != null) {
+                    dialog.onBroadcastReceived(whirlpoolMessage);
+                } else {
+                    log.error("--> " + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ": not a WhirlpoolMessage: " + ClientUtils.toJsonString(payload));
                     listener.exitOnProtocolError();
                 }
-        );
+            }
+        }, new MessageHandler.Whole<String>() {
+            @Override
+            public void onMessage(String errorMessage) {
+                log.error("--> " + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ": subscribe error: " + errorMessage);
+                listener.exitOnResponseError(errorMessage); // probably a version mismatch
+                listener.exitOnProtocolError();
+            }
+        });
 
         // will automatically receive mixStatus in response of subscription
         if (log.isDebugEnabled()) {
@@ -148,13 +156,13 @@ public class MixSession {
         }
     }
 
-    private Optional<WhirlpoolMessage> checkMessage(Object payload) {
+    private WhirlpoolMessage checkMessage(Object payload) {
         // should be WhirlpoolMessage
         Class payloadClass = payload.getClass();
         if (!WhirlpoolMessage.class.isAssignableFrom(payloadClass)) {
             log.error("Protocol error: unexpected message from server: " + ClientUtils.toJsonString(payloadClass));
             listener.exitOnProtocolError();
-            return Optional.empty();
+            return null;
         }
 
         WhirlpoolMessage whirlpoolMessage = (WhirlpoolMessage)payload;
@@ -168,7 +176,7 @@ public class MixSession {
             listener.onResetMix();
         }
 
-        return Optional.of((WhirlpoolMessage) payload);
+        return (WhirlpoolMessage) payload;
     }
 
     public void disconnect() {
@@ -185,11 +193,11 @@ public class MixSession {
 
     //
 
-    private StompHeaders computeStompHeaders(String destination) {
-        StompHeaders stompHeaders = new StompHeaders();
-        stompHeaders.set(WhirlpoolProtocol.HEADER_POOL_ID, poolId);
+    private Map<String,String> computeStompHeaders(String destination) {
+        Map<String,String> stompHeaders = new HashMap<>();
+        stompHeaders.put(WhirlpoolProtocol.HEADER_POOL_ID, poolId);
         if (destination != null) {
-            stompHeaders.setDestination(destination);
+            stompHeaders.put(StompTransport.HEADER_DESTINATION, destination);
         }
         return stompHeaders;
     }

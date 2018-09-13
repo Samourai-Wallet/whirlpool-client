@@ -1,9 +1,9 @@
 package com.samourai.whirlpool.client.utils;
 
-import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.segwit.SegwitAddress;
-import com.samourai.wallet.segwit.bech32.Bech32Util;
+import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.whirlpool.client.whirlpool.httpClient.WhirlpoolHttpException;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.TransactionSignature;
@@ -11,44 +11,42 @@ import org.bitcoinj.script.Script;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.client.HttpStatusCodeException;
 
 import java.lang.invoke.MethodHandles;
 import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.UUID;
 
 public class ClientUtils {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public static Optional<Integer> findTxOutputIndex(String outputAddressBech32, Transaction tx, NetworkParameters params) {
+    public static Integer findTxOutputIndex(String outputAddressBech32, Transaction tx, NetworkParameters params) {
         try {
-            byte[] expectedScriptBytes = Bech32Util.getInstance().computeScriptPubKey(outputAddressBech32, params);
+            byte[] expectedScriptBytes = Bech32UtilGeneric.getInstance().computeScriptPubKey(outputAddressBech32, params);
             for (TransactionOutput output : tx.getOutputs()) {
                 if (Arrays.equals(output.getScriptBytes(), expectedScriptBytes)) {
-                    return Optional.of(output.getIndex());
+                    return output.getIndex();
                 }
             }
         }
         catch(Exception e) {
             log.error("findTxOutput failed", e);
         }
-        return Optional.empty();
+        return null;
     }
 
-    public static Optional<Integer> findTxInputIndex(String utxoHash, long utxoIdx, Transaction tx) {
+    public static Integer findTxInputIndex(String utxoHash, long utxoIdx, Transaction tx) {
         for (int index = 0; index < tx.getInputs().size(); index++) {
             TransactionInput input = tx.getInput(index);
             TransactionOutPoint transactionOutPoint = input.getOutpoint();
             if (transactionOutPoint.getHash().toString().equals(utxoHash) && transactionOutPoint.getIndex() == utxoIdx) {
-                return Optional.of(index);
+                return index;
             }
         }
-        return Optional.empty();
+        return null;
     }
 
     public static String generateUniqueString() {
@@ -95,23 +93,27 @@ public class ClientUtils {
     }
 
     public static Logger prefixLogger(Logger log, String logPrefix) {
-        Level level = ((ch.qos.logback.classic.Logger)log).getEffectiveLevel();
+        /*Level level = ((ch.qos.logback.classic.Logger)log).getEffectiveLevel();
         Logger newLog = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass()+"["+logPrefix+"]");
         ((ch.qos.logback.classic.Logger)newLog).setLevel(level);
-        return newLog;
+        return newLog;*/
+        return log; // TODO !!!!!!
     }
 
-    private static Optional<String> parseRestErrorMessage(String responseBody) {
+    private static String parseRestErrorMessage(String responseBody) {
         try {
             RestErrorResponse restErrorResponse = ClientUtils.fromJson(responseBody, RestErrorResponse.class);
-            return Optional.of(restErrorResponse.message);
+            return restErrorResponse.message;
         } catch(Exception e) {
-            return Optional.empty();
+            return null;
         }
     }
 
-    public static Optional<String> parseRestErrorMessage(HttpStatusCodeException e) {
-        String responseBody = e.getResponseBodyAsString();
+    public static String parseRestErrorMessage(WhirlpoolHttpException e) {
+        String responseBody = e.getResponseBody();
+        if (responseBody == null) {
+            return null;
+        }
         return parseRestErrorMessage(responseBody);
     }
 }

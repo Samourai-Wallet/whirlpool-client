@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.whirlpool;
 
 import com.samourai.whirlpool.client.WhirlpoolClient;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.MixClient;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.listener.MixClientListener;
@@ -9,15 +10,14 @@ import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
+import com.samourai.whirlpool.client.whirlpool.httpClient.IWhirlpoolHttpClient;
+import com.samourai.whirlpool.client.whirlpool.httpClient.WhirlpoolHttpException;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
 
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
@@ -27,6 +27,8 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private WhirlpoolClientConfig config;
+    private IWhirlpoolHttpClient httpClient;
+
     private String poolId;
     private long denomination;
     private int mixs;
@@ -41,12 +43,13 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
      * @param config client configuration (server...)
      * @return
      */
-    public static WhirlpoolClient newClient(WhirlpoolClientConfig config) {
-        return new WhirlpoolClientImpl(config);
+    public static WhirlpoolClient newClient(WhirlpoolClientConfig config, IWhirlpoolHttpClient httpClient) {
+        return new WhirlpoolClientImpl(config, httpClient);
     }
 
-    private WhirlpoolClientImpl(WhirlpoolClientConfig config) {
+    private WhirlpoolClientImpl(WhirlpoolClientConfig config, IWhirlpoolHttpClient httpClient) {
         this.config = config;
+        this.httpClient = httpClient;
         this.logPrefix = null;
         if (log.isDebugEnabled()) {
             log.debug("protocolVersion=" + WhirlpoolProtocol.PROTOCOL_VERSION);
@@ -54,19 +57,17 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     }
 
     @Override
-    public Pools fetchPools() throws Exception {
-        RestTemplate restTemplate = new RestTemplate();
+    public Pools fetchPools() throws WhirlpoolHttpException, NotifiableException {
         String url = "http://" + this.config.getServer() + WhirlpoolProtocol.ENDPOINT_POOLS; // TODO HTTPS
         try {
-            ResponseEntity<PoolsResponse> result = restTemplate.getForEntity(url, PoolsResponse.class);
-            if (result == null || !result.getStatusCode().is2xxSuccessful()) {
-                // response error
-                throw new Exception("unable to retrieve pools");
+            PoolsResponse poolsResponse = this.httpClient.getJsonAsEntity(url, PoolsResponse.class);
+            return computePools(poolsResponse);
+        } catch(WhirlpoolHttpException e) {
+            String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
+            if (restErrorResponseMessage != null) {
+                throw new NotifiableException(restErrorResponseMessage);
             }
-            return computePools(result.getBody());
-        } catch(HttpStatusCodeException e) {
-            String restErrorMessage = ClientUtils.parseRestErrorMessage(e).orElse(e.getMessage());
-            throw new Exception("unable to retrieve pools: " + restErrorMessage);
+            throw e;
         }
     }
 
@@ -92,7 +93,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     }
 
     @Override
-    public void whirlpool(String poolId, long denomination, MixParams mixParams, int mixs, WhirlpoolClientListener listener) {
+    public void whirlpool(String poolId, long denomination, final MixParams mixParams, int mixs, WhirlpoolClientListener listener) {
         this.poolId = poolId;
         this.denomination = denomination;
         this.mixs = mixs;
@@ -100,26 +101,28 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
         this.doneMixs = 0;
         this.mixClients = new ArrayList<>();
 
-        new Thread(() -> {
-            try {
-                MixClient mixClient = runClient(mixParams);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    MixClient mixClient = runClient(mixParams);
 
-                synchronized (this) {
-                    while(!mixClient.isDone()) {
-                        wait(1000);
+                    synchronized (this) {
+                        while(!mixClient.isDone()) {
+                            wait(1000);
+                        }
                     }
+                } catch (Exception e) {
+                    log.error("", e);
                 }
-            } catch (Exception e) {
-                log.error("", e);
             }
         }).start();
-
     }
 
     private MixClient runClient(MixParams mixParams) {
         MixClientListener mixListener = computeMixListener();
 
-        MixClient mixClient = new MixClient(config, poolId, denomination);
+        MixClient mixClient = new MixClient(config, httpClient, poolId, denomination);
         if (logPrefix != null) {
             int mix = this.mixClients.size();
             mixClient.setLogPrefix(logPrefix+"["+(mix+1)+"]");

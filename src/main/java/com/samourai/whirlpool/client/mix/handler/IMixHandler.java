@@ -13,8 +13,6 @@ public interface IMixHandler {
 
     byte[] getPubkey();
 
-    void postHttpRequest(String url, Object requestBody) throws Exception;
-
     IMixHandler computeMixHandlerForNextMix();
 
 }
