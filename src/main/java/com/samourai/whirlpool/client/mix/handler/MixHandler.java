@@ -4,6 +4,7 @@ import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bip47.rpc.PaymentAddress;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
+import com.samourai.wallet.bip47.rpc.secretPoint.SecretPointFactory;
 import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import org.bitcoinj.core.ECKey;
@@ -47,7 +48,7 @@ public class MixHandler implements IMixHandler {
         PaymentAddress receiveAddress = BIP47UtilGeneric.getInstance().getReceiveAddress(bip47Wallet, BIP47_ACCOUNT_RECEIVE, paymentCodeCounter, this.paymentCodeIndex, params);
 
         // bech32
-        this.receiveKey = receiveAddress.getReceiveECKey();
+        this.receiveKey = receiveAddress.getReceiveECKey(SecretPointFactory.getInstance());
         SegwitAddress addressToReceiver = new SegwitAddress(receiveKey, params);
         String bech32Address = addressToReceiver.getBech32AsString();
         if (log.isDebugEnabled()) {

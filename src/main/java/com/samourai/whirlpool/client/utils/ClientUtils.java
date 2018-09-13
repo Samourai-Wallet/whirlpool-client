@@ -2,7 +2,7 @@ package com.samourai.whirlpool.client.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.segwit.SegwitAddress;
-import com.samourai.wallet.segwit.bech32.Bech32Util;
+import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.whirlpool.httpClient.HttpException;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import org.bitcoinj.core.*;
@@ -25,7 +25,7 @@ public class ClientUtils {
 
     public static Integer findTxOutputIndex(String outputAddressBech32, Transaction tx, NetworkParameters params) {
         try {
-            byte[] expectedScriptBytes = Bech32Util.getInstance().computeScriptPubKey(outputAddressBech32, params);
+            byte[] expectedScriptBytes = Bech32UtilGeneric.getInstance().computeScriptPubKey(outputAddressBech32, params);
             for (TransactionOutput output : tx.getOutputs()) {
                 if (Arrays.equals(output.getScriptBytes(), expectedScriptBytes)) {
                     return output.getIndex();
