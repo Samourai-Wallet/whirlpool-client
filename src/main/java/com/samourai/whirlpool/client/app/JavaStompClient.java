@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.app;
 
 import com.samourai.whirlpool.client.Application;
-import com.samourai.whirlpool.client.mix.transport.IStompClient;
+import com.samourai.whirlpool.client.mix.transport.IWhirlpoolStompClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
@@ -13,7 +13,7 @@ import org.springframework.web.socket.messaging.WebSocketStompClient;
 import javax.websocket.MessageHandler;
 import java.util.Map;
 
-public class JavaStompClient implements IStompClient {
+public class JavaStompClient implements IWhirlpoolStompClient {
     private static final Logger log = LoggerFactory.getLogger(Application.class);
     private static final String HEADER_USERNAME = "user-name";
 

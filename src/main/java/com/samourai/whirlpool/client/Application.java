@@ -9,7 +9,7 @@ import com.samourai.whirlpool.client.mix.handler.IMixHandler;
 import com.samourai.whirlpool.client.mix.handler.MixHandler;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
-import com.samourai.whirlpool.client.mix.transport.IStompClient;
+import com.samourai.whirlpool.client.mix.transport.IWhirlpoolStompClient;
 import com.samourai.whirlpool.client.utils.LogbackUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
@@ -68,7 +68,7 @@ public class Application implements ApplicationRunner {
 
             // instanciate client
             IWhirlpoolHttpClient httpClient = new JavaHttpClient();
-            IStompClient stompClient = new JavaStompClient();
+            IWhirlpoolStompClient stompClient = new JavaStompClient();
             WhirlpoolClientConfig config = new WhirlpoolClientConfig(httpClient, stompClient, server, params);
             if (appArgs.isTestMode()) {
                 config.setTestMode(true);
