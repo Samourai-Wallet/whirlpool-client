@@ -40,13 +40,14 @@ for (PoolInfo poolInfo: pools.getPools()) {
 // mix handler
 ECKey ecKey = ...
 BIP47Wallet bip47w = ...
-IMixHandler mixHandler = new MixHandler(ecKey, bip47w);
+int paymentCodeIndex = ...
+IMixHandler mixHandler = new MixHandler(ecKey, bip47w, paymentCodeIndex);
 
 // mix params (input, output)
 String utxoHash = ...
 Long utxoIndex = ...
-String paymentCode = ...
-MixParams mixParams = new MixParams(utxoHash, utxoIndex, paymentCode, mixHandler);
+long utxoBalance = ...
+MixParams mixParams = new MixParams(utxoHash, utxoIndex, utxoBalance, mixHandler);
 
 PoolInfo poolInfo = ... // user chooses a pool among those fetched earlier
 String poolId = poolInfo.getPoolId();
@@ -79,8 +80,7 @@ WhirlpoolClientListener listener = new LoggingWhirlpoolClientListener(){
    }
 };
 
-int nbMixs = 1; // numer of mixs to achieve
-
 // start mixing
+int nbMixs = 1; // number of mixs to achieve
 whirlpoolClient.whirlpool(poolId, denomination, mixParams, nbMixs, listener);
 ```

@@ -19,13 +19,13 @@ public class StompTransport {
     private static final String HEADER_USERNAME = "user-name";
     public static final String HEADER_DESTINATION = "destination";
 
-    private IStompClient stompClient;
+    private IWhirlpoolStompClient stompClient;
     private TransportListener listener;
 
     private String stompUsername;
     private boolean done;
 
-    public StompTransport(IStompClient stompClient, TransportListener listener) {
+    public StompTransport(IWhirlpoolStompClient stompClient, TransportListener listener) {
         this.stompClient = stompClient;
         this.listener = listener;
     }
