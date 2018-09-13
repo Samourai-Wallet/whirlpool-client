@@ -1,5 +1,6 @@
-package com.samourai.wallet.bip47.rpc.secretPoint;
+package com.samourai.wallet.bip47.rpc.impl;
 
+import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPoint;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.jce.spec.ECPrivateKeySpec;
@@ -33,11 +34,11 @@ public class SecretPoint implements ISecretPoint {
         pubKey = loadPublicKey(dataPub);
     }
 
-    public byte[] ECDHSecretAsBytes() throws InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, NoSuchProviderException    {
+    public byte[] ECDHSecretAsBytes() throws InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, NoSuchProviderException {
         return ECDHSecret().getEncoded();
     }
 
-    private SecretKey ECDHSecret() throws InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, NoSuchProviderException    {
+    private SecretKey ECDHSecret() throws InvalidKeyException, IllegalStateException, NoSuchAlgorithmException, NoSuchProviderException {
 
         KeyAgreement ka = KeyAgreement.getInstance("ECDH", KEY_PROVIDER);
         ka.init(privKey);
@@ -47,12 +48,12 @@ public class SecretPoint implements ISecretPoint {
         return secret;
     }
 
-    private PublicKey loadPublicKey(byte[] data) throws InvalidKeySpecException    {
+    private PublicKey loadPublicKey(byte[] data) throws InvalidKeySpecException {
         ECPublicKeySpec pubKey = new ECPublicKeySpec(params.getCurve().decodePoint(data), params);
         return kf.generatePublic(pubKey);
     }
 
-    private PrivateKey loadPrivateKey(byte[] data) throws InvalidKeySpecException  {
+    private PrivateKey loadPrivateKey(byte[] data) throws InvalidKeySpecException {
         ECPrivateKeySpec prvkey = new ECPrivateKeySpec(new BigInteger(1, data), params);
         return kf.generatePrivate(prvkey);
     }

@@ -10,8 +10,8 @@ import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
-import com.samourai.whirlpool.client.whirlpool.httpClient.HttpClient;
-import com.samourai.whirlpool.client.whirlpool.httpClient.HttpException;
+import com.samourai.whirlpool.client.whirlpool.httpClient.IWhirlpoolHttpClient;
+import com.samourai.whirlpool.client.whirlpool.httpClient.WhirlpoolHttpException;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
@@ -27,7 +27,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
     private WhirlpoolClientConfig config;
-    private HttpClient httpClient;
+    private IWhirlpoolHttpClient httpClient;
 
     private String poolId;
     private long denomination;
@@ -43,11 +43,11 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
      * @param config client configuration (server...)
      * @return
      */
-    public static WhirlpoolClient newClient(WhirlpoolClientConfig config, HttpClient httpClient) {
+    public static WhirlpoolClient newClient(WhirlpoolClientConfig config, IWhirlpoolHttpClient httpClient) {
         return new WhirlpoolClientImpl(config, httpClient);
     }
 
-    private WhirlpoolClientImpl(WhirlpoolClientConfig config, HttpClient httpClient) {
+    private WhirlpoolClientImpl(WhirlpoolClientConfig config, IWhirlpoolHttpClient httpClient) {
         this.config = config;
         this.httpClient = httpClient;
         this.logPrefix = null;
@@ -57,12 +57,12 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     }
 
     @Override
-    public Pools fetchPools() throws HttpException, NotifiableException {
+    public Pools fetchPools() throws WhirlpoolHttpException, NotifiableException {
         String url = "http://" + this.config.getServer() + WhirlpoolProtocol.ENDPOINT_POOLS; // TODO HTTPS
         try {
-            PoolsResponse poolsResponse = this.httpClient.getForEntity(url, PoolsResponse.class);
+            PoolsResponse poolsResponse = this.httpClient.getJsonAsEntity(url, PoolsResponse.class);
             return computePools(poolsResponse);
-        } catch(HttpException e) {
+        } catch(WhirlpoolHttpException e) {
             String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
             if (restErrorResponseMessage != null) {
                 throw new NotifiableException(restErrorResponseMessage);

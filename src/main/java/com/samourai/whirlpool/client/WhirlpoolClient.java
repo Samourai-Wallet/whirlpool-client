@@ -1,6 +1,5 @@
 package com.samourai.whirlpool.client;
 
-import com.samourai.whirlpool.client.whirlpool.httpClient.HttpClient;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
