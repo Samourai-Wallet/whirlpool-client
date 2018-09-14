@@ -22,7 +22,6 @@ public class StompTransport {
     private IWhirlpoolStompClient stompClient;
     private TransportListener listener;
 
-    private String stompUsername;
     private boolean done;
 
     public StompTransport(IWhirlpoolStompClient stompClient, TransportListener listener) {
@@ -33,11 +32,11 @@ public class StompTransport {
     public String connect(String wsUrl, Map<String,String> connectHeaders) throws Exception {
         stompClient.connect(wsUrl, connectHeaders, new MessageHandler.Whole<String>(){
             @Override
-            public void onMessage(String myStompUsername) {
-                stompUsername = myStompUsername;
+            public void onMessage(String stompUsername) {
                 if (log.isDebugEnabled()) {
                     log.debug("stompUsername=" + stompUsername);
                 }
+                listener.onTransportConnected(stompUsername);
             }
         }, new MessageHandler.Whole<Throwable>(){
             @Override

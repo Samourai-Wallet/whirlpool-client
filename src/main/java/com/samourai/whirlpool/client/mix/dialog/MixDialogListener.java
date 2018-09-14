@@ -8,6 +8,7 @@ import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusN
 
 public interface MixDialogListener {
 
+    void onConnected();
     RegisterInputRequest registerInput(RegisterInputMixStatusNotification registerInputMixStatusNotification) throws Exception;
     void postRegisterOutput(RegisterOutputMixStatusNotification registerOutputMixStatusNotification, String registerOutputUrl) throws Exception;
     RevealOutputRequest revealOutput(RevealOutputMixStatusNotification revealOutputMixStatusNotification) throws Exception;
