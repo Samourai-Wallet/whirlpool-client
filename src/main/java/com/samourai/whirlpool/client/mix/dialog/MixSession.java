@@ -25,7 +25,7 @@ public class MixSession {
     private StompTransport transport;
 
     // connect data
-    private boolean connecting;
+    private Long connectBeginTime;
     private String stompSessionId;
 
     // session data
@@ -44,11 +44,11 @@ public class MixSession {
         this.dialog = new MixDialog(listener, transport, config);
     }
 
-    public void connect() throws Exception {
-        reconnect(); // throws exception on failure
-    }
+    public synchronized void connect() {
+        if (connectBeginTime == null) {
+            connectBeginTime = System.currentTimeMillis();
+        }
 
-    private void connectOrException() throws Exception {
         String wsUrl ="ws://" + config.getServer() + WhirlpoolProtocol.ENDPOINT_CONNECT;
         if (log.isDebugEnabled()) {
             log.debug("connecting to server: " + wsUrl);
@@ -62,40 +62,6 @@ public class MixSession {
     private void setLogPrefix(String logPrefix) {
         dialog.setLogPrefix(logPrefix);
         log = ClientUtils.prefixLogger(log, logPrefix);
-    }
-
-    private void reconnect() throws Exception {
-        connecting = true;
-        long beginTime = System.currentTimeMillis();
-        long elapsedTime;
-        do {
-            try {
-                connectOrException();
-
-                // success
-                connecting = false;
-                return;
-            }
-            catch(Exception e) {
-            }
-            log.info(" ! Reconnection failed, retrying in "+config.getReconnectDelay()+"s");
-
-            // wait delay before retrying
-            synchronized (this) {
-                try {
-                    wait(config.getReconnectDelay() * 1000);
-                }
-                catch(Exception e) {
-                    log.error("", e);
-                }
-            }
-            elapsedTime = System.currentTimeMillis() - beginTime;
-        }
-        while(elapsedTime < config.getReconnectUntil() * 1000);
-
-        // aborting
-        connecting = false;
-        throw new Exception("Reconnecting failed");
     }
 
     private void subscribe() {
@@ -172,12 +138,12 @@ public class MixSession {
         return (WhirlpoolMessage) payload;
     }
 
-    public void disconnect() {
+    public synchronized void disconnect() {
         if (log.isDebugEnabled()) {
             log.debug("Disconnecting...");
         }
         stompSessionId = null;
-        connecting = false;
+        connectBeginTime = null;
         transport.disconnect();
         if (log.isDebugEnabled()) {
             log.debug("Disconnected.");
@@ -199,7 +165,13 @@ public class MixSession {
         return new TransportListener() {
 
             @Override
-            public void onTransportConnected(String stompUsername) {
+            public synchronized void onTransportConnected(String stompUsername) {
+                if (log.isDebugEnabled()) {
+                    long elapsedTime = (System.currentTimeMillis() - connectBeginTime)/1000;
+                    log.debug("Connected in " + elapsedTime + "s");
+                }
+                connectBeginTime = null;
+
                 setLogPrefix(stompUsername);
                 if (log.isDebugEnabled()) {
                     log.debug("connected to server, stompUsername=" + stompUsername);
@@ -212,32 +184,46 @@ public class MixSession {
             }
 
             @Override
-            public void onTransportConnectionLost(Throwable exception) {
-                // ignore connectionLost when connecting (already managed)
-                if (!connecting) {
+            public synchronized void onTransportDisconnected(Throwable exception) {
+
+                if (connectBeginTime != null) {
+                    // we were trying connect
+                    long elapsedTime = System.currentTimeMillis() - connectBeginTime;
+                    if (elapsedTime > config.getReconnectUntil() * 1000) {
+                        // retry time exceeded, aborting
+                        log.info(" ! Failed to connect to server. Please check your connectivity or retry later.");
+                        connectBeginTime = null;
+                        listener.exitOnDisconnected();
+                        return;
+                    }
+
+                    // wait delay before retrying
+                    log.info(" ! connexion failed, retrying in "+config.getReconnectDelay()+"s");
+                    try {
+                        wait(config.getReconnectDelay() * 1000);
+                    }
+                    catch(Exception e) {
+                        log.error("", e);
+                    }
+                } else {
+                    // we just got disconnected
                     if (dialog.gotRegisterInputResponse()) {
-                        log.error(" ! connection lost, reconnecting for resuming joined mix...");
+                        log.error(" ! connexion lost, reconnecting for resuming joined mix...");
                         // keep current dialog
                     } else {
-                        log.error(" ! connection lost, reconnecting for a new mix...");
+                        log.error(" ! connexion lost, reconnecting for a new mix...");
                         resetDialog();
                         listener.onResetMix();
                     }
-
-                    try {
-                        reconnect();
-                    }
-                    catch(Exception e) {
-                        log.info(" ! Failed to connect to server. Please check your connectivity or retry later.");
-                        listener.exitOnConnectionLost();
-                    }
                 }
+
+                // reconnect
+                connect();
             }
         };
     }
 
     //
-
     protected StompTransport __getTransport() {
         return transport;
     }

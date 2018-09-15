@@ -23,5 +23,5 @@ public interface MixDialogListener {
 
     void exitOnProtocolError();
     void exitOnResponseError(String notifiableError);
-    void exitOnConnectionLost();
+    void exitOnDisconnected();
 }

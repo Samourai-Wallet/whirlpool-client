@@ -1,9 +1,9 @@
 package com.samourai.whirlpool.client.mix.handler;
 
+import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bip47.rpc.PaymentAddress;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
-import com.samourai.wallet.bip47.rpc.impl.Bip47Util;
 import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import org.bitcoinj.core.ECKey;
@@ -24,12 +24,14 @@ public class MixHandler implements IMixHandler {
     private BIP47Wallet bip47Wallet;
     private ECKey receiveKey;
     private int paymentCodeIndex;
+    private BIP47UtilGeneric bip47Util;
 
-    public MixHandler(ECKey utxoKey, BIP47Wallet bip47Wallet, int paymentCodeIndex) {
+    public MixHandler(ECKey utxoKey, BIP47Wallet bip47Wallet, int paymentCodeIndex, BIP47UtilGeneric bip47Util) {
         this.utxoKey = utxoKey;
         this.bip47Wallet = bip47Wallet;
         this.receiveKey = null;
         this.paymentCodeIndex = paymentCodeIndex;
+        this.bip47Util = bip47Util;
     }
 
     private PaymentCode computePaymentCodeCounterparty() throws Exception {
@@ -44,7 +46,7 @@ public class MixHandler implements IMixHandler {
     public String computeReceiveAddress(NetworkParameters params) throws Exception {
         // compute receiveAddress with our own paymentCode counterparty
         PaymentCode paymentCodeCounter = computePaymentCodeCounterparty();
-        PaymentAddress receiveAddress = Bip47Util.getInstance().getReceiveAddress(bip47Wallet, BIP47_ACCOUNT_RECEIVE, paymentCodeCounter, this.paymentCodeIndex, params);
+        PaymentAddress receiveAddress = bip47Util.getReceiveAddress(bip47Wallet, BIP47_ACCOUNT_RECEIVE, paymentCodeCounter, this.paymentCodeIndex, params);
 
         // bech32
         this.receiveKey = receiveAddress.getReceiveECKey();
@@ -74,6 +76,6 @@ public class MixHandler implements IMixHandler {
 
     @Override
     public IMixHandler computeMixHandlerForNextMix() {
-        return new MixHandler(receiveKey, bip47Wallet, paymentCodeIndex);
+        return new MixHandler(receiveKey, bip47Wallet, paymentCodeIndex, bip47Util);
     }
 }
