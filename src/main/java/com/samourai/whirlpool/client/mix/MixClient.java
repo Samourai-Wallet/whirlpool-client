@@ -70,8 +70,6 @@ public class MixClient {
         try {
             mixSession = new MixSession(computeMixDialogListener(), whirlpoolProtocol, config, poolId);
             mixSession.connect();
-
-            listenerProgress(MixStep.CONNECTED);
         } catch(Exception e) {
             log.error("Unable to connect", e);
             failAndExit();
@@ -111,6 +109,11 @@ public class MixClient {
     private MixDialogListener computeMixDialogListener() {
         return new MixDialogListener() {
             MixProcess mixProcess = computeMixProcess();
+
+            @Override
+            public void onConnected() {
+                listenerProgress(MixStep.CONNECTED);
+            }
 
             @Override
             public void onFail() {

@@ -56,14 +56,7 @@ public class MixSession {
 
         // connect
         Map<String,String> connectHeaders = computeStompHeaders(null);
-        stompSessionId = transport.connect(wsUrl, connectHeaders);
-        setLogPrefix(stompSessionId);
-        if (log.isDebugEnabled()) {
-            log.debug("connected to server, stompSessionId=" + stompSessionId);
-        }
-
-        // start dialog with server
-        subscribe();
+        transport.connect(wsUrl, connectHeaders);
     }
 
     private void setLogPrefix(String logPrefix) {
@@ -204,6 +197,20 @@ public class MixSession {
 
     private TransportListener computeTransportListener() {
         return new TransportListener() {
+
+            @Override
+            public void onTransportConnected(String stompUsername) {
+                setLogPrefix(stompUsername);
+                if (log.isDebugEnabled()) {
+                    log.debug("connected to server, stompUsername=" + stompUsername);
+                }
+
+                // start dialog with server
+                subscribe();
+
+                listener.onConnected();
+            }
+
             @Override
             public void onTransportConnectionLost(Throwable exception) {
                 // ignore connectionLost when connecting (already managed)
