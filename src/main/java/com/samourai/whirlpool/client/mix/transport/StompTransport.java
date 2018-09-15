@@ -29,7 +29,8 @@ public class StompTransport {
         this.listener = listener;
     }
 
-    public String connect(String wsUrl, Map<String,String> connectHeaders) throws Exception {
+    public String connect(String wsUrl, Map<String,String> connectHeaders) {
+        done = false;
         stompClient.connect(wsUrl, connectHeaders, new MessageHandler.Whole<String>(){
             @Override
             public void onMessage(String stompUsername) {
@@ -41,11 +42,10 @@ public class StompTransport {
         }, new MessageHandler.Whole<Throwable>(){
             @Override
             public void onMessage(Throwable exception) {
-                disconnect(true);
-                listener.onTransportConnectionLost(exception);
+                done = true;
+                listener.onTransportDisconnected(exception);
             }
         });
-        done = false;
 
         String stompSessionId = stompClient.getSessionId();
         log = ClientUtils.prefixLogger(log, stompSessionId);
@@ -78,21 +78,12 @@ public class StompTransport {
     }
 
     public void disconnect() {
-        disconnect(false);
-    }
-
-    private void disconnect(boolean connectionLost) {
         this.done = true;
-
-        // don't disconnect session if connectionLost, to avoid forever delays
-        if (!connectionLost) {
-            try {
-                stompClient.disconnect();
-            } catch(Exception e) {
-                log.error("", e);
-            }
+        try {
+            stompClient.disconnect();
+        } catch(Exception e) {
+            log.error("", e);
         }
-        stompClient = null;
     }
 
     // STOMP communication

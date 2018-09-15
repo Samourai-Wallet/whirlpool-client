@@ -67,13 +67,8 @@ public class MixClient {
         }
 
         listenerProgress(MixStep.CONNECTING);
-        try {
-            mixSession = new MixSession(computeMixDialogListener(), whirlpoolProtocol, config, poolId);
-            mixSession.connect();
-        } catch(Exception e) {
-            log.error("Unable to connect", e);
-            failAndExit();
-        }
+        mixSession = new MixSession(computeMixDialogListener(), whirlpoolProtocol, config, poolId);
+        mixSession.connect();
     }
 
     private void disconnect() {
@@ -133,8 +128,9 @@ public class MixClient {
             }
 
             @Override
-            public void exitOnConnectionLost() {
-                log.error("Connection lost");
+            public void exitOnDisconnected() {
+                // failed to connect or connexion lost
+                log.error("Disconnected");
                 failAndExit();
             }
 
