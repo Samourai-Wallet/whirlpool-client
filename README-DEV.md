@@ -51,7 +51,7 @@ MixParams mixParams = new MixParams(utxoHash, utxoIndex, utxoBalance, mixHandler
 
 PoolInfo poolInfo = ... // user chooses a pool among those fetched earlier
 String poolId = poolInfo.getPoolId();
-long denomination = poolInfo.getDenomination();
+long poolDenomination = poolInfo.getDenomination();
 
 // listener will be notified of whirlpool progress in realtime
 WhirlpoolClientListener listener = new LoggingWhirlpoolClientListener(){
@@ -82,5 +82,5 @@ WhirlpoolClientListener listener = new LoggingWhirlpoolClientListener(){
 
 // start mixing
 int nbMixs = 1; // number of mixs to achieve
-whirlpoolClient.whirlpool(poolId, denomination, mixParams, nbMixs, listener);
+whirlpoolClient.whirlpool(poolId, poolDenomination, mixParams, nbMixs, listener);
 ```

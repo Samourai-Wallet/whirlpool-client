@@ -17,6 +17,7 @@ import com.samourai.whirlpool.protocol.websocket.notifications.RegisterInputMixS
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
+import org.apache.commons.codec.binary.Base64;
 import org.bitcoinj.core.*;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
@@ -109,7 +110,8 @@ public class MixProcess {
 
         // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
         // clear receiveAddress will be provided with unblindedSignedBordereau by connecting with another identity for REGISTER_OUTPUT
-        RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(registerInputMixStatusNotification.getPublicKey());
+        byte[] publicKey = Base64.decodeBase64(registerInputMixStatusNotification.getPublicKeyBase64());
+        RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(publicKey);
         this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
         this.receiveAddress = mixHandler.computeReceiveAddress(networkParameters);
         registerInputRequest.blindedBordereau = clientCryptoService.blind(this.receiveAddress, blindingParams);
