@@ -17,7 +17,6 @@ import com.samourai.whirlpool.protocol.websocket.notifications.RegisterInputMixS
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
-import org.apache.commons.codec.binary.Base64;
 import org.bitcoinj.core.*;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
@@ -102,7 +101,7 @@ public class MixProcess {
         RegisterInputRequest registerInputRequest = new RegisterInputRequest();
         registerInputRequest.utxoHash = mixParams.getUtxoHash();
         registerInputRequest.utxoIndex = mixParams.getUtxoIdx();
-        registerInputRequest.pubkey = mixHandler.getPubkey();
+        registerInputRequest.pubkey64 = ClientUtils.encodeBase64(mixHandler.getPubkey());
         registerInputRequest.signature = mixHandler.signMessage(mixId);
         registerInputRequest.mixId = mixId;
         registerInputRequest.liquidity = this.liquidity;
@@ -110,11 +109,11 @@ public class MixProcess {
 
         // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
         // clear receiveAddress will be provided with unblindedSignedBordereau by connecting with another identity for REGISTER_OUTPUT
-        byte[] publicKey = Base64.decodeBase64(registerInputMixStatusNotification.getPublicKeyBase64());
+        byte[] publicKey = ClientUtils.decodeBase64(registerInputMixStatusNotification.getPublicKey64());
         RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(publicKey);
         this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
         this.receiveAddress = mixHandler.computeReceiveAddress(networkParameters);
-        registerInputRequest.blindedBordereau = clientCryptoService.blind(this.receiveAddress, blindingParams);
+        registerInputRequest.blindedBordereau64 = ClientUtils.encodeBase64(clientCryptoService.blind(this.receiveAddress, blindingParams));
 
         registeredInput = true;
         return registerInputRequest;
@@ -125,7 +124,7 @@ public class MixProcess {
             throwProtocolException();
         }
 
-        this.signedBordereau = registerInputResponse.signedBordereau;
+        this.signedBordereau = ClientUtils.decodeBase64(registerInputResponse.signedBordereau64);
 
         registeredInputResponse = true;
     }
@@ -139,7 +138,7 @@ public class MixProcess {
 
         RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
         registerOutputRequest.inputsHash = inputsHash;
-        registerOutputRequest.unblindedSignedBordereau = clientCryptoService.unblind(signedBordereau, blindingParams);
+        registerOutputRequest.unblindedSignedBordereau64 = ClientUtils.encodeBase64(clientCryptoService.unblind(signedBordereau, blindingParams));
         registerOutputRequest.receiveAddress = this.receiveAddress;
 
         registeredOutput = true;
@@ -169,7 +168,8 @@ public class MixProcess {
         SigningRequest signingRequest = new SigningRequest();
         signingRequest.mixId = signingMixStatusNotification.mixId;
 
-        Transaction tx = new Transaction(networkParameters, signingMixStatusNotification.transaction);
+        byte[] rawTx = ClientUtils.decodeBase64(signingMixStatusNotification.transaction64);
+        Transaction tx = new Transaction(networkParameters, rawTx);
 
         // verify tx
         int inputIndex = verifyTx(tx);
@@ -181,7 +181,7 @@ public class MixProcess {
         tx.verify();
 
         // transmit
-        signingRequest.witness = ClientUtils.witnessSerialize(tx.getWitness(inputIndex));
+        signingRequest.witnesses64 = ClientUtils.witnessSerialize64(tx.getWitness(inputIndex));
 
         signed = true;
         return signingRequest;

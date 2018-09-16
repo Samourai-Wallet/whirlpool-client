@@ -5,6 +5,7 @@ import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.whirlpool.httpClient.WhirlpoolHttpException;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
+import org.apache.commons.codec.binary.Base64;
 import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.TransactionSignature;
 import org.bitcoinj.script.Script;
@@ -53,10 +54,10 @@ public class ClientUtils {
         return UUID.randomUUID().toString().replace("-", "");
     }
 
-    public static byte[][] witnessSerialize(TransactionWitness witness) {
-        byte[][] serialized = new byte[witness.getPushCount()][];
+    public static String[] witnessSerialize64(TransactionWitness witness) {
+        String[] serialized = new String[witness.getPushCount()];
         for (int i=0; i<witness.getPushCount(); i++) {
-            serialized[i] = witness.getPush(i);
+            serialized[i] = encodeBase64(witness.getPush(i));
         }
         return serialized;
     }
@@ -115,5 +116,13 @@ public class ClientUtils {
             return null;
         }
         return parseRestErrorMessage(responseBody);
+    }
+
+    public static byte[] decodeBase64(String base64) {
+        return Base64.decodeBase64(base64);
+    }
+
+    public static String encodeBase64(byte[] data) {
+        return Base64.encodeBase64String(data);
     }
 }
