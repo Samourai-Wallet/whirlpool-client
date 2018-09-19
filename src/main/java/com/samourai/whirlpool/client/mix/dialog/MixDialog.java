@@ -93,11 +93,11 @@ public class MixDialog {
             }
         }
         catch(NotifiableException e) {
-            log.error("Unable to register output", e);
+            log.error("onPrivateReceived NotifiableException: " + e.getMessage());
             exitOnResponseError(e.getMessage());
         }
         catch(Exception e) {
-            log.error("Unable to register output", e);
+            log.error("onPrivateReceived Exception", e);
             exitOnProtocolError(e);
         }
     }
