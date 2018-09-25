@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.utils;
 
+import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
@@ -94,11 +95,10 @@ public class ClientUtils {
     }
 
     public static Logger prefixLogger(Logger log, String logPrefix) {
-        /*Level level = ((ch.qos.logback.classic.Logger)log).getEffectiveLevel();
+        Level level = ((ch.qos.logback.classic.Logger)log).getEffectiveLevel();
         Logger newLog = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass()+"["+logPrefix+"]");
         ((ch.qos.logback.classic.Logger)newLog).setLevel(level);
-        return newLog;*/
-        return log; // TODO !!!!!!
+        return newLog;
     }
 
     private static String parseRestErrorMessage(String responseBody) {
