@@ -28,7 +28,7 @@ public class MixDialog {
     private String mixId;
     private MixStatus mixStatus;
     private boolean gotRegisterInputResponse; // will get it after joining a mix
-    private LiquidityQueuedResponse liquidityQueuedResponse; // will get when connecting as liquidity
+    private InputQueuedResponse inputQueuedResponse; // may get it after registerInputRequest
     private RegisterOutputMixStatusNotification earlyRegisterOutputMixStatusNotification; // we may get early REGISTER_OUTPUT notification (before registerInputResponse)
 
     // computed values
@@ -87,9 +87,9 @@ public class MixDialog {
                     doRegisterOutput(earlyRegisterOutputMixStatusNotification);
                 }
             }
-            else if (LiquidityQueuedResponse.class.isAssignableFrom(payloadClass)) {
-                this.liquidityQueuedResponse = (LiquidityQueuedResponse)whirlpoolMessage;
-                listener.onLiquidityQueuedResponse(liquidityQueuedResponse);
+            else if (InputQueuedResponse.class.isAssignableFrom(payloadClass)) {
+                this.inputQueuedResponse = (InputQueuedResponse) whirlpoolMessage;
+                listener.onInputQueuedResponse(inputQueuedResponse);
             }
         }
         catch(NotifiableException e) {

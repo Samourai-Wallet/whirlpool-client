@@ -141,8 +141,11 @@ public class MixClient {
             }
 
             @Override
-            public void onLiquidityQueuedResponse(LiquidityQueuedResponse liquidityQueuedResponse) {
-                listenerProgress(MixStep.QUEUED_LIQUIDITY);
+            public void onInputQueuedResponse(InputQueuedResponse inputQueuedResponse) {
+                listenerProgress(MixStep.QUEUED_INPUT);
+                if (log.isDebugEnabled()) {
+                    log.debug("Queue reason: " + inputQueuedResponse.getReason());
+                }
             }
 
             @Override

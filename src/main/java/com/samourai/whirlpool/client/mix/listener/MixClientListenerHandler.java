@@ -36,8 +36,8 @@ public class MixClientListenerHandler {
                 info = "registering input...";
                 currentStep = 3;
                 break;
-            case QUEUED_LIQUIDITY:
-                info = "queued as liquidity, ready to provide liquidity for upcoming mixs...";
+            case QUEUED_INPUT:
+                info = "input queued, waiting for next mix...";
                 currentStep = 3;
                 break;
             case REGISTERED_INPUT:

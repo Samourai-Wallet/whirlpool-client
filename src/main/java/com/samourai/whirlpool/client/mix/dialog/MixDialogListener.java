@@ -15,7 +15,7 @@ public interface MixDialogListener {
     SigningRequest signing(SigningMixStatusNotification signingMixStatusNotification) throws Exception;
 
     void onRegisterInputResponse(RegisterInputResponse registerInputResponse) throws Exception;
-    void onLiquidityQueuedResponse(LiquidityQueuedResponse liquidityQueuedResponse) throws Exception;
+    void onInputQueuedResponse(InputQueuedResponse inputQueuedResponse) throws Exception;
 
     void onSuccess();
     void onFail();
