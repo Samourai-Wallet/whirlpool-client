@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.mix.dialog;
 
-import com.samourai.whirlpool.client.mix.transport.StompTransport;
-import com.samourai.whirlpool.client.mix.transport.TransportListener;
+import com.samourai.stomp.client.StompTransport;
+import com.samourai.stomp.client.IStompTransportListener;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -161,8 +161,8 @@ public class MixSession {
         return stompHeaders;
     }
 
-    private TransportListener computeTransportListener() {
-        return new TransportListener() {
+    private IStompTransportListener computeTransportListener() {
+        return new IStompTransportListener() {
 
             @Override
             public synchronized void onTransportConnected(String stompUsername) {
@@ -172,6 +172,10 @@ public class MixSession {
                 }
                 connectBeginTime = null;
 
+                if (stompUsername == null) {
+                    // no way to get stompUsername on Android?
+                    stompUsername = "android";
+                }
                 setLogPrefix(stompUsername);
                 if (log.isDebugEnabled()) {
                     log.debug("connected to server, stompUsername=" + stompUsername);

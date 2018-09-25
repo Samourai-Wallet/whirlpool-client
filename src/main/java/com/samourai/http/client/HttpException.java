@@ -1,9 +1,9 @@
-package com.samourai.whirlpool.client.whirlpool.httpClient;
+package com.samourai.http.client;
 
-public class WhirlpoolHttpException extends Exception {
+public class HttpException extends Exception {
     private String responseBody;
 
-    public WhirlpoolHttpException(Exception cause, String responseBody) {
+    public HttpException(Exception cause, String responseBody) {
         super(cause);
         this.responseBody = responseBody;
     }

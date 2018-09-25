@@ -3,7 +3,7 @@ package com.samourai.whirlpool.client.utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import com.samourai.whirlpool.client.whirlpool.httpClient.WhirlpoolHttpException;
+import com.samourai.http.client.HttpException;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import org.apache.commons.codec.binary.Base64;
 import org.bitcoinj.core.*;
@@ -110,7 +110,7 @@ public class ClientUtils {
         }
     }
 
-    public static String parseRestErrorMessage(WhirlpoolHttpException e) {
+    public static String parseRestErrorMessage(HttpException e) {
         String responseBody = e.getResponseBody();
         if (responseBody == null) {
             return null;

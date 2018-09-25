@@ -1,6 +1,6 @@
-package com.samourai.whirlpool.client.mix.transport;
+package com.samourai.stomp.client;
 
-public interface TransportListener {
+public interface IStompTransportListener {
 
     void onTransportConnected(String stompUsername);
     void onTransportDisconnected(Throwable exception);

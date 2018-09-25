@@ -1,4 +1,4 @@
-package com.samourai.whirlpool.client.mix.transport;
+package com.samourai.stomp.client;
 
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -19,23 +19,27 @@ public class StompTransport {
     private static final String HEADER_USERNAME = "user-name";
     public static final String HEADER_DESTINATION = "destination";
 
-    private IWhirlpoolStompClient stompClient;
-    private TransportListener listener;
+    private IStompClient stompClient;
+    private IStompTransportListener listener;
 
     private boolean done;
 
-    public StompTransport(IWhirlpoolStompClient stompClient, TransportListener listener) {
+    public StompTransport(IStompClient stompClient, IStompTransportListener listener) {
         this.stompClient = stompClient;
         this.listener = listener;
     }
 
     public String connect(String wsUrl, Map<String,String> connectHeaders) {
         done = false;
-        stompClient.connect(wsUrl, connectHeaders, new MessageHandler.Whole<String>(){
+        stompClient.connect(wsUrl, connectHeaders, new MessageHandler.Whole<IStompMessage>(){
             @Override
-            public void onMessage(String stompUsername) {
+            public void onMessage(IStompMessage connectedHeaders) {
+                String stompUsername = null;
+                if (connectedHeaders != null) { // no way to get connectedHeaders on Android?
+                    stompUsername = connectedHeaders.getStompHeader(HEADER_USERNAME);
+                }
                 if (log.isDebugEnabled()) {
-                    log.debug("stompUsername=" + stompUsername);
+                    log.debug("stompUsername=" + (stompUsername != null ? stompUsername : "null"));
                 }
                 listener.onTransportConnected(stompUsername);
             }
@@ -53,18 +57,27 @@ public class StompTransport {
         return stompSessionId;
     }
 
-    public void subscribe(Map<String,String> subscribeHeaders, final MessageHandler.Whole<Object> frameHandler, MessageHandler.Whole<String> errorHandler) {
+    public void subscribe(Map<String,String> subscribeHeaders, final MessageHandler.Whole<Object> frameHandler, final MessageHandler.Whole<String> errorHandler) {
         if (log.isDebugEnabled()) {
             log.debug("subscribe:" + subscribeHeaders.get(HEADER_DESTINATION));
         }
         final Map<String,String> completeHeaders = completeHeaders(subscribeHeaders);
 
-        MessageHandler.Whole<Object> onMessage = new MessageHandler.Whole<Object>() {
+        MessageHandler.Whole<IStompMessage> onMessage = new MessageHandler.Whole<IStompMessage>() {
             @Override
-            public void onMessage(Object payload) {
+            public void onMessage(IStompMessage stompMessage) {
+                Object payload = stompMessage.getPayload();
                 if (!done) {
                     if (log.isDebugEnabled()) {
                         log.debug("--> (" + completeHeaders.get(HEADER_DESTINATION) + ") " + ClientUtils.toJsonString(payload));
+                    }
+
+                    // check protocol version
+                    String protocolVersion = stompMessage.getStompHeader(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION);
+                    if (protocolVersion == null || !WhirlpoolProtocol.PROTOCOL_VERSION.equals(protocolVersion)) {
+                        String errorMessage = "Version mismatch: server=" + (protocolVersion != null ? protocolVersion : "unknown") + ", client=" + WhirlpoolProtocol.PROTOCOL_VERSION;
+                        errorHandler.onMessage(errorMessage);
+                        return;
                     }
                     frameHandler.onMessage(payload);
                 }

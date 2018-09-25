@@ -1,13 +1,13 @@
 package com.samourai.whirlpool.client.whirlpool;
 
-import com.samourai.whirlpool.client.mix.transport.IWhirlpoolStompClient;
-import com.samourai.whirlpool.client.whirlpool.httpClient.IWhirlpoolHttpClient;
+import com.samourai.stomp.client.IStompClient;
+import com.samourai.http.client.IHttpClient;
 import org.bitcoinj.core.NetworkParameters;
 
 public class WhirlpoolClientConfig {
 
-    private IWhirlpoolHttpClient httpClient;
-    private IWhirlpoolStompClient stompClient;
+    private IHttpClient httpClient;
+    private IStompClient stompClient;
     private String server;
     private NetworkParameters networkParameters;
     private int reconnectDelay;
@@ -15,7 +15,7 @@ public class WhirlpoolClientConfig {
     private boolean testMode;
 
 
-    public WhirlpoolClientConfig(IWhirlpoolHttpClient httpClient, IWhirlpoolStompClient stompClient, String server, NetworkParameters networkParameters) {
+    public WhirlpoolClientConfig(IHttpClient httpClient, IStompClient stompClient, String server, NetworkParameters networkParameters) {
         this.httpClient = httpClient;
         this.stompClient = stompClient;
         this.server = server;
@@ -30,11 +30,11 @@ public class WhirlpoolClientConfig {
         this.testMode = false;
     }
 
-    public IWhirlpoolHttpClient getHttpClient() {
+    public IHttpClient getHttpClient() {
         return httpClient;
     }
 
-    public IWhirlpoolStompClient getStompClient() {
+    public IStompClient getStompClient() {
         return stompClient;
     }
 
