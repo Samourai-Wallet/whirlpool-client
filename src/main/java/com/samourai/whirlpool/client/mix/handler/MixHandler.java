@@ -74,6 +74,10 @@ public class MixHandler implements IMixHandler {
         return utxoKey.getPubKey();
     }
 
+    public ECKey getReceiveKey() {
+        return receiveKey;
+    }
+
     @Override
     public IMixHandler computeMixHandlerForNextMix() {
         return new MixHandler(receiveKey, bip47Wallet, paymentCodeIndex, bip47Util);
