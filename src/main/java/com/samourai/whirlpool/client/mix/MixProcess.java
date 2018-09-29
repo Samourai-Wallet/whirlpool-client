@@ -9,14 +9,8 @@ import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputResponse;
-import com.samourai.whirlpool.protocol.websocket.messages.RevealOutputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.SigningRequest;
-import com.samourai.whirlpool.protocol.websocket.notifications.RegisterInputMixStatusNotification;
-import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
-import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
-import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.messages.*;
+import com.samourai.whirlpool.protocol.websocket.notifications.*;
 import org.bitcoinj.core.*;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
@@ -32,6 +26,7 @@ public class MixProcess {
     private WhirlpoolClientConfig config;
     private MixParams mixParams;
     private ClientCryptoService clientCryptoService;
+    private String poolId;
     private long denomination;
 
     // hard limit for acceptable fees
@@ -50,26 +45,29 @@ public class MixProcess {
 
     // security checks
     private boolean registeredInput;
-    private boolean registeredInputResponse;
+    private boolean confirmedInput;
+    private boolean confirmedInputResponse;
     private boolean registeredOutput;
     private boolean revealedOutput;
     private boolean signed;
 
 
-    public MixProcess(WhirlpoolClientConfig config, MixParams mixParams, ClientCryptoService clientCryptoService, long denomination) {
+    public MixProcess(WhirlpoolClientConfig config, MixParams mixParams, ClientCryptoService clientCryptoService, String poolId, long denomination) {
         this.config = config;
         this.mixParams = mixParams;
         this.clientCryptoService = clientCryptoService;
+        this.poolId = poolId;
         this.denomination = denomination;
     }
 
-    protected RegisterInputRequest registerInput(RegisterInputMixStatusNotification registerInputMixStatusNotification) throws Exception {
-        if (registeredInput || registeredInputResponse || registeredOutput || revealedOutput || signed) {
+    protected RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception {
+        // we may registerInput several times if disconnected
+        if (/*registeredInput ||*/ confirmedInput || confirmedInputResponse || registeredOutput || revealedOutput || signed) {
             throwProtocolException();
         }
 
         // check denomination
-        long actualDenomination = registerInputMixStatusNotification.getDenomination();
+        long actualDenomination = subscribePoolResponse.getDenomination();
         if (denomination != actualDenomination) {
             log.error("Invalid denomination: expected=" + denomination + ", actual=" + actualDenomination);
             throw new NotifiableException("Unexpected denomination from server");
@@ -77,7 +75,7 @@ public class MixProcess {
 
         // get mix settings
         NetworkParameters networkParameters = config.getNetworkParameters();
-        String serverNetworkId = registerInputMixStatusNotification.getNetworkId();
+        String serverNetworkId = subscribePoolResponse.getNetworkId();
         if (!networkParameters.getPaymentProtocolId().equals(serverNetworkId)) {
             throw new Exception("Client/server networkId mismatch: server is runinng "+serverNetworkId+", client is expecting "+networkParameters.getPaymentProtocolId());
         }
@@ -91,46 +89,61 @@ public class MixProcess {
         checkFees(mixParams.getUtxoBalance(), denomination);
 
         // verify balance
-        long minerFeeMin = registerInputMixStatusNotification.getMinerFeeMin();
-        long minerFeeMax = registerInputMixStatusNotification.getMinerFeeMax();
+        long minerFeeMin = subscribePoolResponse.getMinerFeeMin();
+        long minerFeeMax = subscribePoolResponse.getMinerFeeMax();
         checkUtxoBalance(minerFeeMin, minerFeeMax);
 
         IMixHandler mixHandler = mixParams.getMixHandler();
-        String mixId = registerInputMixStatusNotification.mixId;
 
         RegisterInputRequest registerInputRequest = new RegisterInputRequest();
+        registerInputRequest.poolId = poolId;
         registerInputRequest.utxoHash = mixParams.getUtxoHash();
         registerInputRequest.utxoIndex = mixParams.getUtxoIdx();
         registerInputRequest.pubkey64 = ClientUtils.encodeBase64(mixHandler.getPubkey());
-        registerInputRequest.signature = mixHandler.signMessage(mixId);
-        registerInputRequest.mixId = mixId;
+        registerInputRequest.signature = mixHandler.signMessage(poolId);
         registerInputRequest.liquidity = this.liquidity;
         registerInputRequest.testMode = config.isTestMode();
-
-        // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
-        // clear receiveAddress will be provided with unblindedSignedBordereau by connecting with another identity for REGISTER_OUTPUT
-        byte[] publicKey = ClientUtils.decodeBase64(registerInputMixStatusNotification.getPublicKey64());
-        RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(publicKey);
-        this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
-        this.receiveAddress = mixHandler.computeReceiveAddress(networkParameters);
-        registerInputRequest.blindedBordereau64 = ClientUtils.encodeBase64(clientCryptoService.blind(this.receiveAddress, blindingParams));
 
         registeredInput = true;
         return registerInputRequest;
     }
 
-    protected void onRegisterInputResponse(RegisterInputResponse registerInputResponse) throws Exception {
-        if (!registeredInput || registeredInputResponse || registeredOutput || revealedOutput || signed) {
+    protected ConfirmInputRequest confirmInput(ConfirmInputMixStatusNotification confirmInputMixStatusNotification) throws Exception {
+        // we may confirmInput several times before getting confirmedInputResponse
+        if (!registeredInput || /*confirmedInput ||*/ confirmedInputResponse || registeredOutput || revealedOutput || signed) {
             throwProtocolException();
         }
 
-        this.signedBordereau = ClientUtils.decodeBase64(registerInputResponse.signedBordereau64);
+        IMixHandler mixHandler = mixParams.getMixHandler();
+        NetworkParameters networkParameters = config.getNetworkParameters();
 
-        registeredInputResponse = true;
+        ConfirmInputRequest confirmInputRequest = new ConfirmInputRequest();
+
+        // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
+        // clear receiveAddress will be provided with unblindedSignedBordereau by connecting with another identity for REGISTER_OUTPUT
+        byte[] publicKey = ClientUtils.decodeBase64(confirmInputMixStatusNotification.publicKey64);
+        RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(publicKey);
+        this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
+        this.receiveAddress = mixHandler.computeReceiveAddress(networkParameters);
+        confirmInputRequest.mixId = confirmInputMixStatusNotification.mixId;
+        confirmInputRequest.blindedBordereau64 = ClientUtils.encodeBase64(clientCryptoService.blind(this.receiveAddress, blindingParams));
+
+        confirmedInput = true;
+        return confirmInputRequest;
+    }
+
+    protected void onConfirmInputResponse(ConfirmInputResponse confirmInputResponse) throws Exception {
+        if (!registeredInput || !confirmedInput || confirmedInputResponse || registeredOutput || revealedOutput || signed) {
+            throwProtocolException();
+        }
+
+        this.signedBordereau = ClientUtils.decodeBase64(confirmInputResponse.signedBordereau64);
+
+        confirmedInputResponse = true;
     }
 
     protected RegisterOutputRequest registerOutput(RegisterOutputMixStatusNotification registerOutputMixStatusNotification) throws Exception {
-        if (!registeredInput || !registeredInputResponse || registeredOutput || revealedOutput || signed) {
+        if (!registeredInput || !confirmedInput || !confirmedInputResponse || registeredOutput || revealedOutput || signed) {
             throwProtocolException();
         }
 
@@ -146,7 +159,7 @@ public class MixProcess {
     }
 
     protected RevealOutputRequest revealOutput(RevealOutputMixStatusNotification revealOutputMixStatusNotification) throws Exception {
-        if (!registeredInput || !registeredInputResponse || !registeredOutput || revealedOutput || signed) {
+        if (!registeredInput || !confirmedInput || !confirmedInputResponse || !registeredOutput || revealedOutput || signed) {
             throwProtocolException();
         }
 
@@ -159,7 +172,7 @@ public class MixProcess {
     }
 
     protected SigningRequest signing(SigningMixStatusNotification signingMixStatusNotification) throws Exception {
-        if (!registeredInput || !registeredInputResponse || !registeredOutput || revealedOutput || signed) {
+        if (!registeredInput || !confirmedInput || !confirmedInputResponse || !registeredOutput || revealedOutput || signed) {
             throwProtocolException();
         }
 
@@ -278,7 +291,8 @@ public class MixProcess {
     private boolean throwProtocolException() throws Exception {
         String message = "Protocol exception: "
                 + " registeredInput=" + registeredInput
-                + ", registeredInputResponse=" + registeredInputResponse
+                + " confirmedInput=" + confirmedInput
+                + ", confirmedInputResponse=" + confirmedInputResponse
                 + ", registeredOutput" + registeredOutput
                 + ", revealedOutput" + revealedOutput
                 + ", signed=" + signed;

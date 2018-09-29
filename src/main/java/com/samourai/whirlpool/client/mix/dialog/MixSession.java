@@ -1,11 +1,13 @@
 package com.samourai.whirlpool.client.mix.dialog;
 
-import com.samourai.stomp.client.StompTransport;
 import com.samourai.stomp.client.IStompTransportListener;
+import com.samourai.stomp.client.StompTransport;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.websocket.WhirlpoolMessage;
+import com.samourai.whirlpool.protocol.websocket.MixMessage;
+import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
+import com.samourai.whirlpool.protocol.websocket.messages.SubscribePoolResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +32,7 @@ public class MixSession {
 
     // session data
     private MixDialog dialog;
+    private SubscribePoolResponse subscribePoolResponse;
 
     public MixSession(MixDialogListener listener, WhirlpoolProtocol whirlpoolProtocol, WhirlpoolClientConfig config, String poolId) {
         this.listener = listener;
@@ -65,18 +68,34 @@ public class MixSession {
     }
 
     private void subscribe() {
-        // subscribe to private queue first (to receive error responses)
+        // reset session
+        subscribePoolResponse = null;
+
+        // subscribe to private queue
         final String privateQueue = whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY;
         transport.subscribe(computeStompHeaders(privateQueue), new MessageHandler.Whole<Object>() {
             @Override
             public void onMessage(Object payload) {
-                // should be a WhirlpoolMessage
-                WhirlpoolMessage whirlpoolMessage = checkMessage(payload);
-                if (whirlpoolMessage != null) {
-                    dialog.onPrivateReceived(whirlpoolMessage);
+                if (subscribePoolResponse == null) {
+                    // 1) input not registered yet => should be a SubscribePoolResponse
+                    subscribePoolResponse = (SubscribePoolResponse)payload;
+
+                    // REGISTER_INPUT
+                    try {
+                        registerInput(subscribePoolResponse);
+                    } catch(Exception e) {
+                        log.error("Unable to register input", e);
+                        listener.exitOnProtocolError();
+                    }
                 } else {
-                    log.error("--> " + privateQueue + ": not a WhirlpoolMessage: " + ClientUtils.toJsonString(payload));
-                    listener.exitOnProtocolError();
+                    // 2) input already registered => should be a MixMessage
+                    MixMessage mixMessage = checkMixMessage(payload);
+                    if (mixMessage != null) {
+                        dialog.onPrivateReceived(mixMessage);
+                    } else {
+                        log.error("--> " + privateQueue + ": not a MixMessage: " + ClientUtils.toJsonString(payload));
+                        listener.exitOnProtocolError();
+                    }
                 }
             }
         }, new MessageHandler.Whole<String>() {
@@ -84,28 +103,6 @@ public class MixSession {
             public void onMessage(String errorMessage) {
                 log.error("--> " + privateQueue + ": subscribe error: " + errorMessage);
                 listener.exitOnResponseError(errorMessage); // probably a version mismatch
-                listener.exitOnProtocolError();
-            }
-        });
-
-        // subscribe mixStatusNotifications
-        transport.subscribe(computeStompHeaders(whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE), new MessageHandler.Whole<Object>() {
-            @Override
-            public void onMessage(Object payload) {
-                WhirlpoolMessage whirlpoolMessage = checkMessage(payload);
-                if (whirlpoolMessage != null) {
-                    dialog.onBroadcastReceived(whirlpoolMessage);
-                } else {
-                    log.error("--> " + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ": not a WhirlpoolMessage: " + ClientUtils.toJsonString(payload));
-                    listener.exitOnProtocolError();
-                }
-            }
-        }, new MessageHandler.Whole<String>() {
-            @Override
-            public void onMessage(String errorMessage) {
-                log.error("--> " + whirlpoolProtocol.SOCKET_SUBSCRIBE_QUEUE + ": subscribe error: " + errorMessage);
-                listener.exitOnResponseError(errorMessage); // probably a version mismatch
-                listener.exitOnProtocolError();
             }
         });
 
@@ -115,27 +112,32 @@ public class MixSession {
         }
     }
 
-    private WhirlpoolMessage checkMessage(Object payload) {
-        // should be WhirlpoolMessage
+    private void registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception {
+        RegisterInputRequest registerInputRequest = listener.registerInput(subscribePoolResponse);
+        transport.send(WhirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);
+    }
+
+    private MixMessage checkMixMessage(Object payload) {
+        // should be MixMessage
         Class payloadClass = payload.getClass();
-        if (!WhirlpoolMessage.class.isAssignableFrom(payloadClass)) {
+        if (!MixMessage.class.isAssignableFrom(payloadClass)) {
             log.error("Protocol error: unexpected message from server: " + ClientUtils.toJsonString(payloadClass));
             listener.exitOnProtocolError();
             return null;
         }
 
-        WhirlpoolMessage whirlpoolMessage = (WhirlpoolMessage)payload;
+        MixMessage mixMessage = (MixMessage)payload;
 
         // reset dialog on new mixId
-        if (whirlpoolMessage.mixId != null && dialog.getMixId() != null && !dialog.getMixId().equals(whirlpoolMessage.mixId)) { // whirlpoolMessage.mixId is null for ErrorResponse
+        if (mixMessage.mixId != null && dialog.getMixId() != null && !dialog.getMixId().equals(mixMessage.mixId)) { // mixMessage.mixId is null for ErrorResponse
             if (log.isDebugEnabled()) {
-                log.debug("new mixId detected: " + whirlpoolMessage.mixId);
+                log.debug("new mixId detected: " + mixMessage.mixId);
             }
             resetDialog();
             listener.onResetMix();
         }
 
-        return (WhirlpoolMessage) payload;
+        return (MixMessage) payload;
     }
 
     public synchronized void disconnect() {
@@ -181,7 +183,7 @@ public class MixSession {
                     log.debug("connected to server, stompUsername=" + stompUsername);
                 }
 
-                // start dialog with server
+                // will get SubscribePoolResponse and start dialog
                 subscribe();
 
                 listener.onConnected();
@@ -211,12 +213,12 @@ public class MixSession {
                     }
                 } else {
                     // we just got disconnected
-                    if (dialog.gotRegisterInputResponse()) {
+                    if (dialog.gotConfirmInputResponse()) {
                         log.error(" ! connexion lost, reconnecting for resuming joined mix...");
                         // keep current dialog
                     } else {
                         log.error(" ! connexion lost, reconnecting for a new mix...");
-                        resetDialog();
+                        dialog = null;
                         listener.onResetMix();
                     }
                 }

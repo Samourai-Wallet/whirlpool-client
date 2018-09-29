@@ -4,6 +4,7 @@ import com.samourai.whirlpool.client.mix.MixParams;
 
 public class MixClientListenerHandler {
     private MixClientListener mixClientListener;
+    private static final int NB_STEPS = 10;
 
     public MixClientListenerHandler(MixClientListener mixClientListener) {
         this.mixClientListener = mixClientListener;
@@ -19,7 +20,6 @@ public class MixClientListenerHandler {
 
     public void progress(MixStep mixClientStatus) {
         int currentStep = 1;
-        int nbSteps = 9;
         String info = "";
 
         switch(mixClientStatus) {
@@ -32,57 +32,53 @@ public class MixClientListenerHandler {
                 currentStep = 2;
                 break;
 
-            case REGISTERING_INPUT:
-                info = "registering input...";
-                currentStep = 3;
-                break;
-            case QUEUED_INPUT:
-                info = "input queued, waiting for next mix...";
-                currentStep = 3;
-                break;
             case REGISTERED_INPUT:
-                info = "joined mix (input registered).";
+                info = "registered input. Waiting for a mix...";
+                currentStep = 3;
+                break;
+
+            case CONFIRMING_INPUT:
+                info = "trying to join a mix...";
                 currentStep = 4;
+                break;
+            case CONFIRMED_INPUT:
+                info = "joined a mix!";
+                currentStep = 5;
                 break;
 
             case REGISTERING_OUTPUT:
                 info = "registering output...";
-                currentStep = 5;
+                currentStep = 6;
                 break;
             case REGISTERED_OUTPUT:
                 info = "registered output.";
-                currentStep = 6;
+                currentStep = 7;
                 break;
 
             case SIGNING:
                 info = "signing tx...";
-                currentStep = 7;
+                currentStep = 8;
                 break;
             case SIGNED:
                 info = "signed tx.";
-                currentStep = 8;
-                break;
-
-            case REVEALING_OUTPUT:
-                info = "revealing output... (mix failed, someone didn't register output)";
                 currentStep = 9;
                 break;
+
             case REVEALED_OUTPUT:
-                info = "revealed output. (mix failed, a new mix will start soon)";
-                currentStep = 9;
+                info = "revealed output. (mix failed, someone didn't register output. A new mix will start soon)";
+                currentStep = 10;
                 break;
-
 
             case SUCCESS:
                 info = "mix success.";
-                currentStep = 9;
+                currentStep = 10;
                 break;
             case FAIL:
                 info = "mix failed.";
-                currentStep = 9;
+                currentStep = 10;
                 break;
         }
-        mixClientListener.progress(mixClientStatus, info, currentStep, nbSteps);
+        mixClientListener.progress(mixClientStatus, info, currentStep, NB_STEPS);
     }
 
 }

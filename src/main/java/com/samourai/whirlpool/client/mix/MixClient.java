@@ -11,10 +11,7 @@ import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
 import com.samourai.whirlpool.protocol.websocket.messages.*;
-import com.samourai.whirlpool.protocol.websocket.notifications.RegisterInputMixStatusNotification;
-import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
-import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
-import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.notifications.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,7 +95,7 @@ public class MixClient {
     }
 
     private MixProcess computeMixProcess() {
-        return new MixProcess(config, mixParams, clientCryptoService, denomination);
+        return new MixProcess(config, mixParams, clientCryptoService, poolId, denomination);
     }
 
     private MixDialogListener computeMixDialogListener() {
@@ -135,26 +132,25 @@ public class MixClient {
             }
 
             @Override
-            public RegisterInputRequest registerInput(RegisterInputMixStatusNotification registerInputMixStatusNotification) throws Exception {
-                listenerProgress(MixStep.REGISTERING_INPUT);
-                return mixProcess.registerInput(registerInputMixStatusNotification);
-            }
-
-            @Override
-            public void onInputQueuedResponse(InputQueuedResponse inputQueuedResponse) {
-                listenerProgress(MixStep.QUEUED_INPUT);
-                if (log.isDebugEnabled()) {
-                    log.debug("Queue reason: " + inputQueuedResponse.getReason());
-                }
-            }
-
-            @Override
-            public void onRegisterInputResponse(RegisterInputResponse registerInputResponse) throws Exception {
+            public RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception {
+                RegisterInputRequest registerInputRequest = mixProcess.registerInput(subscribePoolResponse);
                 listenerProgress(MixStep.REGISTERED_INPUT);
-                mixProcess.onRegisterInputResponse(registerInputResponse);
+                return registerInputRequest;
+            }
+
+            @Override
+            public ConfirmInputRequest confirmInput(ConfirmInputMixStatusNotification confirmInputMixStatusNotification) throws Exception {
+                listenerProgress(MixStep.CONFIRMING_INPUT);
+                return mixProcess.confirmInput(confirmInputMixStatusNotification);
+            }
+
+            @Override
+            public void onConfirmInputResponse(ConfirmInputResponse confirmInputResponse) throws Exception {
+                listenerProgress(MixStep.CONFIRMED_INPUT);
+                mixProcess.onConfirmInputResponse(confirmInputResponse);
 
                 if (log.isDebugEnabled()) {
-                    log.debug("joined mix: mixId=" + registerInputResponse.mixId);
+                    log.debug("joined mixId=" + confirmInputResponse.mixId);
                 }
             }
 
@@ -180,7 +176,6 @@ public class MixClient {
 
             @Override
             public RevealOutputRequest revealOutput(RevealOutputMixStatusNotification revealOutputMixStatusNotification) throws Exception {
-                listenerProgress(MixStep.REVEALING_OUTPUT);
                 RevealOutputRequest revealOutputRequest = mixProcess.revealOutput(revealOutputMixStatusNotification);
                 listenerProgress(MixStep.REVEALED_OUTPUT);
                 return revealOutputRequest;

@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.mix.dialog;
 
 import com.samourai.whirlpool.protocol.websocket.messages.*;
-import com.samourai.whirlpool.protocol.websocket.notifications.RegisterInputMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
@@ -9,13 +9,13 @@ import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusN
 public interface MixDialogListener {
 
     void onConnected();
-    RegisterInputRequest registerInput(RegisterInputMixStatusNotification registerInputMixStatusNotification) throws Exception;
+    RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception;
+    ConfirmInputRequest confirmInput(ConfirmInputMixStatusNotification confirmInputMixStatusNotification) throws Exception;
     void postRegisterOutput(RegisterOutputMixStatusNotification registerOutputMixStatusNotification, String registerOutputUrl) throws Exception;
     RevealOutputRequest revealOutput(RevealOutputMixStatusNotification revealOutputMixStatusNotification) throws Exception;
     SigningRequest signing(SigningMixStatusNotification signingMixStatusNotification) throws Exception;
 
-    void onRegisterInputResponse(RegisterInputResponse registerInputResponse) throws Exception;
-    void onInputQueuedResponse(InputQueuedResponse inputQueuedResponse) throws Exception;
+    void onConfirmInputResponse(ConfirmInputResponse confirmInputResponse) throws Exception;
 
     void onSuccess();
     void onFail();

@@ -1,12 +1,12 @@
 package com.samourai.whirlpool.client.mix.dialog;
 
-import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.http.client.HttpException;
 import com.samourai.stomp.client.StompTransport;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
-import com.samourai.http.client.HttpException;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.websocket.WhirlpoolMessage;
+import com.samourai.whirlpool.protocol.websocket.MixMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.*;
 import com.samourai.whirlpool.protocol.websocket.notifications.*;
 import org.slf4j.Logger;
@@ -27,14 +27,12 @@ public class MixDialog {
     // mix data
     private String mixId;
     private MixStatus mixStatus;
-    private boolean gotRegisterInputResponse; // will get it after joining a mix
-    private InputQueuedResponse inputQueuedResponse; // may get it after registerInputRequest
+    private boolean gotConfirmInputResponse; // will get it after CONFIRM_INPUT
     private RegisterOutputMixStatusNotification earlyRegisterOutputMixStatusNotification; // we may get early REGISTER_OUTPUT notification (before registerInputResponse)
 
     // computed values
     private Set<MixStatus> mixStatusCompleted = new HashSet<>();
     private boolean done;
-
 
     public MixDialog(MixDialogListener listener, StompTransport transport, WhirlpoolClientConfig clientConfig) {
         this.listener = listener;
@@ -46,50 +44,32 @@ public class MixDialog {
         this.log = ClientUtils.prefixLogger(log, logPrefix);
     }
 
-    public synchronized void onBroadcastReceived(WhirlpoolMessage whirlpoolMessage) {
+    public synchronized void onPrivateReceived(MixMessage mixMessage) {
         if (done) {
-            log.info("Ignoring whirlpoolMessage (done)");
+            log.info("Ignoring mixMessage (done)");
             return;
         }
         try {
-            if (MixStatusNotification.class.isAssignableFrom(whirlpoolMessage.getClass())) {
-                onMixStatusNotificationChange((MixStatusNotification)whirlpoolMessage);
-            }
-        }
-        catch(NotifiableException e) {
-            exitOnResponseError(e.getMessage());
-        }
-        catch(Exception e) {
-            exitOnProtocolError(e);
-        }
-    }
-
-    public synchronized void onPrivateReceived(WhirlpoolMessage whirlpoolMessage) {
-        if (done) {
-            log.info("Ignoring whirlpoolMessage (done)");
-            return;
-        }
-        try {
-            Class payloadClass = whirlpoolMessage.getClass();
+            Class payloadClass = mixMessage.getClass();
             if (ErrorResponse.class.isAssignableFrom(payloadClass)) {
-                String errorMessage = ((ErrorResponse)whirlpoolMessage).message;
+                String errorMessage = ((ErrorResponse)mixMessage).message;
                 exitOnResponseError(errorMessage);
-            }
-            else if (MixStatusNotification.class.isAssignableFrom(whirlpoolMessage.getClass())) {
-                onMixStatusNotificationChange((MixStatusNotification)whirlpoolMessage);
-            }
-            else if (RegisterInputResponse.class.isAssignableFrom(payloadClass)) {
-                this.gotRegisterInputResponse = true;
-                listener.onRegisterInputResponse((RegisterInputResponse)whirlpoolMessage);
-
-                // if we received early REGISTER_OUTPUT notification, register ouput now
-                if (earlyRegisterOutputMixStatusNotification != null) {
-                    doRegisterOutput(earlyRegisterOutputMixStatusNotification);
+            } else {
+                if (MixStatusNotification.class.isAssignableFrom(mixMessage.getClass())) {
+                    onMixStatusNotificationChange((MixStatusNotification)mixMessage);
                 }
-            }
-            else if (InputQueuedResponse.class.isAssignableFrom(payloadClass)) {
-                this.inputQueuedResponse = (InputQueuedResponse) whirlpoolMessage;
-                listener.onInputQueuedResponse(inputQueuedResponse);
+                else if (ConfirmInputResponse.class.isAssignableFrom(payloadClass)) {
+                    this.gotConfirmInputResponse = true;
+                    listener.onConfirmInputResponse((ConfirmInputResponse) mixMessage);
+
+                    // if we received early REGISTER_OUTPUT notification, register ouput now
+                    if (earlyRegisterOutputMixStatusNotification != null) {
+                        doRegisterOutput(earlyRegisterOutputMixStatusNotification);
+                    }
+                }
+                else {
+                    log.error("Unexpected mixMessage, registeredInput=true");
+                }
             }
         }
         catch(NotifiableException e) {
@@ -136,15 +116,14 @@ public class MixDialog {
             return;
         }
 
-        if (MixStatus.REGISTER_INPUT.equals(notification.status)) {
-            RegisterInputMixStatusNotification registerInputMixStatusNotification = (RegisterInputMixStatusNotification) notification;
+        if (MixStatus.CONFIRM_INPUT.equals(notification.status)) {
+            ConfirmInputMixStatusNotification confirmInputMixStatusNotification = (ConfirmInputMixStatusNotification) notification;
 
-            RegisterInputRequest registerInputRequest = listener.registerInput(registerInputMixStatusNotification);
-            transport.send(WhirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);
-            mixStatusCompleted.add(MixStatus.REGISTER_INPUT);
-
-        } else if (mixStatusCompleted.contains(MixStatus.REGISTER_INPUT)) {
-            if (gotRegisterInputResponse()) {
+            ConfirmInputRequest confirmInputRequest = listener.confirmInput(confirmInputMixStatusNotification);
+            transport.send(WhirlpoolProtocol.ENDPOINT_CONFIRM_INPUT, confirmInputRequest);
+            mixStatusCompleted.add(MixStatus.CONFIRM_INPUT);
+        } else if (mixStatusCompleted.contains(MixStatus.CONFIRM_INPUT)) {
+            if (gotConfirmInputResponse()) {
 
                 if (MixStatus.REGISTER_OUTPUT.equals(notification.status)) {
                     doRegisterOutput((RegisterOutputMixStatusNotification)notification);
@@ -220,8 +199,8 @@ public class MixDialog {
         }
     }
 
-    protected boolean gotRegisterInputResponse() {
-        return gotRegisterInputResponse;
+    protected boolean gotConfirmInputResponse() {
+        return gotConfirmInputResponse;
     }
 
     public String getMixId() {
