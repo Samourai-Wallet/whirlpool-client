@@ -8,11 +8,12 @@ public class Pool {
     private long minerFeeMin;
     private long minerFeeMax;
     private int minAnonymitySet;
+    private int nbRegistered;
+
     private int mixAnonymitySet;
     private MixStatus mixStatus;
     private long elapsedTime;
-    private int mixNbConnected;
-    private int mixNbRegistered;
+    private int mixNbConfirmed;
 
     public Pool() {
     }
@@ -57,6 +58,14 @@ public class Pool {
         this.minAnonymitySet = minAnonymitySet;
     }
 
+    public int getNbRegistered() {
+        return nbRegistered;
+    }
+
+    public void setNbRegistered(int nbRegistered) {
+        this.nbRegistered = nbRegistered;
+    }
+
     public int getMixAnonymitySet() {
         return mixAnonymitySet;
     }
@@ -81,19 +90,11 @@ public class Pool {
         this.elapsedTime = elapsedTime;
     }
 
-    public int getMixNbConnected() {
-        return mixNbConnected;
+    public int getMixNbConfirmed() {
+        return mixNbConfirmed;
     }
 
-    public void setMixNbConnected(int mixNbConnected) {
-        this.mixNbConnected = mixNbConnected;
-    }
-
-    public int getMixNbRegistered() {
-        return mixNbRegistered;
-    }
-
-    public void setMixNbRegistered(int mixNbRegistered) {
-        this.mixNbRegistered = mixNbRegistered;
+    public void setMixNbConfirmed(int mixNbConfirmed) {
+        this.mixNbConfirmed = mixNbConfirmed;
     }
 }

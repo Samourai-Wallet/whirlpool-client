@@ -67,7 +67,7 @@ public class MixProcess {
         }
 
         // check denomination
-        long actualDenomination = subscribePoolResponse.getDenomination();
+        long actualDenomination = subscribePoolResponse.denomination;
         if (denomination != actualDenomination) {
             log.error("Invalid denomination: expected=" + denomination + ", actual=" + actualDenomination);
             throw new NotifiableException("Unexpected denomination from server");
@@ -75,7 +75,7 @@ public class MixProcess {
 
         // get mix settings
         NetworkParameters networkParameters = config.getNetworkParameters();
-        String serverNetworkId = subscribePoolResponse.getNetworkId();
+        String serverNetworkId = subscribePoolResponse.networkId;
         if (!networkParameters.getPaymentProtocolId().equals(serverNetworkId)) {
             throw new Exception("Client/server networkId mismatch: server is runinng "+serverNetworkId+", client is expecting "+networkParameters.getPaymentProtocolId());
         }
@@ -89,20 +89,15 @@ public class MixProcess {
         checkFees(mixParams.getUtxoBalance(), denomination);
 
         // verify balance
-        long minerFeeMin = subscribePoolResponse.getMinerFeeMin();
-        long minerFeeMax = subscribePoolResponse.getMinerFeeMax();
+        long minerFeeMin = subscribePoolResponse.minerFeeMin;
+        long minerFeeMax = subscribePoolResponse.minerFeeMax;
         checkUtxoBalance(minerFeeMin, minerFeeMax);
 
         IMixHandler mixHandler = mixParams.getMixHandler();
 
-        RegisterInputRequest registerInputRequest = new RegisterInputRequest();
-        registerInputRequest.poolId = poolId;
-        registerInputRequest.utxoHash = mixParams.getUtxoHash();
-        registerInputRequest.utxoIndex = mixParams.getUtxoIdx();
-        registerInputRequest.pubkey64 = ClientUtils.encodeBase64(mixHandler.getPubkey());
-        registerInputRequest.signature = mixHandler.signMessage(poolId);
-        registerInputRequest.liquidity = this.liquidity;
-        registerInputRequest.testMode = config.isTestMode();
+        String pubkey64 = ClientUtils.encodeBase64(mixHandler.getPubkey());
+        String signature = mixHandler.signMessage(poolId);
+        RegisterInputRequest registerInputRequest = new RegisterInputRequest(poolId, mixParams.getUtxoHash(), mixParams.getUtxoIdx(), pubkey64, signature, this.liquidity, config.isTestMode());
 
         registeredInput = true;
         return registerInputRequest;
@@ -117,16 +112,16 @@ public class MixProcess {
         IMixHandler mixHandler = mixParams.getMixHandler();
         NetworkParameters networkParameters = config.getNetworkParameters();
 
-        ConfirmInputRequest confirmInputRequest = new ConfirmInputRequest();
-
         // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
         // clear receiveAddress will be provided with unblindedSignedBordereau by connecting with another identity for REGISTER_OUTPUT
         byte[] publicKey = ClientUtils.decodeBase64(confirmInputMixStatusNotification.publicKey64);
         RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(publicKey);
         this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
         this.receiveAddress = mixHandler.computeReceiveAddress(networkParameters);
-        confirmInputRequest.mixId = confirmInputMixStatusNotification.mixId;
-        confirmInputRequest.blindedBordereau64 = ClientUtils.encodeBase64(clientCryptoService.blind(this.receiveAddress, blindingParams));
+
+        String mixId = confirmInputMixStatusNotification.mixId;
+        String blindedBordereau64 = ClientUtils.encodeBase64(clientCryptoService.blind(this.receiveAddress, blindingParams));
+        ConfirmInputRequest confirmInputRequest = new ConfirmInputRequest(mixId, blindedBordereau64);
 
         confirmedInput = true;
         return confirmInputRequest;
@@ -149,10 +144,8 @@ public class MixProcess {
 
         this.inputsHash = registerOutputMixStatusNotification.getInputsHash();
 
-        RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest();
-        registerOutputRequest.inputsHash = inputsHash;
-        registerOutputRequest.unblindedSignedBordereau64 = ClientUtils.encodeBase64(clientCryptoService.unblind(signedBordereau, blindingParams));
-        registerOutputRequest.receiveAddress = this.receiveAddress;
+        String unblindedSignedBordereau64 = ClientUtils.encodeBase64(clientCryptoService.unblind(signedBordereau, blindingParams));
+        RegisterOutputRequest registerOutputRequest = new RegisterOutputRequest(inputsHash, unblindedSignedBordereau64, this.receiveAddress);
 
         registeredOutput = true;
         return registerOutputRequest;
@@ -163,9 +156,7 @@ public class MixProcess {
             throwProtocolException();
         }
 
-        RevealOutputRequest revealOutputRequest = new RevealOutputRequest();
-        revealOutputRequest.mixId = revealOutputMixStatusNotification.mixId;
-        revealOutputRequest.receiveAddress = this.receiveAddress;
+        RevealOutputRequest revealOutputRequest = new RevealOutputRequest(revealOutputMixStatusNotification.mixId, this.receiveAddress);
 
         revealedOutput = true;
         return revealOutputRequest;
@@ -177,9 +168,6 @@ public class MixProcess {
         }
 
         NetworkParameters networkParameters = config.getNetworkParameters();
-
-        SigningRequest signingRequest = new SigningRequest();
-        signingRequest.mixId = signingMixStatusNotification.mixId;
 
         byte[] rawTx = ClientUtils.decodeBase64(signingMixStatusNotification.transaction64);
         Transaction tx = new Transaction(networkParameters, rawTx);
@@ -194,7 +182,8 @@ public class MixProcess {
         tx.verify();
 
         // transmit
-        signingRequest.witnesses64 = ClientUtils.witnessSerialize64(tx.getWitness(inputIndex));
+        String[] witnesses64 = ClientUtils.witnessSerialize64(tx.getWitness(inputIndex));
+        SigningRequest signingRequest = new SigningRequest(signingMixStatusNotification.mixId, witnesses64);
 
         signed = true;
         return signingRequest;
