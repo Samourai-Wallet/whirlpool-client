@@ -88,6 +88,11 @@ public class MixSession {
                         listener.exitOnProtocolError();
                     }
                 } else {
+                    if (SubscribePoolResponse.class.isAssignableFrom(payload.getClass())) {
+                        // duplicate SubscribePoolResponse? TODO
+                        //log.warn("duplicate SubscribePoolResponse");
+                        return;
+                    }
                     // 2) input already registered => should be a MixMessage
                     MixMessage mixMessage = checkMixMessage(payload);
                     if (mixMessage != null) {
