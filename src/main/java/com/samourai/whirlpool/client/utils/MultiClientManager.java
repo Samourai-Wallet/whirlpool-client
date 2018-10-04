@@ -17,7 +17,7 @@ public class MultiClientManager {
 
     private List<WhirlpoolClient> clients;
     private List<MultiClientListener> listeners;
-    private boolean done;
+    private Boolean success;
 
     public MultiClientManager() {
         this(null);
@@ -48,45 +48,18 @@ public class MultiClientManager {
         }
     }
 
-    public synchronized void waitMix() {
+    public synchronized void waitDone() {
         do {
-            checkClients();
+            if (isDone()) {
+                return;
+            }
+
+            // will be notified by listeners to wakeup
             try {
                 wait();
-            } catch (Exception e) {}
-        } while( !done);
-    }
-
-    private void checkClients() {
-        boolean success = true;
-        for (int i=0; i<clients.size(); i++) {
-            MultiClientListener listener = listeners.get(i);
-            if (listener == null) {
-                success = false;
-                log.debug("Client#" + i + ": null");
-            } else {
-                log.debug("Client#" + i + ": mixStatus=" + listener.getMixStatus() + ", mixStep=" + listener.getMixStep());
-                if (MixStatus.FAIL.equals(listener.getMixStatus())) {
-                    // 1 client failed
-                    this.done = true;
-                    if (onDone != null) {
-                        onDone.onMessage(false);
-                    }
-                    return;
-                }
-                if (!MixStatus.SUCCESS.equals(listener.getMixStatus())) {
-                    success = false;
-                }
+            } catch (Exception e) {
             }
-        }
-        // all clients success
-        if (success) {
-            this.done = true;
-            if (onDone != null) {
-                onDone.onMessage(true);
-            }
-            return;
-        }
+        } while(true);
     }
 
     private void debugClients() {
@@ -108,7 +81,46 @@ public class MultiClientManager {
     }
 
     public boolean isDone() {
-        checkClients();
-        return done;
+        if (success == null) {
+            // check success
+            Boolean success = computeSuccess();
+            if (success != null) {
+                this.success = success;
+                if (this.onDone != null) {
+                    this.onDone.onMessage(success);
+                }
+            }
+        }
+        return success != null;
+    }
+
+    /**
+     * @return null=not done, true=success, fail=fail
+     */
+    private Boolean computeSuccess() {
+        if (clients.isEmpty()) {
+            return null;
+        }
+
+        for (int i=0; i<clients.size(); i++) {
+            MultiClientListener listener = listeners.get(i);
+            if (listener == null) {
+                // client not initialized => not done
+                log.debug("Client#" + i + ": null");
+                return null;
+            } else {
+                log.debug("Client#" + i + ": mixStatus=" + listener.getMixStatus() + ", mixStep=" + listener.getMixStep());
+                if (MixStatus.FAIL.equals(listener.getMixStatus())) {
+                    // client failed
+                    return false;
+                }
+                if (!MixStatus.SUCCESS.equals(listener.getMixStatus())) {
+                    // mix in progress
+                    return null;
+                }
+            }
+        }
+        // all clients success
+        return true;
     }
 }
