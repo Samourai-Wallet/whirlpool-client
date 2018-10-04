@@ -30,12 +30,26 @@ public class WhirlpoolClientConfig {
         this.testMode = false;
     }
 
+    public WhirlpoolClientConfig(WhirlpoolClientConfig copy) {
+        this.httpClient = copy.httpClient;
+        this.stompClient = copy.stompClient;
+        this.server = copy.server;
+        this.networkParameters = copy.networkParameters;
+        this.reconnectDelay = copy.reconnectDelay;
+        this.reconnectUntil = copy.reconnectUntil;
+        this.testMode = copy.testMode;
+    }
+
     public IHttpClient getHttpClient() {
         return httpClient;
     }
 
     public IStompClient getStompClient() {
         return stompClient;
+    }
+
+    public void setStompClient(IStompClient stompClient) {
+        this.stompClient = stompClient;
     }
 
     public String getServer() {
