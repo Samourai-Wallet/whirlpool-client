@@ -77,22 +77,22 @@ public class MixSession {
             @Override
             public void onMessage(Object payload) {
                 if (subscribePoolResponse == null) {
-                    // 1) input not registered yet => should be a SubscribePoolResponse
-                    subscribePoolResponse = (SubscribePoolResponse)payload;
+                    if (SubscribePoolResponse.class.isAssignableFrom(payload.getClass())) {
+                        // 1) input not registered yet => should be a SubscribePoolResponse
+                        subscribePoolResponse = (SubscribePoolResponse) payload;
 
-                    // REGISTER_INPUT
-                    try {
-                        registerInput(subscribePoolResponse);
-                    } catch(Exception e) {
-                        log.error("Unable to register input", e);
+                        // REGISTER_INPUT
+                        try {
+                            registerInput(subscribePoolResponse);
+                        } catch (Exception e) {
+                            log.error("Unable to register input", e);
+                            listener.exitOnProtocolError();
+                        }
+                    } else {
+                        log.error("--> " + privateQueue + ": not a SubscribePoolResponse: " + ClientUtils.toJsonString(payload));
                         listener.exitOnProtocolError();
                     }
                 } else {
-                    if (SubscribePoolResponse.class.isAssignableFrom(payload.getClass())) {
-                        // duplicate SubscribePoolResponse? TODO
-                        //log.warn("duplicate SubscribePoolResponse");
-                        return;
-                    }
                     // 2) input already registered => should be a MixMessage
                     MixMessage mixMessage = checkMixMessage(payload);
                     if (mixMessage != null) {
