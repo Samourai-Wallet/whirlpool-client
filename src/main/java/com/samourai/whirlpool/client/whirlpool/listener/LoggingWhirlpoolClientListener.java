@@ -24,7 +24,7 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
 
     @Override
     public void success(int nbMixs, MixSuccess mixSuccess) {
-        log("⣿ WHIRLPOOL SUCCESS ⣿ Funds will be received at " + mixSuccess.getReceiveAddress() + ", utxo " + mixSuccess.getReceiveUtxoHash() + ":" + mixSuccess.getReceiveUtxoIdx());
+        log("⣿ WHIRLPOOL SUCCESS ⣿ Funds will be received at " + mixSuccess.getReceiveAddress() + ", utxo " + mixSuccess.getReceiveUtxo().getHash() + ":" + mixSuccess.getReceiveUtxo().getIndex());
     }
 
     @Override
@@ -49,7 +49,7 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
 
     @Override
     public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
-        log(format(currentMix, nbMixs, "SUCCESS - Funds will be received at " + mixSuccess.getReceiveAddress() + ", utxo " + mixSuccess.getReceiveUtxoHash() + ":" + mixSuccess.getReceiveUtxoIdx()));
+        log(format(currentMix, nbMixs, "SUCCESS - Funds will be received at " + mixSuccess.getReceiveAddress() + ", utxo " + mixSuccess.getReceiveUtxo().getHash() + ":" + mixSuccess.getReceiveUtxo().getIndex()));
     }
 
     protected void log(String message) {

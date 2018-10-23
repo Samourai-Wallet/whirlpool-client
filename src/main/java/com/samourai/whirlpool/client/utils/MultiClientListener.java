@@ -5,39 +5,48 @@ import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 
-public class MultiClientListener extends LoggingWhirlpoolClientListener {
-    private MixStatus mixStatus;
-    private MixStep mixStep;
-    private MultiClientManager multiClientManager;
+import java.util.HashMap;
+import java.util.Map;
 
-    public MultiClientListener(MultiClientManager multiClientManager) {
+public class MultiClientListener extends LoggingWhirlpoolClientListener {
+    // indice 0 is always null as currentMix starts from 1
+    private Map<Integer,MixStatus> mixStatus = new HashMap<>();
+    private Map<Integer,MixStep> mixStep = new HashMap<>();
+    private MultiClientManager multiClientManager;
+    private int missedMixs;
+
+    public MultiClientListener(MultiClientManager multiClientManager, int missedMixs) {
+        this.missedMixs = missedMixs;
         this.multiClientManager = multiClientManager;
+        for (int i=0; i<=missedMixs; i++) {
+            mixStatus.put(i, null);
+            mixStep.put(i, null);
+        }
     }
 
     @Override
     public void success(int nbMixs, MixSuccess mixSuccess) {
         super.success(nbMixs, mixSuccess);
-        this.mixStatus = MixStatus.SUCCESS;
         notifyMultiClientManager();
     }
 
     @Override
     public void progress(int currentMix, int nbMixs, MixStep step, String stepInfo, int stepNumber, int nbSteps) {
         super.progress(currentMix, nbMixs, step, stepInfo, stepNumber, nbSteps);
-        this.mixStep = step;
+        this.mixStep.put(missedMixs + currentMix, step);
     }
 
     @Override
     public void fail(int currentMix, int nbMixs) {
         super.fail(currentMix, nbMixs);
-        this.mixStatus = MixStatus.FAIL;
+        this.mixStatus.put(missedMixs + currentMix, MixStatus.FAIL);
         notifyMultiClientManager();
     }
 
     @Override
     public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
         super.mixSuccess(currentMix, nbMixs, mixSuccess);
-        this.mixStatus = MixStatus.SUCCESS;
+        this.mixStatus.put(missedMixs + currentMix, MixStatus.SUCCESS);
     }
 
     private void notifyMultiClientManager() {
@@ -46,11 +55,11 @@ public class MultiClientListener extends LoggingWhirlpoolClientListener {
         }
     }
 
-    public MixStatus getMixStatus() {
-        return mixStatus;
+    public MixStatus getMixStatus(int currentMix) {
+        return mixStatus.get(currentMix);
     }
 
-    public MixStep getMixStep() {
-        return mixStep;
+    public MixStep getMixStep(int currentMix) {
+        return mixStep.get(currentMix);
     }
 }

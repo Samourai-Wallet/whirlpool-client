@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client;
 
-import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.client.mix.MixParams;
+import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 
 /**
@@ -18,12 +18,11 @@ public interface WhirlpoolClient {
 
     /**
      * Connect to a pool and mix.
-     * @param poolId pool id to join
-     * @param mixParams mix parameters (inputs, outputs)
-     * @param mixs number of mix to achieve (1-N)
-     * @param listener listener to get notified of mix progress (in real time)
+     * @param mixParams mix parameters
+     * @param mixs number of mix to achieve
+     * @param listener listener to get notified of mix progress
      */
-    void whirlpool(String poolId, long denomination, MixParams mixParams, int mixs, WhirlpoolClientListener listener);
+    void whirlpool(MixParams mixParams, int mixs, WhirlpoolClientListener listener);
 
     /**
      * Abort mix.

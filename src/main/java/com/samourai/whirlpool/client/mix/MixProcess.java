@@ -1,7 +1,9 @@
 package com.samourai.whirlpool.client.mix;
 
 import com.samourai.whirlpool.client.exception.NotifiableException;
-import com.samourai.whirlpool.client.mix.handler.IMixHandler;
+import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
+import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
+import com.samourai.whirlpool.client.mix.handler.UtxoWithBalance;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -10,7 +12,10 @@ import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
 import com.samourai.whirlpool.protocol.websocket.messages.*;
-import com.samourai.whirlpool.protocol.websocket.notifications.*;
+import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
 import org.bitcoinj.core.*;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
@@ -24,10 +29,11 @@ import java.util.List;
 public class MixProcess {
     private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
     private WhirlpoolClientConfig config;
-    private MixParams mixParams;
-    private ClientCryptoService clientCryptoService;
     private String poolId;
-    private long denomination;
+    private long poolDenomination;
+    private IPremixHandler premixHandler;
+    private IPostmixHandler postmixHandler;
+    private ClientCryptoService clientCryptoService;
 
     // hard limit for acceptable fees
     private static final long MAX_ACCEPTABLE_FEES = 100000;
@@ -40,8 +46,7 @@ public class MixProcess {
     private boolean liquidity;
     private RSABlindingParameters blindingParams;
     private String receiveAddress;
-    private String receiveUtxoHash;
-    private Integer receiveUtxoIdx;
+    private Utxo receiveUtxo;
 
     // security checks
     private boolean registeredInput;
@@ -52,12 +57,13 @@ public class MixProcess {
     private boolean signed;
 
 
-    public MixProcess(WhirlpoolClientConfig config, MixParams mixParams, ClientCryptoService clientCryptoService, String poolId, long denomination) {
+    public MixProcess(WhirlpoolClientConfig config, String poolId, long poolDenomination, IPremixHandler premixHandler, IPostmixHandler postmixHandler, ClientCryptoService clientCryptoService) {
         this.config = config;
-        this.mixParams = mixParams;
-        this.clientCryptoService = clientCryptoService;
         this.poolId = poolId;
-        this.denomination = denomination;
+        this.poolDenomination = poolDenomination;
+        this.premixHandler = premixHandler;
+        this.postmixHandler = postmixHandler;
+        this.clientCryptoService = clientCryptoService;
     }
 
     protected RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception {
@@ -68,36 +74,35 @@ public class MixProcess {
 
         // check denomination
         long actualDenomination = subscribePoolResponse.denomination;
-        if (denomination != actualDenomination) {
-            log.error("Invalid denomination: expected=" + denomination + ", actual=" + actualDenomination);
+        if (poolDenomination != actualDenomination) {
+            log.error("Invalid denomination: expected=" + poolDenomination + ", actual=" + actualDenomination);
             throw new NotifiableException("Unexpected denomination from server");
         }
 
         // get mix settings
+        UtxoWithBalance utxo = premixHandler.getUtxo();
         NetworkParameters networkParameters = config.getNetworkParameters();
         String serverNetworkId = subscribePoolResponse.networkId;
         if (!networkParameters.getPaymentProtocolId().equals(serverNetworkId)) {
             throw new Exception("Client/server networkId mismatch: server is runinng "+serverNetworkId+", client is expecting "+networkParameters.getPaymentProtocolId());
         }
-        this.liquidity = mixParams.getUtxoBalance() == denomination;
+        this.liquidity = utxo.getBalance() == poolDenomination;
 
         if (log.isDebugEnabled()) {
             log.debug("Registering input as " + (this.liquidity ? "LIQUIDITY" : "MUSTMIX"));
         }
 
         // verify fees acceptable
-        checkFees(mixParams.getUtxoBalance(), denomination);
+        checkFees(utxo.getBalance(), poolDenomination);
 
         // verify balance
         long minerFeeMin = subscribePoolResponse.minerFeeMin;
         long minerFeeMax = subscribePoolResponse.minerFeeMax;
         checkUtxoBalance(minerFeeMin, minerFeeMax);
 
-        IMixHandler mixHandler = mixParams.getMixHandler();
-
-        String pubkey64 = ClientUtils.encodeBase64(mixHandler.getPubkey());
-        String signature = mixHandler.signMessage(poolId);
-        RegisterInputRequest registerInputRequest = new RegisterInputRequest(poolId, mixParams.getUtxoHash(), mixParams.getUtxoIdx(), pubkey64, signature, this.liquidity, config.isTestMode());
+        String pubkey64 = ClientUtils.encodeBase64(premixHandler.getPubkey());
+        String signature = premixHandler.signMessage(poolId);
+        RegisterInputRequest registerInputRequest = new RegisterInputRequest(poolId, utxo.getHash(), utxo.getIndex(), pubkey64, signature, this.liquidity, config.isTestMode());
 
         registeredInput = true;
         return registerInputRequest;
@@ -109,7 +114,6 @@ public class MixProcess {
             throwProtocolException();
         }
 
-        IMixHandler mixHandler = mixParams.getMixHandler();
         NetworkParameters networkParameters = config.getNetworkParameters();
 
         // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
@@ -117,7 +121,7 @@ public class MixProcess {
         byte[] publicKey = ClientUtils.decodeBase64(confirmInputMixStatusNotification.publicKey64);
         RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(publicKey);
         this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
-        this.receiveAddress = mixHandler.computeReceiveAddress(networkParameters);
+        this.receiveAddress = postmixHandler.computeReceiveAddress(networkParameters);
 
         String mixId = confirmInputMixStatusNotification.mixId;
         String blindedBordereau64 = ClientUtils.encodeBase64(clientCryptoService.blind(this.receiveAddress, blindingParams));
@@ -175,8 +179,7 @@ public class MixProcess {
         // verify tx
         int inputIndex = verifyTx(tx);
 
-        long spendAmount = mixParams.getUtxoBalance();
-        mixParams.getMixHandler().signTransaction(tx, inputIndex, spendAmount, networkParameters);
+        premixHandler.signTransaction(tx, inputIndex, networkParameters);
 
         // verify signature
         tx.verify();
@@ -189,13 +192,13 @@ public class MixProcess {
         return signingRequest;
     }
 
-    protected MixParams computeNextMixParams() {
-        IMixHandler nextMixHandler = mixParams.getMixHandler().computeMixHandlerForNextMix();
-        return new MixParams(this.receiveUtxoHash, this.receiveUtxoIdx, this.denomination, nextMixHandler);
+    protected IPremixHandler computeNextPremixHandler() {
+        UtxoWithBalance utxoWithBalance = new UtxoWithBalance(receiveUtxo, poolDenomination);
+        return postmixHandler.computeNextPremixHandler(utxoWithBalance);
     }
 
     protected MixSuccess computeMixSuccess() {
-        return new MixSuccess(this.receiveAddress, this.receiveUtxoHash, this.receiveUtxoIdx);
+        return new MixSuccess(this.receiveAddress, this.receiveUtxo);
     }
 
     //
@@ -213,14 +216,16 @@ public class MixProcess {
     }
 
     private void checkUtxoBalance(long minerFeeMin, long minerFeeMax) throws NotifiableException {
-        long inputBalanceMin = WhirlpoolProtocol.computeInputBalanceMin(denomination, liquidity, minerFeeMin);
-        long inputBalanceMax = WhirlpoolProtocol.computeInputBalanceMax(denomination, liquidity, minerFeeMax);
-        if (this.mixParams.getUtxoBalance() < inputBalanceMin) {
-            throw new NotifiableException("Too low utxo-balance=" + this.mixParams.getUtxoBalance() + ". (expected: " + inputBalanceMin + " <= utxo-balance <= " + inputBalanceMax + ")");
+        long inputBalanceMin = WhirlpoolProtocol.computeInputBalanceMin(poolDenomination, liquidity, minerFeeMin);
+        long inputBalanceMax = WhirlpoolProtocol.computeInputBalanceMax(poolDenomination, liquidity, minerFeeMax);
+
+        long utxoBalance = premixHandler.getUtxo().getBalance();
+        if (utxoBalance < inputBalanceMin) {
+            throw new NotifiableException("Too low utxo-balance=" + utxoBalance + ". (expected: " + inputBalanceMin + " <= utxo-balance <= " + inputBalanceMax + ")");
         }
 
-        if (this.mixParams.getUtxoBalance() > inputBalanceMax) {
-            throw new NotifiableException("Too high utxo-balance=" + this.mixParams.getUtxoBalance() + ". (expected: " + inputBalanceMin + " <= utxo-balance <= " + inputBalanceMax + ")");
+        if (utxoBalance > inputBalanceMax) {
+            throw new NotifiableException("Too high utxo-balance=" + utxoBalance + ". (expected: " + inputBalanceMin + " <= utxo-balance <= " + inputBalanceMax + ")");
         }
     }
 
@@ -238,17 +243,17 @@ public class MixProcess {
         if (outputIndex == null) {
             throw new Exception("Output not found in tx");
         }
-        receiveUtxoHash = tx.getHashAsString();
-        receiveUtxoIdx = outputIndex;
+        receiveUtxo = new Utxo(tx.getHashAsString(), outputIndex);
 
         // verify my input
-        Integer inputIndex = ClientUtils.findTxInputIndex(mixParams.getUtxoHash(), mixParams.getUtxoIdx(), tx);
+        UtxoWithBalance utxo = premixHandler.getUtxo();
+        Integer inputIndex = ClientUtils.findTxInputIndex(utxo.getHash(), utxo.getIndex(), tx);
         if (outputIndex == null) {
             throw new Exception("Input not found in tx");
         }
 
         // check fees again
-        long inputValue = mixParams.getUtxoBalance(); //tx.getInput(inputIndex).getValue().getValue(); is null
+        long inputValue = utxo.getBalance(); //tx.getInput(inputIndex).getValue().getValue(); is null
         long outputValue = tx.getOutput(outputIndex).getValue().getValue();
         checkFees(inputValue, outputValue);
 
@@ -260,8 +265,8 @@ public class MixProcess {
 
         // each output value should be denomination
         for (TransactionOutput output : tx.getOutputs()) {
-            if (output.getValue().getValue() != denomination) {
-                log.error("outputValue=" + output.getValue().getValue() + ", denomination=" + denomination);
+            if (output.getValue().getValue() != poolDenomination) {
+                log.error("outputValue=" + output.getValue().getValue() + ", denomination=" + poolDenomination);
                 throw new Exception("Output value mismatch");
             }
         }

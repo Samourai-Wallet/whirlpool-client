@@ -46,7 +46,7 @@ public class MixDialog {
 
     public synchronized void onPrivateReceived(MixMessage mixMessage) {
         if (done) {
-            log.info("Ignoring mixMessage (done)");
+            log.info("Ignoring mixMessage (done): " + ClientUtils.toJsonString(mixMessage));
             return;
         }
         try {
@@ -68,7 +68,7 @@ public class MixDialog {
                     }
                 }
                 else {
-                    log.error("Unexpected mixMessage, registeredInput=true");
+                    log.error("Unexpected mixMessage, registeredInput=true: " + ClientUtils.toJsonString(mixMessage));
                 }
             }
         }

@@ -1,25 +1,21 @@
 package com.samourai.whirlpool.client.mix.listener;
 
+import com.samourai.whirlpool.protocol.beans.Utxo;
+
 public class MixSuccess {
     private String receiveAddress;
-    private String receiveUtxoHash;
-    private int receiveUtxoIdx;
+    private Utxo receiveUtxo;
 
-    public MixSuccess(String receiveAddress, String receiveUtxoHash, int receiveUtxoIdx) {
+    public MixSuccess(String receiveAddress, Utxo receiveUtxo) {
         this.receiveAddress = receiveAddress;
-        this.receiveUtxoHash = receiveUtxoHash;
-        this.receiveUtxoIdx = receiveUtxoIdx;
+        this.receiveUtxo = receiveUtxo;
     }
 
     public String getReceiveAddress() {
         return receiveAddress;
     }
 
-    public String getReceiveUtxoHash() {
-        return receiveUtxoHash;
-    }
-
-    public int getReceiveUtxoIdx() {
-        return receiveUtxoIdx;
+    public Utxo getReceiveUtxo() {
+        return receiveUtxo;
     }
 }

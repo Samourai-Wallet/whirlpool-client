@@ -1,33 +1,38 @@
 package com.samourai.whirlpool.client.mix;
 
-import com.samourai.whirlpool.client.mix.handler.IMixHandler;
+import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
+import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 
 public class MixParams {
-    private String utxoHash;
-    private long utxoIdx;
-    private long utxoBalance;
-    private IMixHandler mixHandler;
+    private String poolId;
+    private long denomination;
+    private IPremixHandler premixHandler;
+    private IPostmixHandler postmixHandler;
 
-    public MixParams(String utxoHash, long utxoIdx, long utxoBalance, IMixHandler mixHandler) {
-        this.utxoHash = utxoHash;
-        this.utxoIdx = utxoIdx;
-        this.utxoBalance = utxoBalance;
-        this.mixHandler = mixHandler;
+    public MixParams(String poolId, long denomination, IPremixHandler premixHandler, IPostmixHandler postmixHandler) {
+        this.poolId = poolId;
+        this.denomination = denomination;
+        this.premixHandler = premixHandler;
+        this.postmixHandler = postmixHandler;
     }
 
-    public String getUtxoHash() {
-        return utxoHash;
+    public MixParams(MixParams mixParams, IPremixHandler premixHandler) {
+        this(mixParams.getPoolId(), mixParams.getDenomination(), premixHandler, mixParams.getPostmixHandler());
     }
 
-    public long getUtxoIdx() {
-        return utxoIdx;
+    public String getPoolId() {
+        return poolId;
     }
 
-    public long getUtxoBalance() {
-        return utxoBalance;
+    public long getDenomination() {
+        return denomination;
     }
 
-    public IMixHandler getMixHandler() {
-        return mixHandler;
+    public IPremixHandler getPremixHandler() {
+        return premixHandler;
+    }
+
+    public IPostmixHandler getPostmixHandler() {
+        return postmixHandler;
     }
 }

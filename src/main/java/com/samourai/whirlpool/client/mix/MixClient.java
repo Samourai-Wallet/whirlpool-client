@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.mix;
 
 import com.samourai.whirlpool.client.mix.dialog.MixDialogListener;
 import com.samourai.whirlpool.client.mix.dialog.MixSession;
+import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.mix.listener.MixClientListener;
 import com.samourai.whirlpool.client.mix.listener.MixClientListenerHandler;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
@@ -11,7 +12,10 @@ import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
 import com.samourai.whirlpool.protocol.websocket.messages.*;
-import com.samourai.whirlpool.protocol.websocket.notifications.*;
+import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,8 +27,6 @@ public class MixClient {
 
     // server settings
     private WhirlpoolClientConfig config;
-    private String poolId;
-    private long denomination;
 
     // mix settings
     private MixParams mixParams;
@@ -35,14 +37,12 @@ public class MixClient {
     private MixSession mixSession;
     private boolean done;
 
-    public MixClient(WhirlpoolClientConfig config, String poolId, long denomination) {
-        this(config, poolId, denomination, new ClientCryptoService(), new WhirlpoolProtocol());
+    public MixClient(WhirlpoolClientConfig config) {
+        this(config, new ClientCryptoService(), new WhirlpoolProtocol());
     }
 
-    public MixClient(WhirlpoolClientConfig config, String poolId, long denomination, ClientCryptoService clientCryptoService, WhirlpoolProtocol whirlpoolProtocol) {
+    public MixClient(WhirlpoolClientConfig config, ClientCryptoService clientCryptoService, WhirlpoolProtocol whirlpoolProtocol) {
         this.config = config;
-        this.poolId = poolId;
-        this.denomination = denomination;
         this.clientCryptoService = clientCryptoService;
         this.whirlpoolProtocol = whirlpoolProtocol;
     }
@@ -64,7 +64,7 @@ public class MixClient {
         }
 
         listenerProgress(MixStep.CONNECTING);
-        mixSession = new MixSession(computeMixDialogListener(), whirlpoolProtocol, config, poolId);
+        mixSession = new MixSession(computeMixDialogListener(), whirlpoolProtocol, config, mixParams.getPoolId());
         mixSession.connect();
     }
 
@@ -95,7 +95,7 @@ public class MixClient {
     }
 
     private MixProcess computeMixProcess() {
-        return new MixProcess(config, mixParams, clientCryptoService, poolId, denomination);
+        return new MixProcess(config, mixParams.getPoolId(), mixParams.getDenomination(), mixParams.getPremixHandler(), mixParams.getPostmixHandler(), clientCryptoService);
     }
 
     private MixDialogListener computeMixDialogListener() {
@@ -169,9 +169,9 @@ public class MixClient {
 
             @Override
             public void onSuccess() {
+                exit(); // disconnect before notifying listener to avoid reconnecting before disconnect
                 listener.progress(MixStep.SUCCESS);
-                listener.success(mixProcess.computeMixSuccess(), mixProcess.computeNextMixParams());
-                exit();
+                listener.success(mixProcess.computeMixSuccess(), computeNextMixParams());
             }
 
             @Override
@@ -195,6 +195,11 @@ public class MixClient {
                     log.debug("reset mixProcess");
                 }
                 mixProcess = computeMixProcess();
+            }
+
+            protected MixParams computeNextMixParams() {
+                IPremixHandler nextPremixHandler = mixProcess.computeNextPremixHandler();
+                return new MixParams(mixParams, nextPremixHandler);
             }
         };
     }

@@ -94,9 +94,7 @@ public class StompTransport {
         this.done = true;
         try {
             stompClient.disconnect();
-        } catch(Exception e) {
-            log.error("", e);
-        }
+        } catch(Exception e) {}
     }
 
     // STOMP communication
