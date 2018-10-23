@@ -9,7 +9,7 @@ This will fetch the following dependencies:
  * bitcoinj
 
 
-## Instanciate client
+## Instantiate client
 ```
 // client configuration (server...)
 String server = "hostname:port";
