@@ -65,6 +65,10 @@ public class MultiClientManager {
         waitDone(1, clients.size());
     }
 
+    public boolean isDone() {
+        return isDone(1, clients.size());
+    }
+
     public boolean isDone(int currentMix, int nbSuccessExpected) {
         Integer nbSuccess = getNbSuccess(currentMix);
         return (nbSuccess == null || nbSuccess == nbSuccessExpected);
