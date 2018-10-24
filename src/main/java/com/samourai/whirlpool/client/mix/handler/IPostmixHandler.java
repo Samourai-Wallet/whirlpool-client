@@ -4,7 +4,7 @@ import org.bitcoinj.core.NetworkParameters;
 
 public interface IPostmixHandler {
 
-    String computeReceiveAddress(NetworkParameters params) throws Exception;
+  String computeReceiveAddress(NetworkParameters params) throws Exception;
 
-    IPremixHandler computeNextPremixHandler(UtxoWithBalance receiveUtxo);
+  IPremixHandler computeNextPremixHandler(UtxoWithBalance receiveUtxo);
 }

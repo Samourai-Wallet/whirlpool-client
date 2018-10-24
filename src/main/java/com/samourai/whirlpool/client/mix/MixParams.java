@@ -4,35 +4,43 @@ import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 
 public class MixParams {
-    private String poolId;
-    private long denomination;
-    private IPremixHandler premixHandler;
-    private IPostmixHandler postmixHandler;
+  private String poolId;
+  private long denomination;
+  private IPremixHandler premixHandler;
+  private IPostmixHandler postmixHandler;
 
-    public MixParams(String poolId, long denomination, IPremixHandler premixHandler, IPostmixHandler postmixHandler) {
-        this.poolId = poolId;
-        this.denomination = denomination;
-        this.premixHandler = premixHandler;
-        this.postmixHandler = postmixHandler;
-    }
+  public MixParams(
+      String poolId,
+      long denomination,
+      IPremixHandler premixHandler,
+      IPostmixHandler postmixHandler) {
+    this.poolId = poolId;
+    this.denomination = denomination;
+    this.premixHandler = premixHandler;
+    this.postmixHandler = postmixHandler;
+  }
 
-    public MixParams(MixParams mixParams, IPremixHandler premixHandler) {
-        this(mixParams.getPoolId(), mixParams.getDenomination(), premixHandler, mixParams.getPostmixHandler());
-    }
+  public MixParams(MixParams mixParams, IPremixHandler premixHandler) {
+    this(
+        mixParams.getPoolId(),
+        mixParams.getDenomination(),
+        premixHandler,
+        mixParams.getPostmixHandler());
+  }
 
-    public String getPoolId() {
-        return poolId;
-    }
+  public String getPoolId() {
+    return poolId;
+  }
 
-    public long getDenomination() {
-        return denomination;
-    }
+  public long getDenomination() {
+    return denomination;
+  }
 
-    public IPremixHandler getPremixHandler() {
-        return premixHandler;
-    }
+  public IPremixHandler getPremixHandler() {
+    return premixHandler;
+  }
 
-    public IPostmixHandler getPostmixHandler() {
-        return postmixHandler;
-    }
+  public IPostmixHandler getPostmixHandler() {
+    return postmixHandler;
+  }
 }

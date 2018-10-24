@@ -5,64 +5,73 @@ import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bip47.rpc.PaymentAddress;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.segwit.SegwitAddress;
+import java.lang.invoke.MethodHandles;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.invoke.MethodHandles;
-
 public class PostmixHandler implements IPostmixHandler {
-    private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
 
-    private static final int BIP47_ACCOUNT_RECEIVE = Integer.MAX_VALUE;
-    private static final int BIP47_ACCOUNT_COUNTERPARTY = Integer.MAX_VALUE - 1;
+  private static final int BIP47_ACCOUNT_RECEIVE = Integer.MAX_VALUE;
+  private static final int BIP47_ACCOUNT_COUNTERPARTY = Integer.MAX_VALUE - 1;
 
-    private BIP47Wallet bip47Wallet;
-    private ECKey receiveKey;
-    private int paymentCodeIndex;
-    private BIP47UtilGeneric bip47Util;
+  private BIP47Wallet bip47Wallet;
+  private ECKey receiveKey;
+  private int paymentCodeIndex;
+  private BIP47UtilGeneric bip47Util;
 
-    public PostmixHandler(BIP47Wallet bip47Wallet, int paymentCodeIndex, BIP47UtilGeneric bip47Util) {
-        this.bip47Wallet = bip47Wallet;
-        this.receiveKey = null;
-        this.paymentCodeIndex = paymentCodeIndex;
-        this.bip47Util = bip47Util;
+  public PostmixHandler(BIP47Wallet bip47Wallet, int paymentCodeIndex, BIP47UtilGeneric bip47Util) {
+    this.bip47Wallet = bip47Wallet;
+    this.receiveKey = null;
+    this.paymentCodeIndex = paymentCodeIndex;
+    this.bip47Util = bip47Util;
+  }
+
+  @Override
+  public String computeReceiveAddress(NetworkParameters params) throws Exception {
+    // compute receiveAddress with our own paymentCode counterparty
+    PaymentCode paymentCodeCounter = computePaymentCodeCounterparty();
+    PaymentAddress receiveAddress =
+        bip47Util.getReceiveAddress(
+            bip47Wallet, BIP47_ACCOUNT_RECEIVE, paymentCodeCounter, this.paymentCodeIndex, params);
+
+    // bech32
+    this.receiveKey = receiveAddress.getReceiveECKey();
+    SegwitAddress addressToReceiver = new SegwitAddress(receiveKey, params);
+    String bech32Address = addressToReceiver.getBech32AsString();
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "receiveAddress="
+              + bech32Address
+              + " (bip47AccountReceive="
+              + BIP47_ACCOUNT_RECEIVE
+              + ", paymentCodeIndex="
+              + paymentCodeIndex
+              + ")");
+      log.debug("receiveECKey=" + this.receiveKey.getPrivateKeyAsWiF(params));
     }
+    this.paymentCodeIndex++;
+    return bech32Address;
+  }
 
-    @Override
-    public String computeReceiveAddress(NetworkParameters params) throws Exception {
-        // compute receiveAddress with our own paymentCode counterparty
-        PaymentCode paymentCodeCounter = computePaymentCodeCounterparty();
-        PaymentAddress receiveAddress = bip47Util.getReceiveAddress(bip47Wallet, BIP47_ACCOUNT_RECEIVE, paymentCodeCounter, this.paymentCodeIndex, params);
-
-        // bech32
-        this.receiveKey = receiveAddress.getReceiveECKey();
-        SegwitAddress addressToReceiver = new SegwitAddress(receiveKey, params);
-        String bech32Address = addressToReceiver.getBech32AsString();
-        if (log.isDebugEnabled()) {
-            log.debug("receiveAddress=" + bech32Address + " (bip47AccountReceive=" + BIP47_ACCOUNT_RECEIVE + ", paymentCodeIndex=" + paymentCodeIndex + ")");
-            log.debug("receiveECKey=" + this.receiveKey.getPrivateKeyAsWiF(params));
-        }
-        this.paymentCodeIndex++;
-        return bech32Address;
+  private PaymentCode computePaymentCodeCounterparty() throws Exception {
+    PaymentCode paymentCodeCounter =
+        new PaymentCode(this.bip47Wallet.getAccount(BIP47_ACCOUNT_COUNTERPARTY).getPaymentCode());
+    if (!paymentCodeCounter.isValid()) {
+      throw new Exception("Invalid paymentCode");
     }
+    return paymentCodeCounter;
+  }
 
-    private PaymentCode computePaymentCodeCounterparty() throws Exception {
-        PaymentCode paymentCodeCounter = new PaymentCode(this.bip47Wallet.getAccount(BIP47_ACCOUNT_COUNTERPARTY).getPaymentCode());
-        if (!paymentCodeCounter.isValid()) {
-            throw new Exception("Invalid paymentCode");
-        }
-        return paymentCodeCounter;
-    }
+  @Override
+  public IPremixHandler computeNextPremixHandler(UtxoWithBalance receiveUtxo) {
+    PremixHandler nextPremixHandler = new PremixHandler(receiveUtxo, receiveKey);
+    return nextPremixHandler;
+  }
 
-    @Override
-    public IPremixHandler computeNextPremixHandler(UtxoWithBalance receiveUtxo) {
-        PremixHandler nextPremixHandler = new PremixHandler(receiveUtxo, receiveKey);
-        return nextPremixHandler;
-    }
-
-    public ECKey getReceiveKey() {
-        return receiveKey;
-    }
+  public ECKey getReceiveKey() {
+    return receiveKey;
+  }
 }

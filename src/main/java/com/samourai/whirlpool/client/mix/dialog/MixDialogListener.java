@@ -8,20 +8,35 @@ import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusN
 
 public interface MixDialogListener {
 
-    void onConnected();
-    RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception;
-    ConfirmInputRequest confirmInput(ConfirmInputMixStatusNotification confirmInputMixStatusNotification) throws Exception;
-    void postRegisterOutput(RegisterOutputMixStatusNotification registerOutputMixStatusNotification, String registerOutputUrl) throws Exception;
-    RevealOutputRequest revealOutput(RevealOutputMixStatusNotification revealOutputMixStatusNotification) throws Exception;
-    SigningRequest signing(SigningMixStatusNotification signingMixStatusNotification) throws Exception;
+  void onConnected();
 
-    void onConfirmInputResponse(ConfirmInputResponse confirmInputResponse) throws Exception;
+  RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception;
 
-    void onSuccess();
-    void onFail();
-    void onResetMix();
+  ConfirmInputRequest confirmInput(
+      ConfirmInputMixStatusNotification confirmInputMixStatusNotification) throws Exception;
 
-    void exitOnProtocolError();
-    void exitOnResponseError(String notifiableError);
-    void exitOnDisconnected();
+  void postRegisterOutput(
+      RegisterOutputMixStatusNotification registerOutputMixStatusNotification,
+      String registerOutputUrl)
+      throws Exception;
+
+  RevealOutputRequest revealOutput(
+      RevealOutputMixStatusNotification revealOutputMixStatusNotification) throws Exception;
+
+  SigningRequest signing(SigningMixStatusNotification signingMixStatusNotification)
+      throws Exception;
+
+  void onConfirmInputResponse(ConfirmInputResponse confirmInputResponse) throws Exception;
+
+  void onSuccess();
+
+  void onFail();
+
+  void onResetMix();
+
+  void exitOnProtocolError();
+
+  void exitOnResponseError(String notifiableError);
+
+  void exitOnDisconnected();
 }
