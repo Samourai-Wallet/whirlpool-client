@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.mix;
 
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
+import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 
 public class MixParams {
   private String poolId;
@@ -18,6 +19,10 @@ public class MixParams {
     this.denomination = denomination;
     this.premixHandler = premixHandler;
     this.postmixHandler = postmixHandler;
+  }
+
+  public MixParams(Pool pool, IPremixHandler premixHandler, IPostmixHandler postmixHandler) {
+    this(pool.getPoolId(), pool.getDenomination(), premixHandler, postmixHandler);
   }
 
   public MixParams(MixParams mixParams, IPremixHandler premixHandler) {
