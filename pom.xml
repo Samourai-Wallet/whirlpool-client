@@ -8,9 +8,9 @@
     <name>whirlpool-client</name>
     <dependencies>
         <dependency>
-            <groupId>com.samouraiwallet</groupId>
+            <groupId>com.github.Samourai-Wallet</groupId>
             <artifactId>whirlpool-protocol</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>develop-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
