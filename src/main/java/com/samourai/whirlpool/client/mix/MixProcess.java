@@ -115,7 +115,7 @@ public class MixProcess {
     long minerFeeMax = subscribePoolResponse.minerFeeMax;
     checkUtxoBalance(minerFeeMin, minerFeeMax);
 
-    String pubkey64 = ClientUtils.encodeBase64(premixHandler.getPubkey());
+    String pubkey64 = ClientUtils.encodeBytes(premixHandler.getPubkey());
     String signature = premixHandler.signMessage(poolId);
     RegisterInputRequest registerInputRequest =
         new RegisterInputRequest(
@@ -147,14 +147,14 @@ public class MixProcess {
     // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
     // clear receiveAddress will be provided with unblindedSignedBordereau by connecting with
     // another identity for REGISTER_OUTPUT
-    byte[] publicKey = ClientUtils.decodeBase64(confirmInputMixStatusNotification.publicKey64);
+    byte[] publicKey = ClientUtils.decodeBytes(confirmInputMixStatusNotification.publicKey64);
     RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(publicKey);
     this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
     this.receiveAddress = postmixHandler.computeReceiveAddress(networkParameters);
 
     String mixId = confirmInputMixStatusNotification.mixId;
     String blindedBordereau64 =
-        ClientUtils.encodeBase64(clientCryptoService.blind(this.receiveAddress, blindingParams));
+        ClientUtils.encodeBytes(clientCryptoService.blind(this.receiveAddress, blindingParams));
     ConfirmInputRequest confirmInputRequest = new ConfirmInputRequest(mixId, blindedBordereau64);
 
     confirmedInput = true;
@@ -172,7 +172,7 @@ public class MixProcess {
       throwProtocolException();
     }
 
-    this.signedBordereau = ClientUtils.decodeBase64(confirmInputResponse.signedBordereau64);
+    this.signedBordereau = ClientUtils.decodeBytes(confirmInputResponse.signedBordereau64);
 
     confirmedInputResponse = true;
   }
@@ -191,7 +191,7 @@ public class MixProcess {
     this.inputsHash = registerOutputMixStatusNotification.getInputsHash();
 
     String unblindedSignedBordereau64 =
-        ClientUtils.encodeBase64(clientCryptoService.unblind(signedBordereau, blindingParams));
+        ClientUtils.encodeBytes(clientCryptoService.unblind(signedBordereau, blindingParams));
     RegisterOutputRequest registerOutputRequest =
         new RegisterOutputRequest(inputsHash, unblindedSignedBordereau64, this.receiveAddress);
 
@@ -230,7 +230,7 @@ public class MixProcess {
 
     NetworkParameters networkParameters = config.getNetworkParameters();
 
-    byte[] rawTx = ClientUtils.decodeBase64(signingMixStatusNotification.transaction64);
+    byte[] rawTx = ClientUtils.decodeBytes(signingMixStatusNotification.transaction64);
     Transaction tx = new Transaction(networkParameters, rawTx);
 
     // verify tx

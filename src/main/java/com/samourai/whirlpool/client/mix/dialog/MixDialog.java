@@ -29,7 +29,7 @@ public class MixDialog {
   private boolean gotConfirmInputResponse; // will get it after CONFIRM_INPUT
   private RegisterOutputMixStatusNotification
       earlyRegisterOutputMixStatusNotification; // we may get early REGISTER_OUTPUT notification
-                                                // (before registerInputResponse)
+  // (before registerInputResponse)
 
   // computed values
   private Set<MixStatus> mixStatusCompleted = new HashSet<>();

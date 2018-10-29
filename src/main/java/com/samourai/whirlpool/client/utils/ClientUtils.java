@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.http.client.HttpException;
 import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.wallet.util.Z85;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import java.lang.invoke.MethodHandles;
 import java.security.KeyFactory;
@@ -12,7 +13,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.UUID;
-import org.apache.commons.codec.binary.Base64;
 import org.bitcoinj.core.*;
 import org.bitcoinj.crypto.TransactionSignature;
 import org.bitcoinj.script.Script;
@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 public class ClientUtils {
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
   private static final ObjectMapper objectMapper = new ObjectMapper();
+  private static final Z85 z85 = Z85.getInstance();
 
   public static Integer findTxOutputIndex(
       String outputAddressBech32, Transaction tx, NetworkParameters params) {
@@ -59,7 +60,7 @@ public class ClientUtils {
   public static String[] witnessSerialize64(TransactionWitness witness) {
     String[] serialized = new String[witness.getPushCount()];
     for (int i = 0; i < witness.getPushCount(); i++) {
-      serialized[i] = encodeBase64(witness.getPush(i));
+      serialized[i] = encodeBytes(witness.getPush(i));
     }
     return serialized;
   }
@@ -127,11 +128,11 @@ public class ClientUtils {
     return parseRestErrorMessage(responseBody);
   }
 
-  public static byte[] decodeBase64(String base64) {
-    return Base64.decodeBase64(base64);
+  public static byte[] decodeBytes(String encoded) {
+    return z85.decode(encoded);
   }
 
-  public static String encodeBase64(byte[] data) {
-    return Base64.encodeBase64String(data);
+  public static String encodeBytes(byte[] data) {
+    return z85.encode(data);
   }
 }
