@@ -11,7 +11,12 @@ import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.*;
+import com.samourai.whirlpool.protocol.websocket.messages.ConfirmInputRequest;
+import com.samourai.whirlpool.protocol.websocket.messages.ConfirmInputResponse;
+import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
+import com.samourai.whirlpool.protocol.websocket.messages.RevealOutputRequest;
+import com.samourai.whirlpool.protocol.websocket.messages.SigningRequest;
+import com.samourai.whirlpool.protocol.websocket.messages.SubscribePoolResponse;
 import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
@@ -19,7 +24,11 @@ import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusN
 import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
-import org.bitcoinj.core.*;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.ProtocolException;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutput;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
@@ -115,7 +124,7 @@ public class MixProcess {
     long minerFeeMax = subscribePoolResponse.minerFeeMax;
     checkUtxoBalance(minerFeeMin, minerFeeMax);
 
-    String pubkey64 = ClientUtils.encodeBytes(premixHandler.getPubkey());
+    String pubkey64 = WhirlpoolProtocol.encodeBytes(premixHandler.getPubkey());
     String signature = premixHandler.signMessage(poolId);
     RegisterInputRequest registerInputRequest =
         new RegisterInputRequest(
@@ -147,14 +156,15 @@ public class MixProcess {
     // use receiveAddress as bordereau. keep it private, but transmit blindedBordereau
     // clear receiveAddress will be provided with unblindedSignedBordereau by connecting with
     // another identity for REGISTER_OUTPUT
-    byte[] publicKey = ClientUtils.decodeBytes(confirmInputMixStatusNotification.publicKey64);
+    byte[] publicKey = WhirlpoolProtocol.decodeBytes(confirmInputMixStatusNotification.publicKey64);
     RSAKeyParameters serverPublicKey = ClientUtils.publicKeyUnserialize(publicKey);
     this.blindingParams = clientCryptoService.computeBlindingParams(serverPublicKey);
     this.receiveAddress = postmixHandler.computeReceiveAddress(networkParameters);
 
     String mixId = confirmInputMixStatusNotification.mixId;
     String blindedBordereau64 =
-        ClientUtils.encodeBytes(clientCryptoService.blind(this.receiveAddress, blindingParams));
+        WhirlpoolProtocol.encodeBytes(
+            clientCryptoService.blind(this.receiveAddress, blindingParams));
     ConfirmInputRequest confirmInputRequest = new ConfirmInputRequest(mixId, blindedBordereau64);
 
     confirmedInput = true;
@@ -172,7 +182,7 @@ public class MixProcess {
       throwProtocolException();
     }
 
-    this.signedBordereau = ClientUtils.decodeBytes(confirmInputResponse.signedBordereau64);
+    this.signedBordereau = WhirlpoolProtocol.decodeBytes(confirmInputResponse.signedBordereau64);
 
     confirmedInputResponse = true;
   }
@@ -191,7 +201,7 @@ public class MixProcess {
     this.inputsHash = registerOutputMixStatusNotification.getInputsHash();
 
     String unblindedSignedBordereau64 =
-        ClientUtils.encodeBytes(clientCryptoService.unblind(signedBordereau, blindingParams));
+        WhirlpoolProtocol.encodeBytes(clientCryptoService.unblind(signedBordereau, blindingParams));
     RegisterOutputRequest registerOutputRequest =
         new RegisterOutputRequest(inputsHash, unblindedSignedBordereau64, this.receiveAddress);
 
@@ -230,7 +240,7 @@ public class MixProcess {
 
     NetworkParameters networkParameters = config.getNetworkParameters();
 
-    byte[] rawTx = ClientUtils.decodeBytes(signingMixStatusNotification.transaction64);
+    byte[] rawTx = WhirlpoolProtocol.decodeBytes(signingMixStatusNotification.transaction64);
     Transaction tx = new Transaction(networkParameters, rawTx);
 
     // verify tx

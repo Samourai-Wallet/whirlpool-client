@@ -6,6 +6,7 @@ import com.samourai.http.client.HttpException;
 import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.Z85;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import java.lang.invoke.MethodHandles;
 import java.security.KeyFactory;
@@ -13,7 +14,14 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.UUID;
-import org.bitcoinj.core.*;
+import org.bitcoinj.core.Coin;
+import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionInput;
+import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.TransactionOutput;
+import org.bitcoinj.core.TransactionWitness;
 import org.bitcoinj.crypto.TransactionSignature;
 import org.bitcoinj.script.Script;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
@@ -60,7 +68,7 @@ public class ClientUtils {
   public static String[] witnessSerialize64(TransactionWitness witness) {
     String[] serialized = new String[witness.getPushCount()];
     for (int i = 0; i < witness.getPushCount(); i++) {
-      serialized[i] = encodeBytes(witness.getPush(i));
+      serialized[i] = WhirlpoolProtocol.encodeBytes(witness.getPush(i));
     }
     return serialized;
   }
@@ -126,13 +134,5 @@ public class ClientUtils {
       return null;
     }
     return parseRestErrorMessage(responseBody);
-  }
-
-  public static byte[] decodeBytes(String encoded) {
-    return z85.decode(encoded);
-  }
-
-  public static String encodeBytes(byte[] data) {
-    return z85.encode(data);
   }
 }
