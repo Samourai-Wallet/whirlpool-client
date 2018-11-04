@@ -3,9 +3,7 @@ package com.samourai.whirlpool.client.utils;
 import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.http.client.HttpException;
-import com.samourai.wallet.segwit.SegwitAddress;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import com.samourai.wallet.util.Z85;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import java.lang.invoke.MethodHandles;
@@ -13,17 +11,10 @@ import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
-import java.util.UUID;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionInput;
-import org.bitcoinj.core.TransactionOutPoint;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.TransactionWitness;
-import org.bitcoinj.crypto.TransactionSignature;
-import org.bitcoinj.script.Script;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +22,6 @@ import org.slf4j.LoggerFactory;
 public class ClientUtils {
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
   private static final ObjectMapper objectMapper = new ObjectMapper();
-  private static final Z85 z85 = Z85.getInstance();
 
   public static Integer findTxOutputIndex(
       String outputAddressBech32, Transaction tx, NetworkParameters params) {
@@ -49,22 +39,6 @@ public class ClientUtils {
     return null;
   }
 
-  public static Integer findTxInputIndex(String utxoHash, long utxoIdx, Transaction tx) {
-    for (int index = 0; index < tx.getInputs().size(); index++) {
-      TransactionInput input = tx.getInput(index);
-      TransactionOutPoint transactionOutPoint = input.getOutpoint();
-      if (transactionOutPoint.getHash().toString().equals(utxoHash)
-          && transactionOutPoint.getIndex() == utxoIdx) {
-        return index;
-      }
-    }
-    return null;
-  }
-
-  public static String generateUniqueString() {
-    return UUID.randomUUID().toString().replace("-", "");
-  }
-
   public static String[] witnessSerialize64(TransactionWitness witness) {
     String[] serialized = new String[witness.getPushCount()];
     for (int i = 0; i < witness.getPushCount(); i++) {
@@ -79,22 +53,6 @@ public class ClientUtils {
             KeyFactory.getInstance("RSA")
                 .generatePublic(new X509EncodedKeySpec(publicKeySerialized));
     return new RSAKeyParameters(false, rsaPublicKey.getModulus(), rsaPublicKey.getPublicExponent());
-  }
-
-  public static void signSegwitInput(
-      Transaction tx, int inputIdx, ECKey ecKey, long spendAmount, NetworkParameters params)
-      throws Exception {
-    final SegwitAddress segwitAddress = new SegwitAddress(ecKey, params);
-    final Script redeemScript = segwitAddress.segWitRedeemScript();
-    final Script scriptCode = redeemScript.scriptCode();
-
-    TransactionSignature sig =
-        tx.calculateWitnessSignature(
-            inputIdx, ecKey, scriptCode, Coin.valueOf(spendAmount), Transaction.SigHash.ALL, false);
-    final TransactionWitness witness = new TransactionWitness(2);
-    witness.setPush(0, sig.encodeToBitcoin());
-    witness.setPush(1, ecKey.getPubKey());
-    tx.setWitness(inputIdx, witness);
   }
 
   public static String toJsonString(Object o) {

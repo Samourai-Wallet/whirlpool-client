@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.mix;
 
+import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
@@ -335,7 +336,7 @@ public class MixProcess {
 
     // verify my input
     UtxoWithBalance utxo = premixHandler.getUtxo();
-    Integer inputIndex = ClientUtils.findTxInputIndex(utxo.getHash(), utxo.getIndex(), tx);
+    Integer inputIndex = TxUtil.getInstance().findInputIndex(tx, utxo.getHash(), utxo.getIndex());
     if (outputIndex == null) {
       throw new Exception("Input not found in tx");
     }
