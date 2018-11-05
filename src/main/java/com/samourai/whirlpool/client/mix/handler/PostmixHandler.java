@@ -4,7 +4,7 @@ import com.samourai.wallet.bip47.BIP47UtilGeneric;
 import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bip47.rpc.PaymentAddress;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
-import com.samourai.wallet.segwit.SegwitAddress;
+import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import java.lang.invoke.MethodHandles;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class PostmixHandler implements IPostmixHandler {
   private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
   private static final int BIP47_ACCOUNT_RECEIVE = Integer.MAX_VALUE;
   private static final int BIP47_ACCOUNT_COUNTERPARTY = Integer.MAX_VALUE - 1;
@@ -39,8 +40,7 @@ public class PostmixHandler implements IPostmixHandler {
 
     // bech32
     this.receiveKey = receiveAddress.getReceiveECKey();
-    SegwitAddress addressToReceiver = new SegwitAddress(receiveKey, params);
-    String bech32Address = addressToReceiver.getBech32AsString();
+    String bech32Address = bech32Util.toBech32(receiveKey.getPubKey(), params);
     if (log.isDebugEnabled()) {
       log.debug(
           "receiveAddress="
