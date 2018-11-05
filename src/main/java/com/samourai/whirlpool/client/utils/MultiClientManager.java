@@ -44,10 +44,11 @@ public class MultiClientManager {
     }
   }
 
-  public synchronized void waitDone(int currentMix, int nbSuccessExpected) {
+  /** @return true when success, false when failed */
+  public synchronized boolean waitDone(int currentMix, int nbSuccessExpected) {
     do {
       if (isDone(currentMix, nbSuccessExpected)) {
-        return;
+        return (getNbSuccess(currentMix) != null);
       }
 
       // will be notified by listeners to wakeup
@@ -62,8 +63,9 @@ public class MultiClientManager {
     } while (true);
   }
 
-  public synchronized void waitDone() {
-    waitDone(1, clients.size());
+  /** @return true when success, false when failed */
+  public synchronized boolean waitDone() {
+    return waitDone(1, clients.size());
   }
 
   public boolean isDone() {
