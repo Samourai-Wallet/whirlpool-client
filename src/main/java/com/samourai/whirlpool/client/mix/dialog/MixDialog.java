@@ -57,6 +57,21 @@ public class MixDialog {
         String errorMessage = ((ErrorResponse) mixMessage).message;
         exitOnResponseError(errorMessage);
       } else {
+        if (mixId == null) {
+          // track mixId as soon as we joined a mix (either ConfirmInputResponse or early
+          // RegisterOutputMixStatusNotification) but not ConfirmInputMixStatusNotification which
+          // doesn't garantee to join the mix
+          if (!ConfirmInputMixStatusNotification.class.isAssignableFrom(payloadClass)) {
+            mixId = mixMessage.mixId;
+            if (log.isDebugEnabled()) {
+              log.debug("mixId=" + mixId);
+            }
+          }
+        } else if (!mixMessage.mixId.equals(mixId)) {
+          log.error("Invalid mixId: expected=" + mixId + ", actual=" + mixMessage.mixId);
+          throw new Exception("Invalid mixId");
+        }
+
         if (MixStatusNotification.class.isAssignableFrom(mixMessage.getClass())) {
           onMixStatusNotificationChange((MixStatusNotification) mixMessage);
         } else if (ConfirmInputResponse.class.isAssignableFrom(payloadClass)) {
@@ -94,13 +109,6 @@ public class MixDialog {
   }
 
   private void onMixStatusNotificationChange(MixStatusNotification notification) throws Exception {
-    if (mixId == null) {
-      mixId = notification.mixId;
-    } else if (!notification.mixId.equals(mixId)) {
-      log.error("Invalid mixId: expected=" + mixId + ", actual=" + notification.mixId);
-      throw new Exception("Invalid mixId");
-    }
-
     // check status chronology
     if (mixStatusCompleted.contains(notification.status)) {
       throw new Exception("mixStatus already completed: " + notification.status);
