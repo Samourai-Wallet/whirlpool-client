@@ -27,7 +27,6 @@ public class MixSession {
 
   // connect data
   private Long connectBeginTime;
-  private String stompSessionId;
 
   // session data
   private MixDialog dialog;
@@ -55,7 +54,8 @@ public class MixSession {
       connectBeginTime = System.currentTimeMillis();
     }
 
-    String wsUrl = "ws://" + config.getServer() + WhirlpoolProtocol.ENDPOINT_CONNECT;
+    String protocol = config.isSsl() ? "wss" : "ws";
+    String wsUrl = protocol + "://" + config.getServer() + WhirlpoolProtocol.ENDPOINT_CONNECT;
     if (log.isDebugEnabled()) {
       log.debug("connecting to server: " + wsUrl);
     }
@@ -65,8 +65,9 @@ public class MixSession {
     transport.connect(wsUrl, connectHeaders);
   }
 
-  private void setLogPrefix(String logPrefix) {
+  public void setLogPrefix(String logPrefix) {
     dialog.setLogPrefix(logPrefix);
+    transport.setLogPrefix(logPrefix);
     log = ClientUtils.prefixLogger(log, logPrefix);
   }
 
@@ -171,7 +172,6 @@ public class MixSession {
     if (log.isDebugEnabled()) {
       log.debug("Disconnecting...");
     }
-    stompSessionId = null;
     connectBeginTime = null;
     transport.disconnect();
     if (log.isDebugEnabled()) {

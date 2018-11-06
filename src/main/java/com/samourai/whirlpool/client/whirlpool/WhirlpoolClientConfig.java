@@ -10,6 +10,7 @@ public class WhirlpoolClientConfig {
   private IStompClient stompClient;
   private String server;
   private NetworkParameters networkParameters;
+  private boolean ssl;
   private int reconnectDelay;
   private int reconnectUntil;
   private boolean testMode;
@@ -23,6 +24,8 @@ public class WhirlpoolClientConfig {
     this.stompClient = stompClient;
     this.server = server;
     this.networkParameters = networkParameters;
+
+    this.ssl = true;
 
     // wait 5 seconds between reconnecting attempt
     this.reconnectDelay = 5;
@@ -38,6 +41,7 @@ public class WhirlpoolClientConfig {
     this.stompClient = copy.stompClient;
     this.server = copy.server;
     this.networkParameters = copy.networkParameters;
+    this.ssl = copy.ssl;
     this.reconnectDelay = copy.reconnectDelay;
     this.reconnectUntil = copy.reconnectUntil;
     this.testMode = copy.testMode;
@@ -65,6 +69,14 @@ public class WhirlpoolClientConfig {
 
   public NetworkParameters getNetworkParameters() {
     return networkParameters;
+  }
+
+  public boolean isSsl() {
+    return ssl;
+  }
+
+  public void setSsl(boolean ssl) {
+    this.ssl = ssl;
   }
 
   public void setNetworkParameters(NetworkParameters networkParameters) {

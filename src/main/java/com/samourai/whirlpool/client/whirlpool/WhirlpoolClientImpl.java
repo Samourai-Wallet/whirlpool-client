@@ -55,8 +55,8 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
 
   @Override
   public Pools fetchPools() throws HttpException, NotifiableException {
-    String url =
-        "http://" + this.config.getServer() + WhirlpoolProtocol.ENDPOINT_POOLS; // TODO HTTPS
+    String protocol = this.config.isSsl() ? "https" : "http";
+    String url = protocol + "://" + this.config.getServer() + WhirlpoolProtocol.ENDPOINT_POOLS;
     try {
       PoolsResponse poolsResponse = config.getHttpClient().parseJson(url, PoolsResponse.class);
       return computePools(poolsResponse);
@@ -121,7 +121,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     MixClient mixClient = new MixClient(config);
     if (logPrefix != null) {
       int mix = this.mixClients.size();
-      mixClient.setLogPrefix(logPrefix + "[" + (mix + 1) + "]");
+      mixClient.setLogPrefix(logPrefix + ":" + (mix + 1));
     }
     mixClient.whirlpool(mixParams, mixListener);
     this.mixClients.add(mixClient);
