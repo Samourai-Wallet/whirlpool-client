@@ -74,7 +74,7 @@ public class MultiClientManager {
 
   public boolean isDone(int currentMix, int nbSuccessExpected) {
     Integer nbSuccess = getNbSuccess(currentMix);
-    return (nbSuccess == null || nbSuccess == nbSuccessExpected);
+    return (nbSuccess == null || nbSuccess >= nbSuccessExpected);
   }
 
   protected void debugClients(int currentMix) {
