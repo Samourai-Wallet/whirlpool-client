@@ -33,6 +33,7 @@ public class MixClient {
 
   private ClientCryptoService clientCryptoService;
   private WhirlpoolProtocol whirlpoolProtocol;
+  private String logPrefix;
   private MixSession mixSession;
   private boolean done;
 
@@ -69,6 +70,9 @@ public class MixClient {
     mixSession =
         new MixSession(
             computeMixDialogListener(), whirlpoolProtocol, config, mixParams.getPoolId());
+    if (logPrefix != null) {
+      mixSession.setLogPrefix(logPrefix);
+    }
     mixSession.connect();
   }
 
@@ -95,6 +99,10 @@ public class MixClient {
   }
 
   public void setLogPrefix(String logPrefix) {
+    this.logPrefix = logPrefix;
+    if (mixSession != null) {
+      mixSession.setLogPrefix(logPrefix);
+    }
     log = ClientUtils.prefixLogger(log, logPrefix);
   }
 

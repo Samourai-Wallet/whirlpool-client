@@ -53,8 +53,6 @@ public class StompTransport {
         });
 
     String stompSessionId = stompClient.getSessionId();
-    log = ClientUtils.prefixLogger(log, stompSessionId);
-
     return stompSessionId;
   }
 
@@ -131,5 +129,9 @@ public class StompTransport {
   private Map<String, String> completeHeaders(Map<String, String> stompHeaders) {
     stompHeaders.put(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION, WhirlpoolProtocol.PROTOCOL_VERSION);
     return stompHeaders;
+  }
+
+  public void setLogPrefix(String logPrefix) {
+    this.log = ClientUtils.prefixLogger(log, logPrefix);
   }
 }

@@ -70,8 +70,7 @@ public class ClientUtils {
 
   public static Logger prefixLogger(Logger log, String logPrefix) {
     Level level = ((ch.qos.logback.classic.Logger) log).getEffectiveLevel();
-    Logger newLog =
-        LoggerFactory.getLogger(MethodHandles.lookup().lookupClass() + "[" + logPrefix + "]");
+    Logger newLog = LoggerFactory.getLogger(log.getName() + "[" + logPrefix + "]");
     ((ch.qos.logback.classic.Logger) newLog).setLevel(level);
     return newLog;
   }
