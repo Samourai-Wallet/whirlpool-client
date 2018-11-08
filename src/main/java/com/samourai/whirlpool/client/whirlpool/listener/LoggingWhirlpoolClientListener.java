@@ -27,10 +27,7 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
 
   @Override
   public void fail(int currentMix, int nbMixs) {
-    log(format(
-        currentMix,
-        nbMixs,
-        "⣿ MIX FAILED ⣿ Check logs for errors."));
+    log(format(currentMix, nbMixs, "⣿ MIX FAILED ⣿ Check logs for errors."));
   }
 
   @Override
@@ -55,7 +52,7 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
         format(
             currentMix,
             nbMixs,
-            "SUCCESS - Funds will be received at "
+            "SUCCESS - Funds sent to "
                 + mixSuccess.getReceiveAddress()
                 + ", utxo "
                 + mixSuccess.getReceiveUtxo().getHash()
