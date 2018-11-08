@@ -27,7 +27,9 @@ public class MultiClientManager {
   public synchronized MultiClientListener register(
       WhirlpoolClient whirlpoolClient, int missedMixs) {
     int i = clients.size() + 1;
-    log.info("Register client#" + i);
+    if (log.isDebugEnabled()) {
+      log.debug("Register client#" + i);
+    }
     ((WhirlpoolClientImpl) whirlpoolClient).setLogPrefix("cli#" + i);
     MultiClientListener listener = new MultiClientListener(this, missedMixs);
     listener.setLogPrefix("cli#" + i);
