@@ -22,12 +22,12 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
 
   @Override
   public void success(int nbMixs, MixSuccess mixSuccess) {
-    log("⣿ ALL MIXS SUCCESS ⣿");
+    log("⣿ WHIRLPOOL SUCCESS ⣿");
   }
 
   @Override
   public void fail(int currentMix, int nbMixs) {
-    log(format(currentMix, nbMixs, "⣿ MIX FAILED ⣿ Check logs for errors."));
+    log(format(currentMix, nbMixs, "⣿ WHIRLPOOL FAILED ⣿ Check logs for errors."));
   }
 
   @Override
