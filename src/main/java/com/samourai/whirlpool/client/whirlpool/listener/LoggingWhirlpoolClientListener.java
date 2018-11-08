@@ -17,28 +17,20 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
   }
 
   private String format(int currentMix, int nbMixs, String log) {
-    return " • [MIX " + currentMix + "/" + nbMixs + "] " + log;
+    return " - [MIX " + currentMix + "/" + nbMixs + "] " + log;
   }
 
   @Override
   public void success(int nbMixs, MixSuccess mixSuccess) {
-    log(
-        "⣿ WHIRLPOOL SUCCESS ⣿ Funds will be received at "
-            + mixSuccess.getReceiveAddress()
-            + ", utxo "
-            + mixSuccess.getReceiveUtxo().getHash()
-            + ":"
-            + mixSuccess.getReceiveUtxo().getIndex());
+    log("⣿ ALL MIXS SUCCESS ⣿");
   }
 
   @Override
   public void fail(int currentMix, int nbMixs) {
-    log(
-        "⣿ WHIRLPOOL FAILED ⣿ Mix "
-            + currentMix
-            + "/"
-            + nbMixs
-            + " failed. Check logs for errors.");
+    log(format(
+        currentMix,
+        nbMixs,
+        "⣿ MIX FAILED ⣿ Check logs for errors."));
   }
 
   @Override
