@@ -3,19 +3,19 @@ package com.samourai.whirlpool.client.mix.listener;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 
 public class MixSuccess {
-    private String receiveAddress;
-    private Utxo receiveUtxo;
+  private String receiveAddress;
+  private Utxo receiveUtxo;
 
-    public MixSuccess(String receiveAddress, Utxo receiveUtxo) {
-        this.receiveAddress = receiveAddress;
-        this.receiveUtxo = receiveUtxo;
-    }
+  public MixSuccess(String receiveAddress, Utxo receiveUtxo) {
+    this.receiveAddress = receiveAddress;
+    this.receiveUtxo = receiveUtxo;
+  }
 
-    public String getReceiveAddress() {
-        return receiveAddress;
-    }
+  public String getReceiveAddress() {
+    return receiveAddress;
+  }
 
-    public Utxo getReceiveUtxo() {
-        return receiveUtxo;
-    }
+  public Utxo getReceiveUtxo() {
+    return receiveUtxo;
+  }
 }

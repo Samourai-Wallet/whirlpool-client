@@ -5,11 +5,11 @@ import org.bitcoinj.core.Transaction;
 
 public interface IPremixHandler {
 
-    UtxoWithBalance getUtxo();
+  UtxoWithBalance getUtxo();
 
-    void signTransaction(Transaction tx, int inputIndex, NetworkParameters params) throws Exception;
+  void signTransaction(Transaction tx, int inputIndex, NetworkParameters params) throws Exception;
 
-    String signMessage(String message);
+  String signMessage(String message);
 
-    byte[] getPubkey();
+  byte[] getPubkey();
 }
