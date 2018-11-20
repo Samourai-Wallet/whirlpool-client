@@ -125,14 +125,12 @@ public class MixProcess {
     long minerFeeMax = subscribePoolResponse.minerFeeMax;
     checkUtxoBalance(minerFeeMin, minerFeeMax);
 
-    String pubkey64 = WhirlpoolProtocol.encodeBytes(premixHandler.getPubkey());
     String signature = premixHandler.signMessage(poolId);
     RegisterInputRequest registerInputRequest =
         new RegisterInputRequest(
             poolId,
             utxo.getHash(),
             utxo.getIndex(),
-            pubkey64,
             signature,
             this.liquidity,
             config.isTestMode());

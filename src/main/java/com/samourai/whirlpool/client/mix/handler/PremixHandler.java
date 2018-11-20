@@ -30,9 +30,4 @@ public class PremixHandler implements IPremixHandler {
   public String signMessage(String message) {
     return utxoKey.signMessage(message);
   }
-
-  @Override
-  public byte[] getPubkey() {
-    return utxoKey.getPubKey();
-  }
 }
