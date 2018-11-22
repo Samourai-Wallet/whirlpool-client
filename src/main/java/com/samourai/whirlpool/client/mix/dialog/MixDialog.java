@@ -5,10 +5,20 @@ import com.samourai.stomp.client.StompTransport;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
+import com.samourai.whirlpool.protocol.WhirlpoolEndpoint;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.websocket.MixMessage;
-import com.samourai.whirlpool.protocol.websocket.messages.*;
-import com.samourai.whirlpool.protocol.websocket.notifications.*;
+import com.samourai.whirlpool.protocol.websocket.messages.ConfirmInputRequest;
+import com.samourai.whirlpool.protocol.websocket.messages.ConfirmInputResponse;
+import com.samourai.whirlpool.protocol.websocket.messages.ErrorResponse;
+import com.samourai.whirlpool.protocol.websocket.messages.RevealOutputRequest;
+import com.samourai.whirlpool.protocol.websocket.messages.SigningRequest;
+import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
+import com.samourai.whirlpool.protocol.websocket.notifications.MixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
+import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
 import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
 import java.util.Set;
@@ -130,7 +140,7 @@ public class MixDialog {
 
       ConfirmInputRequest confirmInputRequest =
           listener.confirmInput(confirmInputMixStatusNotification);
-      transport.send(WhirlpoolProtocol.ENDPOINT_CONFIRM_INPUT, confirmInputRequest);
+      transport.send(WhirlpoolEndpoint.WS_CONFIRM_INPUT, confirmInputRequest);
       mixStatusCompleted.add(MixStatus.CONFIRM_INPUT);
     } else if (mixStatusCompleted.contains(MixStatus.CONFIRM_INPUT)) {
       if (gotConfirmInputResponse()) {
@@ -146,7 +156,7 @@ public class MixDialog {
               && MixStatus.REVEAL_OUTPUT.equals(notification.status)) {
             RevealOutputRequest revealOutputRequest =
                 listener.revealOutput((RevealOutputMixStatusNotification) notification);
-            transport.send(WhirlpoolProtocol.ENDPOINT_REVEAL_OUTPUT, revealOutputRequest);
+            transport.send(WhirlpoolEndpoint.WS_REVEAL_OUTPUT, revealOutputRequest);
             mixStatusCompleted.add(MixStatus.REVEAL_OUTPUT);
 
           } else if (!mixStatusCompleted.contains(
@@ -155,7 +165,7 @@ public class MixDialog {
             if (MixStatus.SIGNING.equals(notification.status)) {
               SigningRequest signingRequest =
                   listener.signing((SigningMixStatusNotification) notification);
-              transport.send(WhirlpoolProtocol.ENDPOINT_SIGNING, signingRequest);
+              transport.send(WhirlpoolEndpoint.WS_SIGNING, signingRequest);
               mixStatusCompleted.add(MixStatus.SIGNING);
 
             } else if (mixStatusCompleted.contains(MixStatus.SIGNING)) {

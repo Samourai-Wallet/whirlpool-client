@@ -4,6 +4,7 @@ import com.samourai.stomp.client.IStompTransportListener;
 import com.samourai.stomp.client.StompTransport;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
+import com.samourai.whirlpool.protocol.WhirlpoolEndpoint;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.websocket.MixMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
@@ -76,8 +77,7 @@ public class MixSession {
 
     // subscribe to private queue
     final String privateQueue =
-        whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE
-            + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY;
+        whirlpoolProtocol.WS_PREFIX_USER_PRIVATE + whirlpoolProtocol.WS_PREFIX_USER_REPLY;
     transport.subscribe(
         computeStompHeaders(privateQueue),
         new MessageHandler.Whole<Object>() {
@@ -135,7 +135,7 @@ public class MixSession {
 
   private void registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception {
     RegisterInputRequest registerInputRequest = listener.registerInput(subscribePoolResponse);
-    transport.send(WhirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);
+    transport.send(WhirlpoolEndpoint.WS_REGISTER_INPUT, registerInputRequest);
   }
 
   private MixMessage checkMixMessage(Object payload) {
