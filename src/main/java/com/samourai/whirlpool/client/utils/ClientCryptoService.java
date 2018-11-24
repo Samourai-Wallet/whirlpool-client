@@ -4,8 +4,8 @@ import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.bip47.rpc.java.SecretPointJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPoint;
 import com.samourai.wallet.hd.HD_Address;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.TransactionOutPoint;
@@ -73,7 +73,7 @@ public class ClientCryptoService {
       ECKey input0PrivKey,
       TransactionOutPoint input0OutPoint)
       throws Exception {
-    byte[] dataToMaskBytes = ByteBuffer.allocate(64).putInt(dataToMask).array();
+    byte[] dataToMaskBytes = WhirlpoolProtocol.getWhirlpoolFee().encode(dataToMask);
     if (dataToMaskBytes == null) {
       return null;
     }
