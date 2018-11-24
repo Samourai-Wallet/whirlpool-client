@@ -1,14 +1,6 @@
 package com.samourai.whirlpool.client.utils;
 
-import com.samourai.wallet.bip47.rpc.PaymentCode;
-import com.samourai.wallet.bip47.rpc.java.SecretPointJava;
-import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPoint;
-import com.samourai.wallet.hd.HD_Address;
-import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import java.math.BigInteger;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.TransactionOutPoint;
 import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.engines.RSABlindingEngine;
@@ -50,33 +42,5 @@ public class ClientCryptoService {
     byte[] unblindedData =
         unblinder.processBlock(signedBlindedOutput, 0, signedBlindedOutput.length);
     return unblindedData;
-  }
-
-  public byte[] xorMask(
-      byte[] dataToMask,
-      PaymentCode paymentCode,
-      NetworkParameters params,
-      ECKey input0PrivKey,
-      TransactionOutPoint input0OutPoint)
-      throws Exception {
-    HD_Address notifAddressCli = paymentCode.notificationAddress(params);
-    ISecretPoint secretPointMask =
-        new SecretPointJava(input0PrivKey.getPrivKeyBytes(), notifAddressCli.getPubKey());
-    byte[] dataMasked = PaymentCode.xorMask(dataToMask, secretPointMask, input0OutPoint);
-    return dataMasked;
-  }
-
-  public byte[] xorMaskInteger(
-      int dataToMask,
-      PaymentCode paymentCode,
-      NetworkParameters params,
-      ECKey input0PrivKey,
-      TransactionOutPoint input0OutPoint)
-      throws Exception {
-    byte[] dataToMaskBytes = WhirlpoolProtocol.getWhirlpoolFee().encode(dataToMask);
-    if (dataToMaskBytes == null) {
-      return null;
-    }
-    return xorMask(dataToMaskBytes, paymentCode, params, input0PrivKey, input0OutPoint);
   }
 }
