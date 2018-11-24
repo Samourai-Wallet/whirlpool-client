@@ -69,7 +69,6 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
   }
 
   private Pools computePools(PoolsResponse poolsResponse) {
-    Pools pools = new Pools();
     List<Pool> listPools = new ArrayList<>();
     for (PoolInfo poolInfo : poolsResponse.pools) {
       Pool pool = new Pool();
@@ -86,7 +85,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
       pool.setMixNbConfirmed(poolInfo.mixNbConfirmed);
       listPools.add(pool);
     }
-    pools.setPools(listPools);
+    Pools pools = new Pools(listPools, poolsResponse.feePaymentCode);
     return pools;
   }
 

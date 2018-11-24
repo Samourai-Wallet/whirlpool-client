@@ -4,8 +4,12 @@ import java.util.Collection;
 
 public class Pools {
   private Collection<Pool> pools;
+  private String feePaymentCode;
 
-  public Pools() {}
+  public Pools(Collection<Pool> pools, String feePaymentCode) {
+    this.pools = pools;
+    this.feePaymentCode = feePaymentCode;
+  }
 
   public Pool findPoolById(String poolId) {
     for (Pool pool : pools) {
@@ -20,7 +24,7 @@ public class Pools {
     return pools;
   }
 
-  public void setPools(Collection<Pool> pools) {
-    this.pools = pools;
+  public String getFeePaymentCode() {
+    return feePaymentCode;
   }
 }
