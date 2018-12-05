@@ -3,12 +3,11 @@ package com.samourai.whirlpool.client.whirlpool.listener;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import java.lang.invoke.MethodHandles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
-  private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private Logger log = LoggerFactory.getLogger(LoggingWhirlpoolClientListener.class);
 
   public LoggingWhirlpoolClientListener() {}
 

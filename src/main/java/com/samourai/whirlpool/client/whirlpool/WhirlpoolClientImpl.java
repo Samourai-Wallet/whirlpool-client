@@ -15,14 +15,13 @@ import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.PoolInfo;
 import com.samourai.whirlpool.protocol.rest.PoolsResponse;
-import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WhirlpoolClientImpl implements WhirlpoolClient {
-  private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private Logger log = LoggerFactory.getLogger(WhirlpoolClientImpl.class);
 
   private WhirlpoolClientConfig config;
 
@@ -69,7 +68,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
   }
 
   private Pools computePools(PoolsResponse poolsResponse) {
-    List<Pool> listPools = new ArrayList<>();
+    List<Pool> listPools = new ArrayList<Pool>();
     for (PoolInfo poolInfo : poolsResponse.pools) {
       Pool pool = new Pool();
       pool.setPoolId(poolInfo.poolId);
@@ -94,7 +93,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     this.mixs = mixs;
     this.listener = listener;
     this.doneMixs = 0;
-    this.mixClients = new ArrayList<>();
+    this.mixClients = new ArrayList<MixClient>();
 
     this.mixThread =
         new Thread(

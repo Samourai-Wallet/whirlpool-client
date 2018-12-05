@@ -9,7 +9,6 @@ import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.websocket.MixMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
 import com.samourai.whirlpool.protocol.websocket.messages.SubscribePoolResponse;
-import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 import javax.websocket.MessageHandler;
@@ -18,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 public class MixSession {
   // non-static logger to prefix it with stomp sessionId
-  private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private Logger log = LoggerFactory.getLogger(MixSession.class);
 
   private MixDialogListener listener;
   private WhirlpoolProtocol whirlpoolProtocol;
@@ -181,7 +180,7 @@ public class MixSession {
   //
 
   private Map<String, String> computeStompHeaders(String destination) {
-    Map<String, String> stompHeaders = new HashMap<>();
+    Map<String, String> stompHeaders = new HashMap<String, String>();
     stompHeaders.put(WhirlpoolProtocol.HEADER_POOL_ID, poolId);
     if (destination != null) {
       stompHeaders.put(StompTransport.HEADER_DESTINATION, destination);

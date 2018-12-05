@@ -2,7 +2,6 @@ package com.samourai.stomp.client;
 
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 import javax.websocket.MessageHandler;
@@ -12,7 +11,7 @@ import org.slf4j.LoggerFactory;
 /** STOMP communication. */
 public class StompTransport {
   // non-static logger to prefix it with stomp sessionId
-  private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private Logger log = LoggerFactory.getLogger(StompTransport.class);
   private static final String HEADER_USERNAME = "user-name";
   public static final String HEADER_DESTINATION = "destination";
 
@@ -117,7 +116,7 @@ public class StompTransport {
   // STOMP communication
 
   public void send(String destination, Object message) {
-    Map<String, String> stompHeaders = new HashMap<>();
+    Map<String, String> stompHeaders = new HashMap<String, String>();
     stompHeaders.put(HEADER_DESTINATION, destination);
     stompHeaders = completeHeaders(stompHeaders);
     if (log.isDebugEnabled()) {

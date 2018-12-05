@@ -19,7 +19,6 @@ import com.samourai.whirlpool.protocol.websocket.notifications.MixStatusNotifica
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
-import java.lang.invoke.MethodHandles;
 import java.util.HashSet;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -27,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class MixDialog {
   // non-static logger to prefix it with stomp sessionId
-  private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private Logger log = LoggerFactory.getLogger(MixDialog.class);
 
   private MixDialogListener listener;
   private StompTransport transport;
@@ -42,7 +41,7 @@ public class MixDialog {
   // (before registerInputResponse)
 
   // computed values
-  private Set<MixStatus> mixStatusCompleted = new HashSet<>();
+  private Set<MixStatus> mixStatusCompleted = new HashSet<MixStatus>();
   private boolean done;
 
   public MixDialog(
