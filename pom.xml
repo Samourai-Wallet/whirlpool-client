@@ -4,19 +4,19 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.Samourai-Wallet</groupId>
     <artifactId>whirlpool-client</artifactId>
-    <version>develop-SNAPSHOT</version>
+    <version>master-SNAPSHOT</version>
     <name>whirlpool-client</name>
     <dependencies>
         <dependency>
             <groupId>com.github.Samourai-Wallet</groupId>
             <artifactId>whirlpool-protocol</artifactId>
-            <version>develop-SNAPSHOT</version>
+            <version>master-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.github.Samourai-Wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>develop-SNAPSHOT</version>
+            <version>master-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
