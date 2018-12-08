@@ -4,11 +4,11 @@ import com.samourai.stomp.client.IStompTransportListener;
 import com.samourai.stomp.client.StompTransport;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
+import com.samourai.whirlpool.protocol.WhirlpoolEndpoint;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.websocket.MixMessage;
 import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
 import com.samourai.whirlpool.protocol.websocket.messages.SubscribePoolResponse;
-import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.Map;
 import javax.websocket.MessageHandler;
@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 public class MixSession {
   // non-static logger to prefix it with stomp sessionId
-  private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private Logger log = LoggerFactory.getLogger(MixSession.class);
 
   private MixDialogListener listener;
   private WhirlpoolProtocol whirlpoolProtocol;
@@ -76,8 +76,7 @@ public class MixSession {
 
     // subscribe to private queue
     final String privateQueue =
-        whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_PRIVATE
-            + whirlpoolProtocol.SOCKET_SUBSCRIBE_USER_REPLY;
+        whirlpoolProtocol.WS_PREFIX_USER_PRIVATE + whirlpoolProtocol.WS_PREFIX_USER_REPLY;
     transport.subscribe(
         computeStompHeaders(privateQueue),
         new MessageHandler.Whole<Object>() {
@@ -135,7 +134,7 @@ public class MixSession {
 
   private void registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception {
     RegisterInputRequest registerInputRequest = listener.registerInput(subscribePoolResponse);
-    transport.send(WhirlpoolProtocol.ENDPOINT_REGISTER_INPUT, registerInputRequest);
+    transport.send(WhirlpoolEndpoint.WS_REGISTER_INPUT, registerInputRequest);
   }
 
   private MixMessage checkMixMessage(Object payload) {
@@ -181,7 +180,7 @@ public class MixSession {
   //
 
   private Map<String, String> computeStompHeaders(String destination) {
-    Map<String, String> stompHeaders = new HashMap<>();
+    Map<String, String> stompHeaders = new HashMap<String, String>();
     stompHeaders.put(WhirlpoolProtocol.HEADER_POOL_ID, poolId);
     if (destination != null) {
       stompHeaders.put(StompTransport.HEADER_DESTINATION, destination);

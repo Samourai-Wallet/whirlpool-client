@@ -9,8 +9,8 @@ import java.util.Map;
 
 public class MultiClientListener extends LoggingWhirlpoolClientListener {
   // indice 0 is always null as currentMix starts from 1
-  private Map<Integer, MixStatus> mixStatus = new HashMap<>();
-  private Map<Integer, MixStep> mixStep = new HashMap<>();
+  private Map<Integer, MixStatus> mixStatus = new HashMap<Integer, MixStatus>();
+  private Map<Integer, MixStep> mixStep = new HashMap<Integer, MixStep>();
   private MultiClientManager multiClientManager;
   private int missedMixs;
 

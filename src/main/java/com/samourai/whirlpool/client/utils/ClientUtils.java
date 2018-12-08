@@ -6,7 +6,6 @@ import com.samourai.http.client.HttpException;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
-import java.lang.invoke.MethodHandles;
 import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
@@ -20,7 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ClientUtils {
-  private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private static final Logger log = LoggerFactory.getLogger(ClientUtils.class);
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   public static Integer findTxOutputIndex(

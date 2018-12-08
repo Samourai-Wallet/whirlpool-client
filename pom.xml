@@ -6,6 +6,10 @@
     <artifactId>whirlpool-client</artifactId>
     <version>master-SNAPSHOT</version>
     <name>whirlpool-client</name>
+    <properties>
+        <maven.compiler.source>1.6</maven.compiler.source>
+        <maven.compiler.target>1.6</maven.compiler.target>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>com.github.Samourai-Wallet</groupId>
@@ -63,13 +67,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

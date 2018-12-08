@@ -5,14 +5,13 @@ import com.samourai.wallet.bip47.rpc.BIP47Wallet;
 import com.samourai.wallet.bip47.rpc.PaymentAddress;
 import com.samourai.wallet.bip47.rpc.PaymentCode;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import java.lang.invoke.MethodHandles;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PostmixHandler implements IPostmixHandler {
-  private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private static final Logger log = LoggerFactory.getLogger(PostmixHandler.class);
   private Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
 
   private static final int BIP47_ACCOUNT_RECEIVE = Integer.MAX_VALUE;

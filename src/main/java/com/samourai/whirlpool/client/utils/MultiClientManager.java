@@ -3,21 +3,20 @@ package com.samourai.whirlpool.client.utils;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
-import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MultiClientManager {
-  private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private static final Logger log = LoggerFactory.getLogger(MultiClientManager.class);
 
   protected List<WhirlpoolClient> clients;
   protected List<MultiClientListener> listeners;
 
   public MultiClientManager() {
-    clients = new ArrayList<>();
-    listeners = new ArrayList<>();
+    clients = new ArrayList<WhirlpoolClient>();
+    listeners = new ArrayList<MultiClientListener>();
   }
 
   public synchronized MultiClientListener register(WhirlpoolClient whirlpoolClient) {

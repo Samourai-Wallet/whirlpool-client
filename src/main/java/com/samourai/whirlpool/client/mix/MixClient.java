@@ -11,18 +11,22 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.*;
+import com.samourai.whirlpool.protocol.websocket.messages.ConfirmInputRequest;
+import com.samourai.whirlpool.protocol.websocket.messages.ConfirmInputResponse;
+import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
+import com.samourai.whirlpool.protocol.websocket.messages.RevealOutputRequest;
+import com.samourai.whirlpool.protocol.websocket.messages.SigningRequest;
+import com.samourai.whirlpool.protocol.websocket.messages.SubscribePoolResponse;
 import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
-import java.lang.invoke.MethodHandles;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MixClient {
   // non-static logger to prefix it with stomp sessionId
-  private Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private Logger log = LoggerFactory.getLogger(MixClient.class);
 
   // server settings
   private WhirlpoolClientConfig config;

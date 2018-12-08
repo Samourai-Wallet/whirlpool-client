@@ -22,7 +22,6 @@ import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixSt
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
-import java.lang.invoke.MethodHandles;
 import java.util.ArrayList;
 import java.util.List;
 import org.bitcoinj.core.NetworkParameters;
@@ -36,7 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MixProcess {
-  private static final Logger log = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass());
+  private static final Logger log = LoggerFactory.getLogger(MixProcess.class);
   private WhirlpoolClientConfig config;
   private String poolId;
   private long poolDenomination;
@@ -125,14 +124,12 @@ public class MixProcess {
     long minerFeeMax = subscribePoolResponse.minerFeeMax;
     checkUtxoBalance(minerFeeMin, minerFeeMax);
 
-    String pubkey64 = WhirlpoolProtocol.encodeBytes(premixHandler.getPubkey());
     String signature = premixHandler.signMessage(poolId);
     RegisterInputRequest registerInputRequest =
         new RegisterInputRequest(
             poolId,
             utxo.getHash(),
             utxo.getIndex(),
-            pubkey64,
             signature,
             this.liquidity,
             config.isTestMode());
@@ -365,7 +362,7 @@ public class MixProcess {
   }
 
   private String computeInputsHash(List<TransactionInput> inputs) {
-    List<Utxo> utxos = new ArrayList<>();
+    List<Utxo> utxos = new ArrayList<Utxo>();
     for (TransactionInput input : inputs) {
       Utxo utxo =
           new Utxo(input.getOutpoint().getHash().toString(), input.getOutpoint().getIndex());
