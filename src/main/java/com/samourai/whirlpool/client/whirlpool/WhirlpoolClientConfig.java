@@ -14,6 +14,7 @@ public class WhirlpoolClientConfig {
   private int reconnectDelay;
   private int reconnectUntil;
   private boolean testMode;
+  private String scode;
 
   public WhirlpoolClientConfig(
       IHttpClient httpClient,
@@ -34,6 +35,7 @@ public class WhirlpoolClientConfig {
     this.reconnectUntil = 500;
 
     this.testMode = false;
+    this.scode = null;
   }
 
   public WhirlpoolClientConfig(WhirlpoolClientConfig copy) {
@@ -105,5 +107,13 @@ public class WhirlpoolClientConfig {
 
   public boolean isTestMode() {
     return testMode;
+  }
+
+  public String getScode() {
+    return scode;
+  }
+
+  public void setScode(String scode) {
+    this.scode = scode;
   }
 }
