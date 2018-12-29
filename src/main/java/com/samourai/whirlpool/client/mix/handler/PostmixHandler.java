@@ -49,7 +49,6 @@ public class PostmixHandler implements IPostmixHandler {
               + ", paymentCodeIndex="
               + paymentCodeIndex
               + ")");
-      log.debug("receiveECKey=" + this.receiveKey.getPrivateKeyAsWiF(params));
     }
     this.paymentCodeIndex++;
     return bech32Address;
