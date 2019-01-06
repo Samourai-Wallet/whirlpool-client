@@ -2,6 +2,8 @@ package com.samourai.whirlpool.client.utils;
 
 import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.samourai.api.client.beans.UnspentResponse;
+import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.http.client.HttpException;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -10,6 +12,7 @@ import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
+import java.util.List;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
@@ -90,5 +93,22 @@ public class ClientUtils {
       return null;
     }
     return parseRestErrorMessage(responseBody);
+  }
+
+  public static void logUtxos(List<UnspentOutput> utxos) {
+    String lineFormat = "| %10s | %10s | %70s | %50s | %16s |\n";
+    StringBuilder sb = new StringBuilder();
+    sb.append(String.format(lineFormat, "BALANCE", "CONFIRMS", "UTXO", "ADDRESS", "PATH"));
+    sb.append(String.format(lineFormat, "(btc)", "", "", "", ""));
+    for (UnspentResponse.UnspentOutput o : utxos) {
+      String utxo = o.tx_hash + ":" + o.tx_output_n;
+      sb.append(
+          String.format(lineFormat, satToBtc(o.value), o.confirmations, utxo, o.addr, o.getPath()));
+    }
+    log.info("\n" + sb.toString());
+  }
+
+  public static double satToBtc(long sat) {
+    return sat / 100000000.0;
   }
 }
