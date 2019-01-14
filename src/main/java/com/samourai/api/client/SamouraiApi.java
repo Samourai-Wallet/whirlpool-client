@@ -3,15 +3,18 @@ package com.samourai.api.client;
 import com.samourai.api.client.beans.MultiAddrResponse;
 import com.samourai.api.client.beans.UnspentResponse;
 import com.samourai.http.client.IHttpClient;
+import com.samourai.whirlpool.client.utils.PushTxService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.bitcoinj.core.Transaction;
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SamouraiApi {
+public class SamouraiApi implements PushTxService {
   private Logger log = LoggerFactory.getLogger(SamouraiApi.class);
 
   private static final String URL_BACKEND = "https://api.samouraiwallet.com/test";
@@ -19,6 +22,7 @@ public class SamouraiApi {
   private static final String URL_MULTIADDR = "/v2/multiaddr?active=";
   private static final String URL_INIT_BIP84 = "/v2/xpub";
   private static final String URL_FEES = "/v2/fees";
+  private static final String URL_PUSHTX = "/v2/pushtx";
   private static final int MAX_FEE_PER_BYTE = 500;
   private static final int FAILOVER_FEE_PER_BYTE = 400;
   private static final int SLEEP_REFRESH_UTXOS = 15000;
@@ -111,5 +115,19 @@ public class SamouraiApi {
 
   public void refreshUtxos() throws Exception {
     Thread.sleep(SamouraiApi.SLEEP_REFRESH_UTXOS);
+  }
+
+  @Override
+  public void pushTx(String txHex) throws Exception {
+    String url = URL_BACKEND + URL_PUSHTX;
+    Map<String, String> postBody = new HashMap<String, String>();
+    postBody.put("tx", txHex);
+    httpClient.postUrlEncoded(url, postBody);
+  }
+
+  @Override
+  public void pushTx(Transaction tx) throws Exception {
+    String txHex = new String(Hex.encode(tx.bitcoinSerialize()));
+    pushTx(txHex);
   }
 }

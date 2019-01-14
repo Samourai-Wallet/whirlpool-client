@@ -4,5 +4,7 @@ import org.bitcoinj.core.Transaction;
 
 public interface PushTxService {
 
-  void pushTx(Transaction tx);
+  void pushTx(String txHex) throws Exception;
+
+  void pushTx(Transaction tx) throws Exception;
 }

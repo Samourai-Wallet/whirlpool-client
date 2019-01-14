@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0Service {
   private Logger log = LoggerFactory.getLogger(Tx0Service.class);
+
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private final WhirlpoolFee whirlpoolFee = WhirlpoolFee.getInstance();
 
@@ -46,7 +47,13 @@ public class Tx0Service {
     this.feeValue = feeValue;
   }
 
-  public long computePremixValue(Pool pool, int feeSatPerByte) {
+  public long computeSpendFromBalanceMin(Pool pool, int feeSatPerByte, int nbOutputsMin) {
+    long destinationValue = computePremixValue(pool, feeSatPerByte);
+    final long spendFromBalanceMin = nbOutputsMin * (destinationValue + feeValue);
+    return spendFromBalanceMin;
+  }
+
+  private long computePremixValue(Pool pool, int feeSatPerByte) {
     // compute minerFeePerMustmix
     long txFeesEstimate =
         FeeUtils.computeMinerFee(
@@ -76,7 +83,7 @@ public class Tx0Service {
     return destinationValue;
   }
 
-  public int computePremixNb(long premixValue, TransactionOutPoint depositSpendFrom) {
+  private int computePremixNb(long premixValue, TransactionOutPoint depositSpendFrom) {
     int nbPremix = (int) Math.ceil(depositSpendFrom.getValue().getValue() / premixValue);
     return nbPremix;
   }
