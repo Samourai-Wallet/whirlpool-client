@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.api.client.SamouraiApi;
+import com.samourai.api.client.beans.UnspentOutputPreferredAmountMinComparator;
 import com.samourai.api.client.beans.UnspentResponse;
 import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84ApiWallet;
@@ -10,7 +11,7 @@ import com.samourai.whirlpool.client.exception.EmptyWalletException;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.utils.PushTxService;
+import com.samourai.whirlpool.client.wallet.pushTx.PushTxService;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import java.util.List;
@@ -47,7 +48,8 @@ public class WhirlpoolWallet {
       IIndexHandler feeIndexHandler,
       Bip84ApiWallet depositWallet,
       Bip84ApiWallet premixWallet,
-      Bip84ApiWallet postmixWallet) {
+      Bip84ApiWallet postmixWallet)
+      throws Exception {
     this.params = params;
     this.samouraiApi = samouraiApi;
     this.pushTxService = pushTxService;
@@ -60,8 +62,12 @@ public class WhirlpoolWallet {
     reset();
   }
 
-  private void reset() {
+  private void reset() throws Exception {
     this.whirlpoolManager = new WhirlpoolManager();
+
+    // fetch pools
+    log.info(" • Fetching pools...");
+    pools = whirlpoolClient.fetchPools();
   }
 
   public synchronized void start() throws Exception {
@@ -69,10 +75,6 @@ public class WhirlpoolWallet {
 
     reset();
     whirlpoolManager.start();
-
-    // fetch pools
-    log.info(" • Fetching pools...");
-    pools = whirlpoolClient.fetchPools();
 
     // add utxos from premix
     addFromPremix();
@@ -92,10 +94,10 @@ public class WhirlpoolWallet {
   }
 
   public Tx0 tx0(Pool pool) throws Exception {
-    return tx0(pool, 1);
+    return tx0(pool, Tx0Service.NB_PREMIX_MAX, 1);
   }
 
-  public Tx0 tx0(Pool pool, int nbOutputsMin) throws Exception {
+  public Tx0 tx0(Pool pool, int nbOutputsPreferred, int nbOutputsMin) throws Exception {
     List<UnspentResponse.UnspentOutput> utxos = depositWallet.fetchUtxos();
     if (utxos.isEmpty()) {
       throw new EmptyWalletException("No utxo found from deposit.");
@@ -112,6 +114,9 @@ public class WhirlpoolWallet {
     // find utxo to spend Tx0 from
     final long spendFromBalanceMin =
         tx0Service.computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsMin);
+    final long spendFromBalancePreferred =
+        tx0Service.computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsPreferred);
+
     List<UnspentResponse.UnspentOutput> tx0SpendFroms =
         StreamSupport.stream(utxos)
             .filter(
@@ -121,24 +126,45 @@ public class WhirlpoolWallet {
                     return utxo.value >= spendFromBalanceMin;
                   }
                 })
+
+            // take UTXO closest to spendFromBalancePreferred (and higher when possible)
+            .sorted(new UnspentOutputPreferredAmountMinComparator(spendFromBalancePreferred))
             .collect(Collectors.<UnspentResponse.UnspentOutput>toList());
 
     if (tx0SpendFroms.isEmpty()) {
       throw new EmptyWalletException("ERROR: No utxo available to spend Tx0 from");
     }
     if (log.isDebugEnabled()) {
-      log.debug("Found " + tx0SpendFroms.size() + " utxos to use as Tx0 input");
+      log.debug(
+          "Found "
+              + tx0SpendFroms.size()
+              + " utxos to use as Tx0 input for spendFromBalanceMin="
+              + spendFromBalanceMin
+              + ", spendFromBalancePreferred="
+              + spendFromBalancePreferred
+              + ", nbOutputsMin="
+              + nbOutputsMin
+              + ", nbOutputsPreferred="
+              + nbOutputsPreferred);
       ClientUtils.logUtxos(tx0SpendFroms);
     }
     UnspentResponse.UnspentOutput depositSpendFrom = tx0SpendFroms.get(0);
 
-    Tx0 tx0 = tx0(pool, depositSpendFrom, feeSatPerByte);
+    // spend whole utxo
+    Tx0 tx0 = tx0(pool, depositSpendFrom, feeSatPerByte, nbOutputsPreferred);
     return tx0;
   }
 
-  public Tx0 tx0(Pool pool, UnspentResponse.UnspentOutput depositSpendFrom, int feeSatPerByte)
+  public Tx0 tx0(
+      Pool pool, UnspentResponse.UnspentOutput depositSpendFrom, int feeSatPerByte, int nbOutputs)
       throws Exception {
-    log.info(" • Tx0: poolId=" + pool.getPoolId() + ", depositSpendFrom=" + depositSpendFrom);
+    log.info(
+        " • Tx0: poolId="
+            + pool.getPoolId()
+            + ", depositSpendFrom="
+            + depositSpendFrom
+            + ", nbOutputs="
+            + nbOutputs);
 
     // spend from
     TransactionOutPoint spendFromOutpoint = depositSpendFrom.computeOutpoint(params);
@@ -155,7 +181,8 @@ public class WhirlpoolWallet {
             feeSatPerByte,
             feeIndexHandler,
             pools,
-            pool);
+            pool,
+            nbOutputs);
 
     log.info(
         " • Tx0 result: txid="

@@ -3,18 +3,16 @@ package com.samourai.api.client;
 import com.samourai.api.client.beans.MultiAddrResponse;
 import com.samourai.api.client.beans.UnspentResponse;
 import com.samourai.http.client.IHttpClient;
-import com.samourai.whirlpool.client.utils.PushTxService;
+import com.samourai.whirlpool.client.wallet.pushTx.AbstractPushTxService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.bitcoinj.core.Transaction;
-import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SamouraiApi implements PushTxService {
+public class SamouraiApi extends AbstractPushTxService {
   private Logger log = LoggerFactory.getLogger(SamouraiApi.class);
 
   private static final String URL_BACKEND = "https://api.samouraiwallet.com/test";
@@ -22,7 +20,7 @@ public class SamouraiApi implements PushTxService {
   private static final String URL_MULTIADDR = "/v2/multiaddr?active=";
   private static final String URL_INIT_BIP84 = "/v2/xpub";
   private static final String URL_FEES = "/v2/fees";
-  private static final String URL_PUSHTX = "/v2/pushtx";
+  private static final String URL_PUSHTX = "/v2/pushtx/";
   private static final int MAX_FEE_PER_BYTE = 500;
   private static final int FAILOVER_FEE_PER_BYTE = 400;
   private static final int SLEEP_REFRESH_UTXOS = 15000;
@@ -92,10 +90,14 @@ public class SamouraiApi implements PushTxService {
   }
 
   public int fetchFees() {
-    return fetchFees(true);
+    try {
+      return fetchFees(true);
+    } catch (Exception e) {
+      return FAILOVER_FEE_PER_BYTE;
+    }
   }
 
-  private int fetchFees(boolean retry) {
+  private int fetchFees(boolean retry) throws Exception {
     String url = URL_BACKEND + URL_FEES;
     int fees2 = 0;
     try {
@@ -108,7 +110,7 @@ public class SamouraiApi implements PushTxService {
       if (retry) {
         return fetchFees(false);
       }
-      return FAILOVER_FEE_PER_BYTE;
+      throw new Exception("Invalid fee response from server");
     }
     return Math.min(fees2, MAX_FEE_PER_BYTE);
   }
@@ -126,8 +128,13 @@ public class SamouraiApi implements PushTxService {
   }
 
   @Override
-  public void pushTx(Transaction tx) throws Exception {
-    String txHex = new String(Hex.encode(tx.bitcoinSerialize()));
-    pushTx(txHex);
+  public boolean testConnectivity() {
+    try {
+      fetchFees(false);
+      return true;
+    } catch (Exception e) {
+      log.error("", e);
+      return false;
+    }
   }
 }

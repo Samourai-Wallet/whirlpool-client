@@ -1,8 +1,9 @@
-package com.samourai.whirlpool.client.utils;
+package com.samourai.whirlpool.client.wallet.pushTx;
 
 import org.bitcoinj.core.Transaction;
 
 public interface PushTxService {
+  boolean testConnectivity();
 
   void pushTx(String txHex) throws Exception;
 

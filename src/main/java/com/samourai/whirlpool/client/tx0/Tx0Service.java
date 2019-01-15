@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0Service {
   private Logger log = LoggerFactory.getLogger(Tx0Service.class);
+  public static final int NB_PREMIX_MAX = 100;
 
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private final WhirlpoolFee whirlpoolFee = WhirlpoolFee.getInstance();
@@ -98,9 +99,37 @@ public class Tx0Service {
       Pools pools,
       Pool pool)
       throws Exception {
+    return tx0(
+        spendFromPrivKey,
+        depositSpendFrom,
+        depositWallet,
+        premixWallet,
+        feeSatPerByte,
+        feeIndexHandler,
+        pools,
+        pool,
+        NB_PREMIX_MAX);
+  }
 
+  public Tx0 tx0(
+      byte[] spendFromPrivKey,
+      TransactionOutPoint depositSpendFrom,
+      Bip84Wallet depositWallet,
+      Bip84Wallet premixWallet,
+      int feeSatPerByte,
+      IIndexHandler feeIndexHandler,
+      Pools pools,
+      Pool pool,
+      int nbPremix)
+      throws Exception {
+
+    // cap nbPremix with UTXO balance
     long premixValue = computePremixValue(pool, feeSatPerByte);
-    int premixNb = computePremixNb(premixValue, depositSpendFrom);
+    int nbPremixPossible = computePremixNb(premixValue, depositSpendFrom);
+    nbPremix = Math.min(nbPremix, nbPremixPossible);
+
+    // cap nbPremix with UTXO NB_PREMIX_MAX
+    nbPremix = Math.min(NB_PREMIX_MAX, nbPremix);
     return tx0(
         spendFromPrivKey,
         depositSpendFrom,
@@ -111,7 +140,7 @@ public class Tx0Service {
         pools.getFeePaymentCode(),
         pools.getFeePayload(),
         premixValue,
-        premixNb);
+        nbPremix);
   }
 
   public Tx0 tx0(
@@ -180,23 +209,29 @@ public class Tx0Service {
     long tx0MinerFee = FeeUtils.computeMinerFee(totalBytes, feeSatPerByte);
     long changeValue = spendFromBalance - (premixValue * premixNb) - feeValue - tx0MinerFee;
 
-    //
-    // 1 change output
-    //
-    HD_Address changeAddress = depositWallet.getNextAddress();
-    String changeAddressBech32 = bech32Util.toBech32(changeAddress, params);
-    TransactionOutput txChange =
-        bech32Util.getTransactionOutput(changeAddressBech32, changeValue, params);
-    outputs.add(txChange);
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "Tx0 out (change): address="
-              + changeAddressBech32
-              + ", path="
-              + changeAddress.toJSON().get("path")
-              + " ("
-              + changeValue
-              + " sats)");
+    if (changeValue > 0) {
+      //
+      // 1 change output
+      //
+      HD_Address changeAddress = depositWallet.getNextAddress();
+      String changeAddressBech32 = bech32Util.toBech32(changeAddress, params);
+      TransactionOutput txChange =
+          bech32Util.getTransactionOutput(changeAddressBech32, changeValue, params);
+      outputs.add(txChange);
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "Tx0 out (change): address="
+                + changeAddressBech32
+                + ", path="
+                + changeAddress.toJSON().get("path")
+                + " ("
+                + changeValue
+                + " sats)");
+      }
+    } else {
+      if (log.isDebugEnabled()) {
+        log.debug("Tx0: spending whole utx0, no change");
+      }
     }
 
     // samourai fee
