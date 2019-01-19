@@ -156,15 +156,18 @@ public class WhirlpoolWallet {
   }
 
   public Tx0 tx0(
-      Pool pool, UnspentResponse.UnspentOutput depositSpendFrom, int feeSatPerByte, int nbOutputs)
+      Pool pool,
+      UnspentResponse.UnspentOutput depositSpendFrom,
+      int feeSatPerByte,
+      int nbOutputsPreferred)
       throws Exception {
     log.info(
         " • Tx0: poolId="
             + pool.getPoolId()
             + ", depositSpendFrom="
             + depositSpendFrom
-            + ", nbOutputs="
-            + nbOutputs);
+            + ", nbOutputsPreferred="
+            + nbOutputsPreferred);
 
     // spend from
     TransactionOutPoint spendFromOutpoint = depositSpendFrom.computeOutpoint(params);
@@ -178,11 +181,11 @@ public class WhirlpoolWallet {
             spendFromOutpoint,
             depositWallet,
             premixWallet,
-            feeSatPerByte,
             feeIndexHandler,
+            feeSatPerByte,
             pools,
             pool,
-            nbOutputs);
+            nbOutputsPreferred);
 
     log.info(
         " • Tx0 result: txid="

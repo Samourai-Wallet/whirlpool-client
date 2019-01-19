@@ -48,19 +48,13 @@ public class Tx0Service {
     this.feeValue = feeValue;
   }
 
-  public long computeSpendFromBalanceMin(Pool pool, int feeSatPerByte, int nbOutputsMin) {
-    long destinationValue = computePremixValue(pool, feeSatPerByte);
-    final long spendFromBalanceMin = nbOutputsMin * (destinationValue + feeValue);
-    return spendFromBalanceMin;
-  }
-
   private long computePremixValue(Pool pool, int feeSatPerByte) {
     // compute minerFeePerMustmix
     long txFeesEstimate =
         FeeUtils.computeMinerFee(
             pool.getMixAnonymitySet(), pool.getMixAnonymitySet(), feeSatPerByte);
     long minerFeePerMustmix = txFeesEstimate / pool.getMixAnonymitySet();
-    long destinationValue = pool.getDenomination() + minerFeePerMustmix;
+    long premixValue = pool.getDenomination() + minerFeePerMustmix;
 
     // make sure destinationValue is acceptable for pool
     long balanceMin =
@@ -69,33 +63,122 @@ public class Tx0Service {
     long balanceMax =
         WhirlpoolProtocol.computeInputBalanceMax(
             pool.getDenomination(), false, pool.getMinerFeeMax());
-    destinationValue = Math.min(destinationValue, balanceMax);
-    destinationValue = Math.max(destinationValue, balanceMin);
+    premixValue = Math.min(premixValue, balanceMax);
+    premixValue = Math.max(premixValue, balanceMin);
 
     if (log.isDebugEnabled()) {
       log.debug(
-          "destinationValue="
-              + destinationValue
+          "premixValue="
+              + premixValue
               + ", minerFeePerMustmix="
               + minerFeePerMustmix
               + ", txFeesEstimate="
-              + txFeesEstimate);
+              + txFeesEstimate
+              + " for poolId="
+              + pool.getPoolId());
     }
-    return destinationValue;
+    return premixValue;
   }
 
-  private int computePremixNb(long premixValue, TransactionOutPoint depositSpendFrom) {
-    int nbPremix = (int) Math.ceil(depositSpendFrom.getValue().getValue() / premixValue);
+  private int computeNbPremixMax(
+      long premixValue, TransactionOutPoint depositSpendFrom, long feeSatPerByte) throws Exception {
+    long spendFromBalance = depositSpendFrom.getValue().getValue();
+
+    // compute nbPremix ignoring TX0 fee
+    int nbPremixInitial = (int) Math.ceil(spendFromBalance / premixValue);
+
+    // compute nbPremix with TX0 fee
+    int nbPremix = nbPremixInitial;
+    while (true) {
+      // estimate TX0 fee for nbPremix
+      long tx0MinerFee = computeTx0MinerFee(nbPremix, feeSatPerByte);
+      long spendValue = computeTx0SpendValue(premixValue, nbPremix, tx0MinerFee);
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "computeNbPremixMax: nbPremix="
+                + nbPremix
+                + " => spendValue="
+                + spendValue
+                + ", tx0MinerFee="
+                + tx0MinerFee
+                + ", spendFromBalance="
+                + spendFromBalance
+                + ", nbPremixInitial="
+                + nbPremixInitial);
+      }
+      if (spendFromBalance < spendValue) {
+        // if UTXO balance is insufficient, try with less nbPremix
+        nbPremix--;
+      } else {
+        // nbPremix found
+        break;
+      }
+    }
+    // no negative value
+    if (nbPremix < 0) {
+      nbPremix = 0;
+    }
     return nbPremix;
   }
 
+  private long computeTx0MinerFee(int nbPremix, long feeSatPerByte) {
+    // fee estimation: n outputs + change + fee + OP_RETURN
+    long totalBytes =
+        FeeUtils.estimateTxBytes(1, nbPremix + 2)
+            + FeeUtils.estimateOpReturnBytes(WhirlpoolFee.FEE_LENGTH);
+    long tx0MinerFee = FeeUtils.computeMinerFee(totalBytes, feeSatPerByte);
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "tx0 minerFee: "
+              + tx0MinerFee
+              + "sats, totalBytes="
+              + "b for nbPremix="
+              + nbPremix
+              + ", feeSatPerByte="
+              + feeSatPerByte);
+    }
+    return tx0MinerFee;
+  }
+
+  private long computeTx0SpendValue(long premixValue, long nbPremix, long tx0MinerFee) {
+    long changeValue = (premixValue * nbPremix) + feeValue + tx0MinerFee;
+    return changeValue;
+  }
+
+  public long computeSpendFromBalanceMin(Pool pool, int feeSatPerByte, int nbPremix) {
+    long premixValue = computePremixValue(pool, feeSatPerByte);
+    long tx0MinerFee = computeTx0MinerFee(nbPremix, feeSatPerByte);
+    long spendValue = computeTx0SpendValue(premixValue, nbPremix, tx0MinerFee);
+    return spendValue;
+  }
+
+  private String computeFeeAddressDestination(
+      byte[] feePayload, int feeIndice, Bip84Wallet depositWallet) {
+    String feeAddressBech32;
+    if (feePayload == null) {
+      // pay to xpub
+      feeAddressBech32 = computeFeeAddressToXpub(feeXpub, feeIndice);
+      if (log.isDebugEnabled()) {
+        log.debug("feeAddressDestination: xpub");
+      }
+    } else {
+      // pay to deposit
+      feeAddressBech32 = bech32Util.toBech32(depositWallet.getNextAddress(), params);
+      if (log.isDebugEnabled()) {
+        log.debug("feeAddressDestination: deposit");
+      }
+    }
+    return feeAddressBech32;
+  }
+
+  /** Generate maximum possible premixes outputs. */
   public Tx0 tx0(
       byte[] spendFromPrivKey,
       TransactionOutPoint depositSpendFrom,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
-      int feeSatPerByte,
       IIndexHandler feeIndexHandler,
+      int feeSatPerByte,
       Pools pools,
       Pool pool)
       throws Exception {
@@ -104,59 +187,113 @@ public class Tx0Service {
         depositSpendFrom,
         depositWallet,
         premixWallet,
-        feeSatPerByte,
         feeIndexHandler,
+        feeSatPerByte,
         pools,
         pool,
         NB_PREMIX_MAX);
   }
 
+  /** Generate nbPremixPreferred premixes outputs max. */
   public Tx0 tx0(
       byte[] spendFromPrivKey,
       TransactionOutPoint depositSpendFrom,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
-      int feeSatPerByte,
       IIndexHandler feeIndexHandler,
+      int feeSatPerByte,
       Pools pools,
       Pool pool,
-      int nbPremix)
+      int nbPremixPreferred)
       throws Exception {
 
-    // cap nbPremix with UTXO balance
+    // compute premixValue for pool
     long premixValue = computePremixValue(pool, feeSatPerByte);
-    int nbPremixPossible = computePremixNb(premixValue, depositSpendFrom);
-    nbPremix = Math.min(nbPremix, nbPremixPossible);
+    return tx0(
+        spendFromPrivKey,
+        depositSpendFrom,
+        depositWallet,
+        premixWallet,
+        feeIndexHandler,
+        feeSatPerByte,
+        nbPremixPreferred,
+        premixValue,
+        pools.getFeePaymentCode(),
+        pools.getFeePayload());
+  }
 
-    // cap nbPremix with UTXO NB_PREMIX_MAX
-    nbPremix = Math.min(NB_PREMIX_MAX, nbPremix);
+  protected Tx0 tx0(
+      byte[] spendFromPrivKey,
+      TransactionOutPoint depositSpendFrom,
+      Bip84Wallet depositWallet,
+      Bip84Wallet premixWallet,
+      IIndexHandler feeIndexHandler,
+      long feeSatPerByte,
+      int nbPremixPreferred,
+      long premixValue,
+      String feePaymentCode,
+      byte[] feePayload)
+      throws Exception {
+
+    // compute opReturnValue for feePaymentCode and feePayload
+    int feeIndice = (feePayload != null ? 0 : feeIndexHandler.getAndIncrement());
+    byte[] opReturnValue =
+        whirlpoolFee.encode(
+            feeIndice, feePayload, feePaymentCode, params, spendFromPrivKey, depositSpendFrom);
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "computing opReturnValue for feeIndice="
+              + feeIndice
+              + ", feePayloadHex="
+              + (feePayload != null ? Hex.toHexString(feePayload) : "null"));
+    }
+
+    String feeAddressBech32 = computeFeeAddressDestination(feePayload, feeIndice, depositWallet);
     return tx0(
         spendFromPrivKey,
         depositSpendFrom,
         depositWallet,
         premixWallet,
         feeSatPerByte,
-        feeIndexHandler,
-        pools.getFeePaymentCode(),
-        pools.getFeePayload(),
+        nbPremixPreferred,
         premixValue,
-        nbPremix);
+        opReturnValue,
+        feeAddressBech32);
   }
 
-  public Tx0 tx0(
+  protected Tx0 tx0(
       byte[] spendFromPrivKey,
       TransactionOutPoint depositSpendFrom,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
       long feeSatPerByte,
-      IIndexHandler feeIndexHandler,
-      String feePaymentCode,
-      byte[] feePayload,
+      int nbPremixPreferred,
       long premixValue,
-      int premixNb)
+      byte[] opReturnValue,
+      String feeAddressBech32)
       throws Exception {
 
     long spendFromBalance = depositSpendFrom.getValue().getValue();
+
+    // compute nbPremix
+    int nbPremix =
+        computeNbPremixMax(
+            premixValue, depositSpendFrom, feeSatPerByte); // cap with balance and tx0 minerFee
+    nbPremix = Math.min(nbPremixPreferred, nbPremix); // cap with nbPremixPreferred
+    nbPremix = Math.min(NB_PREMIX_MAX, nbPremix); // cap with UTXO NB_PREMIX_MAX
+
+    // at least 1 nbPremix
+    if (nbPremix < 1) {
+      throw new Exception(
+          "Invalid nbPremix detected, please report this bug. nbPremix="
+              + nbPremix
+              + " for spendFromBalance="
+              + spendFromBalance
+              + ", feeSatPerByte="
+              + feeSatPerByte
+              + ", premixValue="
+              + premixValue);
+    }
 
     //
     // tx0
@@ -175,7 +312,7 @@ public class Tx0Service {
     //
     // premix outputs
     //
-    for (int j = 0; j < premixNb; j++) {
+    for (int j = 0; j < nbPremix; j++) {
       // send to PREMIX
       HD_Address toAddress = premixWallet.getNextAddress();
       String toAddressBech32 = bech32Util.toBech32(toAddress, params);
@@ -195,20 +332,12 @@ public class Tx0Service {
       outputs.add(txOutSpend);
     }
 
-    int feeIndice = (feePayload != null ? 0 : feeIndexHandler.getAndIncrement());
-    byte[] opReturnValue =
-        whirlpoolFee.encode(
-            feeIndice, feePayload, feePaymentCode, params, spendFromPrivKey, depositSpendFrom);
+    // fee selection
+    long tx0MinerFee = computeTx0MinerFee(nbPremix, feeSatPerByte);
 
-    // fee estimation: n outputs + change + fee + OP_RETURN
-    long totalBytes =
-        FeeUtils.estimateTxBytes(1, premixNb + 2) + FeeUtils.estimateOpReturnBytes(opReturnValue);
-    if (log.isDebugEnabled()) {
-      log.debug("tx size estimation final: " + totalBytes + "b");
-    }
-    long tx0MinerFee = FeeUtils.computeMinerFee(totalBytes, feeSatPerByte);
-    long changeValue = spendFromBalance - (premixValue * premixNb) - feeValue - tx0MinerFee;
-
+    // change
+    long spendValue = computeTx0SpendValue(premixValue, nbPremix, tx0MinerFee);
+    long changeValue = spendFromBalance - spendValue;
     if (changeValue > 0) {
       //
       // 1 change output
@@ -232,26 +361,21 @@ public class Tx0Service {
       if (log.isDebugEnabled()) {
         log.debug("Tx0: spending whole utx0, no change");
       }
+      if (changeValue < 0) {
+        throw new Exception(
+            "Negative change detected, please report this bug. changeValue="
+                + changeValue
+                + ", tx0MinerFee="
+                + tx0MinerFee);
+      }
     }
 
     // samourai fee
-    String feeAddressBech32;
-    if (feePayload == null) {
-      // pay to xpub
-      feeAddressBech32 = computeFeeAddress(feeXpub, feeIndice);
-      if (log.isDebugEnabled()) {
-        log.debug("Tx0 out (fee->xpub): address=" + feeAddressBech32 + " (" + feeValue + " sats)");
-      }
-    } else {
-      // pay to deposit
-      feeAddressBech32 = bech32Util.toBech32(depositWallet.getNextAddress(), params);
-      if (log.isDebugEnabled()) {
-        log.debug(
-            "Tx0 out (fee->deposit): address=" + feeAddressBech32 + " (" + feeValue + " sats)");
-      }
-    }
     TransactionOutput txSWFee = bech32Util.getTransactionOutput(feeAddressBech32, feeValue, params);
     outputs.add(txSWFee);
+    if (log.isDebugEnabled()) {
+      log.debug("Tx0 out (fee): feeAddress=" + feeAddressBech32 + " (" + feeValue + " sats)");
+    }
 
     // add OP_RETURN output
     Script op_returnOutputScript =
@@ -260,11 +384,14 @@ public class Tx0Service {
         new TransactionOutput(params, null, Coin.valueOf(0L), op_returnOutputScript.getProgram());
     outputs.add(txFeeOutput);
     if (log.isDebugEnabled()) {
-      log.debug(
-          "Tx0 out (OP_RETURN): feeIndice="
-              + feeIndice
-              + ", feePayloadHex="
-              + (feePayload != null ? Hex.toHexString(feePayload) : "null"));
+      log.debug("Tx0 out (OP_RETURN): " + opReturnValue.length + " bytes");
+    }
+    if (opReturnValue.length != WhirlpoolFee.FEE_LENGTH) {
+      throw new Exception(
+          "Invalid opReturnValue length detected, please report this bug. opReturnValue="
+              + opReturnValue
+              + " vs "
+              + WhirlpoolFee.FEE_LENGTH);
     }
 
     // all outputs
@@ -308,7 +435,7 @@ public class Tx0Service {
     return new Tx0(tx, premixUtxos);
   }
 
-  private String computeFeeAddress(String xpubFee, int feeIndice) {
+  private String computeFeeAddressToXpub(String xpubFee, int feeIndice) {
     DeterministicKey mKey = FormatsUtilGeneric.getInstance().createMasterPubKeyFromXPub(xpubFee);
     DeterministicKey cKey =
         HDKeyDerivation.deriveChildKey(

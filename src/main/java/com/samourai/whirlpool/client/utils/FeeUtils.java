@@ -24,14 +24,14 @@ public class FeeUtils {
     return bytes;
   }
 
-  public static long estimateOpReturnBytes(byte[] opReturnValue) {
-    long bytes = TX_BYTES_PER_OPRETURN + opReturnValue.length;
+  public static long estimateOpReturnBytes(int opReturnValueLength) {
+    long bytes = TX_BYTES_PER_OPRETURN + opReturnValueLength;
     if (log.isDebugEnabled()) {
       log.debug(
           "OP_RETURN size estimation: "
               + bytes
               + "b ("
-              + opReturnValue.length
+              + opReturnValueLength
               + " + "
               + TX_BYTES_PER_OPRETURN
               + ")");

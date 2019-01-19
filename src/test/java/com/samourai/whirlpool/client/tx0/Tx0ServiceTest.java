@@ -8,6 +8,7 @@ import com.samourai.whirlpool.client.test.AbstractTest;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Sha256Hash;
+import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutPoint;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.Assertions;
@@ -42,7 +43,7 @@ public class Tx0ServiceTest extends AbstractTest {
     Bip84Wallet premixWallet =
         new Bip84Wallet(bip84w, Integer.MAX_VALUE - 2, new MemoryIndexHandler());
     int nbOutputs = 5;
-    long destinationValue = 1000150;
+    long premixValue = 1000150;
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
@@ -55,19 +56,23 @@ public class Tx0ServiceTest extends AbstractTest {
             spendFromOutpoint,
             depositWallet,
             premixWallet,
-            feeSatPerByte,
             feeIndexHandler,
+            feeSatPerByte,
+            nbOutputs,
+            premixValue,
             feePaymentCode,
-            feePayload,
-            destinationValue,
-            nbOutputs);
-    String tx0Hash = tx0.getTx().getHashAsString();
-    String tx0Hex = new String(Hex.encode(tx0.getTx().bitcoinSerialize()));
+            feePayload);
+
+    Transaction tx = tx0.getTx();
+    Assertions.assertEquals(nbOutputs + 3, tx.getOutputs().size()); // opReturn + fee + change
+
+    String tx0Hash = tx.getHashAsString();
+    String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
     log.info(tx0.getTx().toString());
     Assertions.assertEquals(
-        "0a2d7a96b1322f79e9db579c039c3ec1f0dd9aed631bb78f636d7dd5c8393fc6", tx0Hash);
+        "9a159decf30d7d34801b19b90471d146bf7b9c38e42888fe3499e13480a32090", tx0Hash);
     Assertions.assertEquals(
-        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff080000000000000000426a409ae6649a7b1fc8a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f6859171027000000000000160014ae076a245f1f81813e70e4f5eff2c53ab73ab97fd6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4dd6420f000000000016001472df8c59071778ec20264e2aeb54dd4024bcee0ad6420f00000000001600147aca3eeaecc2ffefd434c70ed67bd579e629c29dd6420f00000000001600149676ec398c2fe0736d61e09e1136958b4bf40cdad6420f0000000000160014ff715cbded0e6205a68a1f66a52ee56d56b44c814fee801d000000001600140d64011caf447917ef39b4347ee4044f96dee49802473044022058bcd5064121443096f1d6acfd06a6faa0a452385008141b486973e4ed4d922b022001d29c2c23ac4200520639c177b750c3a0b7cbf958784f932554e183bdb7410101210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff080000000000000000426a409ae6649a7b1fc8a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f68591710270000000000001600140d64011caf447917ef39b4347ee4044f96dee498d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4dd6420f000000000016001472df8c59071778ec20264e2aeb54dd4024bcee0ad6420f00000000001600147aca3eeaecc2ffefd434c70ed67bd579e629c29dd6420f00000000001600149676ec398c2fe0736d61e09e1136958b4bf40cdad6420f0000000000160014ff715cbded0e6205a68a1f66a52ee56d56b44c814fee801d00000000160014ae076a245f1f81813e70e4f5eff2c53ab73ab97f02483045022100c79b8732b06a95ee799b95fa133bdcf52be2fd9a13606a7e946567ae123d867d0220707ab8daf0eb402d55be928d3a2b1cb713b3431e0fd1c9c48ccdfd0dd329cbd001210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
   }
 }
