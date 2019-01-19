@@ -5,8 +5,8 @@ import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
-import com.samourai.whirlpool.client.utils.FeeUtils;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -37,6 +37,7 @@ public class Tx0Service {
 
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private final WhirlpoolFee whirlpoolFee = WhirlpoolFee.getInstance();
+  private final FeeUtil feeUtil = FeeUtil.getInstance();
 
   private NetworkParameters params;
   private String feeXpub;
@@ -51,8 +52,8 @@ public class Tx0Service {
   private long computePremixValue(Pool pool, int feeSatPerByte) {
     // compute minerFeePerMustmix
     long txFeesEstimate =
-        FeeUtils.computeMinerFee(
-            pool.getMixAnonymitySet(), pool.getMixAnonymitySet(), feeSatPerByte);
+        feeUtil.estimatedFeeSegwit(
+            0, 0, pool.getMixAnonymitySet(), pool.getMixAnonymitySet(), 0, feeSatPerByte);
     long minerFeePerMustmix = txFeesEstimate / pool.getMixAnonymitySet();
     long premixValue = pool.getDenomination() + minerFeePerMustmix;
 
@@ -91,7 +92,7 @@ public class Tx0Service {
     int nbPremix = nbPremixInitial;
     while (true) {
       // estimate TX0 fee for nbPremix
-      long tx0MinerFee = computeTx0MinerFee(nbPremix, feeSatPerByte);
+      long tx0MinerFee = computeTx0MinerFee(nbPremix, feeSatPerByte, depositSpendFrom);
       long spendValue = computeTx0SpendValue(premixValue, nbPremix, tx0MinerFee);
       if (log.isDebugEnabled()) {
         log.debug(
@@ -121,12 +122,11 @@ public class Tx0Service {
     return nbPremix;
   }
 
-  private long computeTx0MinerFee(int nbPremix, long feeSatPerByte) {
-    // fee estimation: n outputs + change + fee + OP_RETURN
-    long totalBytes =
-        FeeUtils.estimateTxBytes(1, nbPremix + 2)
-            + FeeUtils.estimateOpReturnBytes(WhirlpoolFee.FEE_LENGTH);
-    long tx0MinerFee = FeeUtils.computeMinerFee(totalBytes, feeSatPerByte);
+  private long computeTx0MinerFee(int nbPremix, long feeSatPerByte, TransactionOutPoint spendFrom) {
+    int nbOutputsNonOpReturn = nbPremix + 2; // outputs + change + fee
+    // compute fee for worst input possible => P2PKH
+    long tx0MinerFee = feeUtil.estimatedFeeSegwit(1, 0, 0, nbOutputsNonOpReturn, 1, feeSatPerByte);
+
     if (log.isDebugEnabled()) {
       log.debug(
           "tx0 minerFee: "
@@ -147,7 +147,7 @@ public class Tx0Service {
 
   public long computeSpendFromBalanceMin(Pool pool, int feeSatPerByte, int nbPremix) {
     long premixValue = computePremixValue(pool, feeSatPerByte);
-    long tx0MinerFee = computeTx0MinerFee(nbPremix, feeSatPerByte);
+    long tx0MinerFee = computeTx0MinerFee(nbPremix, feeSatPerByte, null);
     long spendValue = computeTx0SpendValue(premixValue, nbPremix, tx0MinerFee);
     return spendValue;
   }
@@ -333,7 +333,7 @@ public class Tx0Service {
     }
 
     // fee selection
-    long tx0MinerFee = computeTx0MinerFee(nbPremix, feeSatPerByte);
+    long tx0MinerFee = computeTx0MinerFee(nbPremix, feeSatPerByte, depositSpendFrom);
 
     // change
     long spendValue = computeTx0SpendValue(premixValue, nbPremix, tx0MinerFee);
