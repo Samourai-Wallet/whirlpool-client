@@ -2,7 +2,9 @@ package com.samourai.api.client;
 
 import com.samourai.api.client.beans.MultiAddrResponse;
 import com.samourai.api.client.beans.UnspentResponse;
+import com.samourai.http.client.HttpException;
 import com.samourai.http.client.IHttpClient;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.pushTx.AbstractPushTxService;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -121,10 +123,27 @@ public class SamouraiApi extends AbstractPushTxService {
 
   @Override
   public void pushTx(String txHex) throws Exception {
+    if (log.isDebugEnabled()) {
+      log.debug("pushTx... " + txHex);
+    } else {
+      log.info("pushTx tx..." + txHex);
+    }
     String url = URL_BACKEND + URL_PUSHTX;
     Map<String, String> postBody = new HashMap<String, String>();
     postBody.put("tx", txHex);
-    httpClient.postUrlEncoded(url, postBody);
+    try {
+      httpClient.postUrlEncoded(url, postBody);
+    } catch (HttpException e) {
+      log.error(
+          "PushTx failed: response="
+              + e.getResponseBody()
+              + ". error="
+              + e.getMessage()
+              + " for txHex="
+              + txHex);
+      throw new NotifiableException(
+          "PushTx failed (" + e.getResponseBody() + ") for txHex=" + txHex);
+    }
   }
 
   @Override
