@@ -20,23 +20,36 @@ public class Bip84ApiWallet extends Bip84Wallet {
       HD_Wallet bip84w,
       int accountIndex,
       IIndexHandler indexHandler,
+      IIndexHandler indexChangeHandler,
       SamouraiApi samouraiApi,
       boolean init)
       throws Exception {
-    super(bip84w, accountIndex, indexHandler);
+    super(bip84w, accountIndex, indexHandler, indexChangeHandler);
     this.samouraiApi = samouraiApi;
 
     if (init) {
       initBip84();
     }
 
-    if (indexHandler.get() == 0) {
+    if (indexHandler.get() == 0 || indexChangeHandler.get() == 0) {
       // fetch index from API
-      int nextIndex = fetchNextAddressIndex();
-      if (log.isDebugEnabled()) {
-        log.debug("Resuming index from API: " + nextIndex);
+      MultiAddrResponse.Address address = fetchAddress();
+
+      // account_index
+      if (indexHandler.get() == 0) {
+        if (log.isDebugEnabled()) {
+          log.debug("Resuming account_index from API: " + address.account_index);
+        }
+        indexHandler.set(address.account_index);
       }
-      indexHandler.set(nextIndex);
+
+      // change_index
+      if (indexChangeHandler.get() == 0) {
+        if (log.isDebugEnabled()) {
+          log.debug("Resuming change_index from API: " + address.change_index);
+        }
+        indexChangeHandler.set(address.change_index);
+      }
     }
   }
 
@@ -45,13 +58,13 @@ public class Bip84ApiWallet extends Bip84Wallet {
     return samouraiApi.fetchUtxos(zpub);
   }
 
-  private int fetchNextAddressIndex() throws Exception {
+  private MultiAddrResponse.Address fetchAddress() throws Exception {
     String zpub = getZpub();
     MultiAddrResponse.Address address = samouraiApi.fetchAddress(zpub);
     if (address == null) {
       throw new Exception("Address not found");
     }
-    return address.account_index;
+    return address;
   }
 
   public void initBip84() throws Exception {

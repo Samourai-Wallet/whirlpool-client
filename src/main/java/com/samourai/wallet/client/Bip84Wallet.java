@@ -9,16 +9,23 @@ import org.slf4j.LoggerFactory;
 
 public class Bip84Wallet {
   private static final Logger log = LoggerFactory.getLogger(Bip84Wallet.class);
-  protected static final int CHAIN = 0;
+  protected static final int CHAIN_RECEIVE = 0;
+  protected static final int CHAIN_CHANGE = 1;
 
   protected HD_Wallet bip84w;
   protected int accountIndex;
   protected IIndexHandler indexHandler;
+  protected IIndexHandler indexChangeHandler;
 
-  public Bip84Wallet(HD_Wallet bip84w, int accountIndex, IIndexHandler indexHandler) {
+  public Bip84Wallet(
+      HD_Wallet bip84w,
+      int accountIndex,
+      IIndexHandler indexHandler,
+      IIndexHandler indexChangeHandler) {
     this.bip84w = bip84w;
     this.accountIndex = accountIndex;
     this.indexHandler = indexHandler;
+    this.indexChangeHandler = indexChangeHandler;
   }
 
   public HD_Address getNextAddress() {
@@ -27,7 +34,17 @@ public class Bip84Wallet {
 
   public HD_Address getNextAddress(boolean increment) {
     int nextAddressIndex = increment ? indexHandler.getAndIncrement() : indexHandler.get();
-    return getAddressAt(CHAIN, nextAddressIndex);
+    return getAddressAt(CHAIN_RECEIVE, nextAddressIndex);
+  }
+
+  public HD_Address getNextChangeAddress() {
+    return getNextChangeAddress(true);
+  }
+
+  public HD_Address getNextChangeAddress(boolean increment) {
+    int nextAddressIndex =
+        increment ? indexChangeHandler.getAndIncrement() : indexChangeHandler.get();
+    return getAddressAt(CHAIN_CHANGE, nextAddressIndex);
   }
 
   public HD_Address getAddressAt(int chainIndex, int addressIndex) {

@@ -163,7 +163,7 @@ public class Tx0Service {
       }
     } else {
       // pay to deposit
-      feeAddressBech32 = bech32Util.toBech32(depositWallet.getNextAddress(), params);
+      feeAddressBech32 = bech32Util.toBech32(depositWallet.getNextChangeAddress(), params);
       if (log.isDebugEnabled()) {
         log.debug("feeAddressDestination: deposit");
       }
@@ -342,7 +342,7 @@ public class Tx0Service {
       //
       // 1 change output
       //
-      HD_Address changeAddress = depositWallet.getNextAddress();
+      HD_Address changeAddress = depositWallet.getNextChangeAddress();
       String changeAddressBech32 = bech32Util.toBech32(changeAddress, params);
       TransactionOutput txChange =
           bech32Util.getTransactionOutput(changeAddressBech32, changeValue, params);

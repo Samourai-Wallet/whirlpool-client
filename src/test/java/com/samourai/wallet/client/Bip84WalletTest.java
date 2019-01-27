@@ -15,7 +15,9 @@ public class Bip84WalletTest extends AbstractTest {
   public Bip84WalletTest() throws Exception {
     byte[] seed = hdWalletFactory.computeSeedFromWords(SEED_WORDS);
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, SEED_PASSPHRASE, params);
-    bip84Wallet = new Bip84Wallet(bip84w, Integer.MAX_VALUE, new MemoryIndexHandler());
+    bip84Wallet =
+        new Bip84Wallet(
+            bip84w, Integer.MAX_VALUE, new MemoryIndexHandler(), new MemoryIndexHandler());
   }
 
   @Test
@@ -38,6 +40,14 @@ public class Bip84WalletTest extends AbstractTest {
         toBech32(bip84Wallet.getAddressAt(0, 1)), toBech32(bip84Wallet.getNextAddress()));
     Assertions.assertEquals(
         toBech32(bip84Wallet.getAddressAt(0, 2)), toBech32(bip84Wallet.getNextAddress()));
+
+    // change
+    Assertions.assertEquals(
+        toBech32(bip84Wallet.getAddressAt(1, 0)), toBech32(bip84Wallet.getNextChangeAddress()));
+    Assertions.assertEquals(
+        toBech32(bip84Wallet.getAddressAt(1, 1)), toBech32(bip84Wallet.getNextChangeAddress()));
+    Assertions.assertEquals(
+        toBech32(bip84Wallet.getAddressAt(1, 2)), toBech32(bip84Wallet.getNextChangeAddress()));
   }
 
   @Test
