@@ -37,18 +37,26 @@ public class Bip84ApiWallet extends Bip84Wallet {
 
       // account_index
       if (indexHandler.get() == 0) {
-        if (log.isDebugEnabled()) {
-          log.debug("Resuming account_index from API: " + address.account_index);
-        }
         indexHandler.set(address.account_index);
+        if (log.isDebugEnabled()) {
+          log.debug("account_index=" + indexHandler.get() + " (from API)");
+        }
+      } else {
+        if (log.isDebugEnabled()) {
+          log.debug("account_index=" + indexHandler.get() + " (from local)");
+        }
       }
 
       // change_index
       if (indexChangeHandler.get() == 0) {
-        if (log.isDebugEnabled()) {
-          log.debug("Resuming change_index from API: " + address.change_index);
-        }
         indexChangeHandler.set(address.change_index);
+        if (log.isDebugEnabled()) {
+          log.debug("change_index=" + indexChangeHandler.get() + " (from API)");
+        }
+      } else {
+        if (log.isDebugEnabled()) {
+          log.debug("change_index=" + indexChangeHandler.get() + " (from local)");
+        }
       }
     }
   }
