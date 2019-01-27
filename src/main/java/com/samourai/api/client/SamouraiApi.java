@@ -118,6 +118,9 @@ public class SamouraiApi extends AbstractPushTxService {
   }
 
   public void refreshUtxos() throws Exception {
+    if (log.isDebugEnabled()) {
+      log.debug("Refreshing utxos...");
+    }
     Thread.sleep(SamouraiApi.SLEEP_REFRESH_UTXOS);
   }
 

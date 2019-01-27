@@ -12,7 +12,7 @@ import java.security.KeyFactory;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Collection;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
@@ -95,7 +95,7 @@ public class ClientUtils {
     return parseRestErrorMessage(responseBody);
   }
 
-  public static void logUtxos(List<UnspentOutput> utxos) {
+  public static void logUtxos(Collection<UnspentOutput> utxos) {
     String lineFormat = "| %10s | %10s | %70s | %50s | %16s |\n";
     StringBuilder sb = new StringBuilder();
     sb.append(String.format(lineFormat, "BALANCE", "CONFIRMS", "UTXO", "ADDRESS", "PATH"));
