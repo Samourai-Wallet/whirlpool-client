@@ -137,9 +137,7 @@ public class WhirlpoolWallet {
     List<UnspentOutput> depositSpendFroms =
         filterUtxos(spendFromBalanceMin, spendFromBalancePreferred, getUtxosDeposit(true));
     if (depositSpendFroms.isEmpty()) {
-      long balanceRequired =
-          tx0Service.computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsMin);
-      throw new EmptyWalletException("Insufficient balance for Tx0", balanceRequired);
+      throw new EmptyWalletException("Insufficient balance for Tx0", spendFromBalanceMin);
     }
     if (log.isDebugEnabled()) {
       log.debug(
@@ -203,8 +201,9 @@ public class WhirlpoolWallet {
     // pushTx
     pushTxService.pushTx(tx0.getTx());
 
-    // fetch utxos from premix
+    // refresh utxos
     samouraiApi.refreshUtxos();
+    fetchUtxosDeposit();
     fetchUtxosPremix();
     return tx0;
   }
@@ -214,7 +213,7 @@ public class WhirlpoolWallet {
     if (utxos.isEmpty()) {
       return new ArrayList<UnspentOutput>();
     }
-    return StreamSupport.stream(utxosDeposit.values())
+    return StreamSupport.stream(utxos)
         .filter(
             new Predicate<UnspentOutput>() {
               @Override
