@@ -135,7 +135,7 @@ public class WhirlpoolWallet {
         tx0Service.computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsPreferred);
 
     List<UnspentOutput> depositSpendFroms =
-        filterUtxos(spendFromBalanceMin, spendFromBalancePreferred, getUtxosDeposit());
+        filterUtxos(spendFromBalanceMin, spendFromBalancePreferred, getUtxosDeposit(true));
     if (depositSpendFroms.isEmpty()) {
       long balanceRequired =
           tx0Service.computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsMin);
@@ -252,21 +252,33 @@ public class WhirlpoolWallet {
   }
 
   public Collection<UnspentOutput> getUtxosDeposit() throws Exception {
-    if (utxosDeposit == null) {
+    return getUtxosDeposit(false);
+  }
+
+  public Collection<UnspentOutput> getUtxosPremix() throws Exception {
+    return getUtxosPremix(false);
+  }
+
+  public Collection<UnspentOutput> getUtxosPostmix() throws Exception {
+    return getUtxosPostmix(false);
+  }
+
+  public Collection<UnspentOutput> getUtxosDeposit(boolean clearCache) throws Exception {
+    if (clearCache || utxosDeposit == null) {
       fetchUtxosDeposit();
     }
     return utxosDeposit.values();
   }
 
-  public Collection<UnspentOutput> getUtxosPremix() throws Exception {
-    if (utxosPremix == null) {
+  public Collection<UnspentOutput> getUtxosPremix(boolean clearCache) throws Exception {
+    if (clearCache || utxosPremix == null) {
       fetchUtxosPremix();
     }
     return utxosPremix.values();
   }
 
-  public Collection<UnspentOutput> getUtxosPostmix() throws Exception {
-    if (utxosPostmix == null) {
+  public Collection<UnspentOutput> getUtxosPostmix(boolean clearCache) throws Exception {
+    if (clearCache || utxosPostmix == null) {
       fetchUtxosPostmix();
     }
     return utxosPostmix.values();

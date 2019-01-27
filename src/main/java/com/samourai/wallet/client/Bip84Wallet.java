@@ -67,6 +67,10 @@ public class Bip84Wallet {
     return indexHandler;
   }
 
+  public IIndexHandler getIndexChangeHandler() {
+    return indexChangeHandler;
+  }
+
   public int getAccountIndex() {
     return accountIndex;
   }
