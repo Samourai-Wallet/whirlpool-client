@@ -7,6 +7,8 @@ import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import java.util.List;
+import java8.util.function.ToLongFunction;
+import java8.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,5 +97,17 @@ public class Bip84ApiWallet extends Bip84Wallet {
       }
     }
     throw new NotifiableException("Unable to initialize Bip84 wallet");
+  }
+
+  public long fetchBalance() throws Exception {
+    return StreamSupport.stream(fetchUtxos())
+        .mapToLong(
+            new ToLongFunction<UnspentOutput>() {
+              @Override
+              public long applyAsLong(UnspentOutput utxo) {
+                return utxo.value;
+              }
+            })
+        .sum();
   }
 }
