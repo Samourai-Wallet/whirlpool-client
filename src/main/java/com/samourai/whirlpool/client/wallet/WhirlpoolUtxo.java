@@ -1,12 +1,21 @@
 package com.samourai.whirlpool.client.wallet;
 
-public interface WhirlpoolUtxo {
+import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 
-  String getHash();
+public class WhirlpoolUtxo {
+  private UnspentOutput utxo;
+  private WhirlpoolUtxoStatus status;
 
-  int getIndex();
+  public WhirlpoolUtxo(UnspentOutput utxo, WhirlpoolUtxoStatus status) {
+    this.utxo = utxo;
+    this.status = status;
+  }
 
-  WhirlpoolUtxoPriority getPriority();
+  public UnspentOutput getUtxo() {
+    return utxo;
+  }
 
-  WhirlpoolUtxoState getState();
+  public WhirlpoolUtxoStatus getStatus() {
+    return status;
+  }
 }

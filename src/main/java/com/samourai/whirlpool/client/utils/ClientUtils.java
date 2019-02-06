@@ -6,6 +6,7 @@ import com.samourai.api.client.beans.UnspentResponse;
 import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.http.client.HttpException;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.whirlpool.client.wallet.WhirlpoolUtxo;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import java.security.KeyFactory;
@@ -13,6 +14,9 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Collection;
+import java8.util.function.Function;
+import java8.util.stream.Collectors;
+import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
@@ -106,6 +110,19 @@ public class ClientUtils {
           String.format(lineFormat, satToBtc(o.value), o.confirmations, utxo, o.addr, o.getPath()));
     }
     log.info("\n" + sb.toString());
+  }
+
+  public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos) {
+    logUtxos(
+        StreamSupport.stream(utxos)
+            .map(
+                new Function<WhirlpoolUtxo, UnspentOutput>() {
+                  @Override
+                  public UnspentOutput apply(WhirlpoolUtxo whirlpoolUtxo) {
+                    return whirlpoolUtxo.getUtxo();
+                  }
+                })
+            .collect(Collectors.<UnspentOutput>toList()));
   }
 
   public static double satToBtc(long sat) {

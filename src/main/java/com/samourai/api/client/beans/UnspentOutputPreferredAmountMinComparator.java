@@ -1,9 +1,10 @@
 package com.samourai.api.client.beans;
 
 import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
+import com.samourai.whirlpool.client.wallet.WhirlpoolUtxo;
 import java.util.Comparator;
 
-public class UnspentOutputPreferredAmountMinComparator implements Comparator<UnspentOutput> {
+public class UnspentOutputPreferredAmountMinComparator implements Comparator<WhirlpoolUtxo> {
   private long preferredAmountMin;
 
   public UnspentOutputPreferredAmountMinComparator(long preferredAmountMin) {
@@ -11,7 +12,10 @@ public class UnspentOutputPreferredAmountMinComparator implements Comparator<Uns
   }
 
   @Override
-  public int compare(UnspentOutput o1, UnspentOutput o2) {
+  public int compare(WhirlpoolUtxo w1, WhirlpoolUtxo w2) {
+    UnspentOutput o1 = w1.getUtxo();
+    UnspentOutput o2 = w2.getUtxo();
+
     // prioritize UTXOs >= preferredAmountMin
     if (o1.value >= preferredAmountMin && o2.value < preferredAmountMin) {
       return 1;
