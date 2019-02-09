@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.whirlpool;
 
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClient;
+import com.samourai.whirlpool.client.WhirlpoolClient;
 import org.bitcoinj.core.NetworkParameters;
 
 public class WhirlpoolClientConfig {
@@ -38,15 +39,24 @@ public class WhirlpoolClientConfig {
     this.scode = null;
   }
 
-  public WhirlpoolClientConfig(WhirlpoolClientConfig copy) {
+  private WhirlpoolClientConfig(WhirlpoolClientConfig copy) {
     this.httpClient = copy.httpClient;
-    this.stompClient = copy.stompClient;
+    this.stompClient = copy.stompClient.copyForNewClient();
     this.server = copy.server;
     this.networkParameters = copy.networkParameters;
     this.ssl = copy.ssl;
     this.reconnectDelay = copy.reconnectDelay;
     this.reconnectUntil = copy.reconnectUntil;
     this.testMode = copy.testMode;
+  }
+
+  private WhirlpoolClientConfig copyForNewClient() {
+    return new WhirlpoolClientConfig(this);
+  }
+
+  public WhirlpoolClient newClient() {
+    WhirlpoolClientConfig whirlpoolClientConfig = copyForNewClient();
+    return WhirlpoolClientImpl.newClient(whirlpoolClientConfig);
   }
 
   public IHttpClient getHttpClient() {

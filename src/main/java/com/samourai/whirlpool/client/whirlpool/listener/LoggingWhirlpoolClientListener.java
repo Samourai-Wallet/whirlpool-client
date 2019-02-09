@@ -8,8 +8,15 @@ import org.slf4j.LoggerFactory;
 
 public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
   private Logger log = LoggerFactory.getLogger(LoggingWhirlpoolClientListener.class);
+  private WhirlpoolClientListener notifyListener;
 
-  public LoggingWhirlpoolClientListener() {}
+  public LoggingWhirlpoolClientListener(WhirlpoolClientListener notifyListener) {
+    this.notifyListener = notifyListener;
+  }
+
+  public LoggingWhirlpoolClientListener() {
+    this(null);
+  }
 
   public void setLogPrefix(String logPrefix) {
     log = ClientUtils.prefixLogger(log, logPrefix);
@@ -21,19 +28,31 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
 
   @Override
   public void success(int nbMixs, MixSuccess mixSuccess) {
-    log("⣿ WHIRLPOOL SUCCESS ⣿");
+    logInfo("⣿ WHIRLPOOL SUCCESS ⣿");
+
+    if (notifyListener != null) {
+      notifyListener.success(nbMixs, mixSuccess);
+    }
   }
 
   @Override
   public void fail(int currentMix, int nbMixs) {
-    log(format(currentMix, nbMixs, "⣿ WHIRLPOOL FAILED ⣿ Check logs for errors."));
+    logError(format(currentMix, nbMixs, "⣿ WHIRLPOOL FAILED ⣿ Check logs for errors."));
+
+    if (notifyListener != null) {
+      notifyListener.fail(currentMix, nbMixs);
+    }
   }
 
   @Override
   public void progress(
       int currentMix, int nbMixs, MixStep step, String stepInfo, int stepNumber, int nbSteps) {
     String asciiProgress = renderProgress(stepNumber, nbSteps);
-    log(format(currentMix, nbMixs, asciiProgress + " " + step + " : " + stepInfo));
+    logInfo(format(currentMix, nbMixs, asciiProgress + " " + step + " : " + stepInfo));
+
+    if (notifyListener != null) {
+      notifyListener.progress(currentMix, nbMixs, step, stepInfo, stepNumber, nbSteps);
+    }
   }
 
   private String renderProgress(int stepNumber, int nbSteps) {
@@ -47,7 +66,7 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
 
   @Override
   public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
-    log(
+    logInfo(
         format(
             currentMix,
             nbMixs,
@@ -57,9 +76,17 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
                 + mixSuccess.getReceiveUtxo().getHash()
                 + ":"
                 + mixSuccess.getReceiveUtxo().getIndex()));
+
+    if (notifyListener != null) {
+      notifyListener.mixSuccess(currentMix, nbMixs, mixSuccess);
+    }
   }
 
-  protected void log(String message) {
+  protected void logInfo(String message) {
     log.info(message);
+  }
+
+  protected void logError(String message) {
+    log.error(message);
   }
 }

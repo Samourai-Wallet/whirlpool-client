@@ -61,9 +61,5 @@ public class UnspentResponse {
     public String toKey() {
       return tx_hash + ':' + tx_output_n;
     }
-
-    public String getTxHash() {
-      return tx_hash;
-    }
   }
 }

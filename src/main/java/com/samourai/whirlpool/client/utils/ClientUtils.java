@@ -6,7 +6,7 @@ import com.samourai.api.client.beans.UnspentResponse;
 import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.http.client.HttpException;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import com.samourai.whirlpool.client.wallet.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import java.security.KeyFactory;

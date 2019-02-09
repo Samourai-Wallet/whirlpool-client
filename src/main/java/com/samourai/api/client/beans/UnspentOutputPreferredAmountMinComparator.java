@@ -1,7 +1,7 @@
 package com.samourai.api.client.beans;
 
 import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
-import com.samourai.whirlpool.client.wallet.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import java.util.Comparator;
 
 public class UnspentOutputPreferredAmountMinComparator implements Comparator<WhirlpoolUtxo> {
