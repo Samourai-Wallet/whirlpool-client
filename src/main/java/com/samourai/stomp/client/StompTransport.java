@@ -120,7 +120,7 @@ public class StompTransport {
     stompHeaders.put(HEADER_DESTINATION, destination);
     stompHeaders = completeHeaders(stompHeaders);
     if (log.isDebugEnabled()) {
-      log.debug("send: " + ClientUtils.toJsonString(message));
+      log.debug("send: " + destination + ":" + ClientUtils.toJsonString(message));
     }
     stompClient.send(stompHeaders, message);
   }

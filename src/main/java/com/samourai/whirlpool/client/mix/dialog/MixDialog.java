@@ -118,12 +118,16 @@ public class MixDialog {
   }
 
   private void onMixStatusNotificationChange(MixStatusNotification notification) throws Exception {
-    // check status chronology
-    if (mixStatusCompleted.contains(notification.status)) {
-      throw new Exception("mixStatus already completed: " + notification.status);
-    }
-    if (mixStatus != null && notification.status.equals(mixStatus)) {
-      throw new Exception("Duplicate mixStatusNotification: " + mixStatus);
+
+    // ignore duplicate CONFIRM_INPUT: we may try to confirm for several mixes before joining
+    if (!MixStatus.CONFIRM_INPUT.equals(notification.status)) {
+      // check status chronology
+      if (mixStatusCompleted.contains(notification.status)) {
+        throw new Exception("mixStatus already completed: " + notification.status);
+      }
+      if (mixStatus != null && notification.status.equals(mixStatus)) {
+        throw new Exception("Duplicate mixStatusNotification: " + mixStatus);
+      }
     }
     this.mixStatus = notification.status;
 
