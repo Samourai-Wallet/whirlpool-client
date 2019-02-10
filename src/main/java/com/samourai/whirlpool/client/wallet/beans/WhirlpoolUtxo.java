@@ -6,10 +6,14 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolAccount;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 
 public class WhirlpoolUtxo {
+  private static final int MIX_TARGET_DEFAULT = 1;
+  private static final int PRIORITY_DEFAULT = 5;
+
   private UnspentOutput utxo;
   private WhirlpoolAccount account;
   private WhirlpoolUtxoStatus status;
   private Pool pool;
+  private int priority;
   private int mixsTarget;
   private int mixsDone;
   private String message;
@@ -20,7 +24,8 @@ public class WhirlpoolUtxo {
     this.account = account;
     this.status = status;
     this.pool = null;
-    this.mixsTarget = 1;
+    this.priority = PRIORITY_DEFAULT;
+    this.mixsTarget = MIX_TARGET_DEFAULT;
     this.mixsDone = 0;
     this.message = null;
     this.error = null;
@@ -44,6 +49,14 @@ public class WhirlpoolUtxo {
 
   public Pool getPool() {
     return pool;
+  }
+
+  public int getPriority() {
+    return priority;
+  }
+
+  public void setPriority(int priority) {
+    this.priority = priority;
   }
 
   public void setMixsTarget(int mixsTarget) {

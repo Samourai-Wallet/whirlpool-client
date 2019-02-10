@@ -399,6 +399,7 @@ public class WhirlpoolWallet {
           public void fail(int currentMix, int nbMixs) {
             super.fail(currentMix, nbMixs);
             whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_FAILED);
+            whirlpoolUtxo.setError("Mix " + currentMix + "/" + nbMixs + " failed");
           }
 
           @Override
