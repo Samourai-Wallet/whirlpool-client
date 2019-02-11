@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 
 public class WhirlpoolWallet {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWallet.class);
+  private static final long CACHE_EXPIRY_UTXOS = 60 * 1000; // 1 minute
 
   private NetworkParameters params;
   private SamouraiApi samouraiApi;
@@ -66,6 +67,7 @@ public class WhirlpoolWallet {
   // TODO cache expiry
   private Pools pools;
   private Map<String, WhirlpoolUtxo> utxos;
+  private Map<WhirlpoolAccount, Long> lastFetchUtxos;
 
   private WalletOrchestrator walletOrchestrator;
 
@@ -116,14 +118,20 @@ public class WhirlpoolWallet {
     this.postmixWallet = postmixWallet;
 
     this.walletOrchestrator = new WalletOrchestrator(this, maxClients, clientDelay);
+    this.clearCache();
   }
 
   private void fetchPools() throws Exception {
     pools = whirlpoolClient.fetchPools();
   }
 
-  public void clearCache() {
-    this.utxos = null;
+  public synchronized void clearCache() {
+    this.utxos = new HashMap<String, WhirlpoolUtxo>();
+    this.lastFetchUtxos = new HashMap<WhirlpoolAccount, Long>();
+  }
+
+  public synchronized void clearCache(WhirlpoolAccount account) {
+    this.lastFetchUtxos.put(account, 0L);
   }
 
   private synchronized void fetchUtxos(WhirlpoolAccount account) throws Exception {
@@ -141,18 +149,12 @@ public class WhirlpoolWallet {
 
     // replace utxos
     replaceUtxos(account, freshUtxos);
+
+    lastFetchUtxos.put(account, System.currentTimeMillis());
   }
 
-  private void replaceUtxos(WhirlpoolAccount account, final Map<String, WhirlpoolUtxo> freshUtxos)
-      throws Exception {
-    Collection<WhirlpoolUtxo> currentUtxos;
-
-    if (utxos != null) {
-      currentUtxos = getUtxos(account, false);
-    } else {
-      currentUtxos = new ArrayList<WhirlpoolUtxo>();
-      utxos = new HashMap<String, WhirlpoolUtxo>();
-    }
+  private void replaceUtxos(WhirlpoolAccount account, final Map<String, WhirlpoolUtxo> freshUtxos) {
+    Collection<WhirlpoolUtxo> currentUtxos = findUtxos(account);
 
     // remove obsolete utxos, keep valid ones
     StreamSupport.stream(currentUtxos)
@@ -287,8 +289,8 @@ public class WhirlpoolWallet {
 
       // refresh utxos
       samouraiApi.refreshUtxos();
-      fetchUtxos(WhirlpoolAccount.DEPOSIT);
-      fetchUtxos(WhirlpoolAccount.PREMIX);
+      clearCache(WhirlpoolAccount.DEPOSIT);
+      clearCache(WhirlpoolAccount.PREMIX);
       return tx0;
     } catch (Exception e) {
       // error
@@ -298,15 +300,21 @@ public class WhirlpoolWallet {
   }
 
   public void start() {
+    if (isStarted()) {
+      log.warn("NOT starting WhirlpoolWallet: already started");
+      return;
+    }
     log.info(" • Starting WhirlpoolWallet");
     this.walletOrchestrator.start();
   }
 
   public void stop() {
-    if (isStarted()) {
-      log.info(" • Stopping WhirlpoolWallet");
-      this.walletOrchestrator.stop();
+    if (!isStarted()) {
+      log.warn("NOT stopping WhirlpoolWallet: not started");
+      return;
     }
+    log.info(" • Stopping WhirlpoolWallet");
+    this.walletOrchestrator.stop();
   }
 
   public void addToMix(WhirlpoolUtxo whirlpoolUtxo, Pool pool) {
@@ -472,12 +480,30 @@ public class WhirlpoolWallet {
     return getUtxos(WhirlpoolAccount.POSTMIX, clearCache);
   }
 
-  public Collection<WhirlpoolUtxo> getUtxos(WhirlpoolAccount account, boolean clearCache)
-      throws Exception {
-    if (clearCache || utxos == null) {
+  public synchronized Collection<WhirlpoolUtxo> getUtxos(
+      WhirlpoolAccount account, boolean clearCache) throws Exception {
+    Long lastFetchElapsedTime = System.currentTimeMillis() - getLastFetchUtxos(account);
+    if (clearCache || lastFetchElapsedTime >= CACHE_EXPIRY_UTXOS) {
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "getUtxos("
+                + account
+                + ") -> fetch: clearCache="
+                + clearCache
+                + ", lastFetchElapsedTime="
+                + lastFetchElapsedTime);
+      }
       fetchUtxos(account);
     }
     return findUtxos(account);
+  }
+
+  private long getLastFetchUtxos(WhirlpoolAccount account) {
+    Long lastFetch = lastFetchUtxos.get(account);
+    if (lastFetch == null) {
+      lastFetch = 0L;
+    }
+    return lastFetch;
   }
 
   private Collection<WhirlpoolUtxo> findUtxos(final WhirlpoolAccount account) {

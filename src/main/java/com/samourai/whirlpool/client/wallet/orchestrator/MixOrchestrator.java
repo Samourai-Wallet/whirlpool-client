@@ -3,14 +3,15 @@ package com.samourai.whirlpool.client.wallet.orchestrator;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.MixOrchestratorState;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoPriorityComparator;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -164,14 +165,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
                 return !excludedHashs.contains(whirlpoolUtxo.getUtxo().tx_hash);
               }
             })
-        .sorted(
-            new Comparator<WhirlpoolUtxo>() {
-              @Override
-              public int compare(WhirlpoolUtxo o1, WhirlpoolUtxo o2) {
-                // reversed sort: highest priority first
-                return o2.getPriority() - o1.getPriority();
-              }
-            })
+        .sorted(new WhirlpoolUtxoPriorityComparator())
         .findFirst()
         .orElse(null);
   }
@@ -194,12 +188,14 @@ public class MixOrchestrator extends AbstractOrchestrator {
     }
   }
 
-  private synchronized void mix(WhirlpoolUtxo whirlpoolUtxo) {
+  private synchronized void mix(final WhirlpoolUtxo whirlpoolUtxo) {
     final String key = whirlpoolUtxo.getUtxo().toKey();
     WhirlpoolClientListener utxoListener =
         new WhirlpoolClientListener() {
           @Override
-          public void success(int nbMixs, MixSuccess mixSuccess) {}
+          public void success(int nbMixs, MixSuccess mixSuccess) {
+            whirlpoolWallet.clearCache(whirlpoolUtxo.getAccount());
+          }
 
           @Override
           public void fail(int currentMix, int nbMixs) {
@@ -217,6 +213,8 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
           @Override
           public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
+            whirlpoolWallet.clearCache(whirlpoolUtxo.getAccount());
+            whirlpoolWallet.clearCache(WhirlpoolAccount.POSTMIX);
             mixing.remove(key);
           }
         };
