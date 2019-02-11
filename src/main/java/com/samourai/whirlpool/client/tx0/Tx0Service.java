@@ -7,13 +7,17 @@ import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
+import com.samourai.whirlpool.client.exception.EmptyWalletException;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.fee.WhirlpoolFee;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;
@@ -33,7 +37,7 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0Service {
   private Logger log = LoggerFactory.getLogger(Tx0Service.class);
-  public static final int NB_PREMIX_MAX = 100;
+  protected static final int NB_PREMIX_MAX = 100;
 
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private final WhirlpoolFee whirlpoolFee = WhirlpoolFee.getInstance();
@@ -444,5 +448,119 @@ public class Tx0Service {
     ECKey feePubkey = ECKey.fromPublicOnly(adk.getPubKey());
     String feeAddressBech32 = bech32Util.toBech32(feePubkey.getPubKey(), params);
     return feeAddressBech32;
+  }
+
+  /*
+  public WhirlpoolUtxo findUtxoDepositForTx0(
+      Pool pool, int feeSatPerByte, Collection<WhirlpoolUtxo> depositUtxos) throws Exception {
+    return findUtxoDepositForTx0(pool, feeSatPerByte, depositUtxos, NB_PREMIX_MAX, 1);
+  }
+
+  public WhirlpoolUtxo findUtxoDepositForTx0(
+      Pool pool,
+      int feeSatPerByte,
+      Collection<WhirlpoolUtxo> depositUtxos,
+      int nbOutputsPreferred,
+      int nbOutputsMin)
+      throws Exception {
+
+    // find utxo to spend Tx0 from
+    final long spendFromBalanceMin = computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsMin);
+    final long spendFromBalancePreferred =
+        computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsPreferred);
+
+    List<WhirlpoolUtxo> depositSpendFroms =
+        filterUtxosByBalancePreferred(spendFromBalanceMin, spendFromBalancePreferred, depositUtxos);
+    if (depositSpendFroms.isEmpty()) {
+      throw new EmptyWalletException("Insufficient balance for Tx0", spendFromBalanceMin);
+    }
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "Found "
+              + depositSpendFroms.size()
+              + " utxos to use as Tx0 input for spendFromBalanceMin="
+              + spendFromBalanceMin
+              + ", spendFromBalancePreferred="
+              + spendFromBalancePreferred
+              + ", nbOutputsMin="
+              + nbOutputsMin
+              + ", nbOutputsPreferred="
+              + nbOutputsPreferred);
+      ClientUtils.logWhirlpoolUtxos(depositSpendFroms);
+    }
+    WhirlpoolUtxo whirlpoolUtxoSpendFrom = depositSpendFroms.get(0);
+    return whirlpoolUtxoSpendFrom;
+  }
+
+  private List<WhirlpoolUtxo> filterUtxosByBalancePreferred(
+      final long balanceMin, final long balancePreferred, Collection<WhirlpoolUtxo> utxos) {
+    if (utxos.isEmpty()) {
+      return new ArrayList<WhirlpoolUtxo>();
+    }
+    return StreamSupport.stream(utxos)
+        .filter(
+            new Predicate<WhirlpoolUtxo>() {
+              @Override
+              public boolean test(WhirlpoolUtxo utxo) {
+                return utxo.getUtxo().value >= balanceMin;
+              }
+            })
+
+        // take UTXO closest to balancePreferred (and higher when possible)
+        .sorted(new UnspentOutputPreferredAmountMinComparator(balancePreferred))
+        .collect(Collectors.<WhirlpoolUtxo>toList());
+  }*/
+
+  public Collection<Pool> findPools(
+      WhirlpoolUtxo depositUtxo,
+      Collection<Pool> poolsByPriority,
+      int feeSatPerByte,
+      int nbOutputsPreferred,
+      int nbOutputsMin) {
+    List<Pool> eligiblePools = new LinkedList<Pool>();
+
+    // first, add pools eligible for: nbOutputsPreferred
+    for (Pool pool : poolsByPriority) {
+      long balanceMin = computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsPreferred);
+      if (depositUtxo.getUtxo().value >= balanceMin) {
+        eligiblePools.add(pool);
+      }
+    }
+
+    // then add pools eligible for: nbOutputsMin
+    for (Pool pool : poolsByPriority) {
+      if (!eligiblePools.contains(pool)) {
+        long balanceMin = computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsMin);
+        if (depositUtxo.getUtxo().value >= balanceMin) {
+          eligiblePools.add(pool);
+        }
+      }
+    }
+    return eligiblePools;
+  }
+
+  public WhirlpoolUtxo findSpendFrom(
+      Collection<WhirlpoolUtxo> depositUtxosByPriority,
+      Collection<Pool> poolsByPriority,
+      int feeSatPerByte,
+      int nbOutputsPreferred,
+      int nbOutputsMin)
+      throws EmptyWalletException {
+    for (WhirlpoolUtxo whirlpoolUtxo : depositUtxosByPriority) {
+      if (whirlpoolUtxo.getPool() == null) {
+        // find eligible pool for utxo
+        Collection<Pool> eligiblePools =
+            findPools(
+                whirlpoolUtxo, poolsByPriority, feeSatPerByte, nbOutputsPreferred, nbOutputsMin);
+        if (!eligiblePools.isEmpty()) {
+          whirlpoolUtxo.setPool(eligiblePools.iterator().next());
+        }
+      }
+      return whirlpoolUtxo;
+    }
+    // no eligible deposit UTXO found
+    long requiredBalance =
+        computeSpendFromBalanceMin(poolsByPriority.iterator().next(), feeSatPerByte, nbOutputsMin);
+    throw new EmptyWalletException("No UTXO found to spend TX0 from", requiredBalance);
   }
 }

@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.api.client.SamouraiApi;
-import com.samourai.api.client.beans.UnspentOutputPreferredAmountMinComparator;
 import com.samourai.api.client.beans.UnspentResponse;
 import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84ApiWallet;
@@ -23,6 +22,7 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletState;
+import com.samourai.whirlpool.client.wallet.orchestrator.AutoTx0Orchestrator;
 import com.samourai.whirlpool.client.wallet.orchestrator.WalletOrchestrator;
 import com.samourai.whirlpool.client.wallet.pushTx.PushTxService;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
@@ -30,11 +30,11 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientListener;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java8.util.Optional;
 import java8.util.function.Consumer;
 import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
@@ -63,6 +63,7 @@ public class WhirlpoolWallet {
   private Bip84ApiWallet postmixWallet;
   private int maxClients;
   private int clientDelay;
+  private int autoTx0Delay;
 
   // TODO cache expiry
   private Pools pools;
@@ -82,6 +83,7 @@ public class WhirlpoolWallet {
         whirlpoolWallet.whirlpoolClientConfig,
         whirlpoolWallet.maxClients,
         whirlpoolWallet.clientDelay,
+        whirlpoolWallet.autoTx0Delay,
         whirlpoolWallet.feeIndexHandler,
         whirlpoolWallet.depositWallet,
         whirlpoolWallet.premixWallet,
@@ -98,6 +100,7 @@ public class WhirlpoolWallet {
       WhirlpoolClientConfig whirlpoolClientConfig,
       int maxClients,
       int clientDelay,
+      int autoTx0Delay, // 0 to disable autoTx0
       IIndexHandler feeIndexHandler,
       Bip84ApiWallet depositWallet,
       Bip84ApiWallet premixWallet,
@@ -117,7 +120,19 @@ public class WhirlpoolWallet {
     this.premixWallet = premixWallet;
     this.postmixWallet = postmixWallet;
 
-    this.walletOrchestrator = new WalletOrchestrator(this, maxClients, clientDelay);
+    this.autoTx0Delay = autoTx0Delay;
+    Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
+    if (autoTx0Delay > 0) {
+      int nbOutputsPreferred = maxClients;
+      autoTx0Orchestrator =
+          Optional.of(
+              new AutoTx0Orchestrator(
+                  tx0Service, samouraiApi, this, autoTx0Delay * 1000, nbOutputsPreferred));
+    } else {
+      autoTx0Orchestrator = Optional.empty();
+    }
+    this.walletOrchestrator =
+        new WalletOrchestrator(this, maxClients, clientDelay, autoTx0Orchestrator);
     this.clearCache();
   }
 
@@ -185,44 +200,6 @@ public class WhirlpoolWallet {
                 }
               }
             });
-  }
-
-  public WhirlpoolUtxo findUtxoDepositForTx0(Pool pool) throws Exception {
-    return findUtxoDepositForTx0(pool, Tx0Service.NB_PREMIX_MAX, 1);
-  }
-
-  public WhirlpoolUtxo findUtxoDepositForTx0(Pool pool, int nbOutputsPreferred, int nbOutputsMin)
-      throws Exception {
-    int feeSatPerByte = samouraiApi.fetchFees();
-
-    // find utxo to spend Tx0 from
-    final long spendFromBalanceMin =
-        tx0Service.computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsMin);
-    final long spendFromBalancePreferred =
-        tx0Service.computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsPreferred);
-
-    List<WhirlpoolUtxo> depositSpendFroms =
-        filterUtxosByBalancePreferred(
-            spendFromBalanceMin, spendFromBalancePreferred, getUtxosDeposit(true));
-    if (depositSpendFroms.isEmpty()) {
-      throw new EmptyWalletException("Insufficient balance for Tx0", spendFromBalanceMin);
-    }
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "Found "
-              + depositSpendFroms.size()
-              + " utxos to use as Tx0 input for spendFromBalanceMin="
-              + spendFromBalanceMin
-              + ", spendFromBalancePreferred="
-              + spendFromBalancePreferred
-              + ", nbOutputsMin="
-              + nbOutputsMin
-              + ", nbOutputsPreferred="
-              + nbOutputsPreferred);
-      ClientUtils.logWhirlpoolUtxos(depositSpendFroms);
-    }
-    WhirlpoolUtxo whirlpoolUtxoSpendFrom = depositSpendFroms.get(0);
-    return whirlpoolUtxoSpendFrom;
   }
 
   public synchronized Tx0 tx0(
@@ -320,25 +297,6 @@ public class WhirlpoolWallet {
   public void addToMix(WhirlpoolUtxo whirlpoolUtxo, Pool pool) {
     whirlpoolUtxo.setPool(pool);
     this.walletOrchestrator.addToMix(whirlpoolUtxo);
-  }
-
-  private List<WhirlpoolUtxo> filterUtxosByBalancePreferred(
-      final long balanceMin, final long balancePreferred, Collection<WhirlpoolUtxo> utxos) {
-    if (utxos.isEmpty()) {
-      return new ArrayList<WhirlpoolUtxo>();
-    }
-    return StreamSupport.stream(utxos)
-        .filter(
-            new Predicate<WhirlpoolUtxo>() {
-              @Override
-              public boolean test(WhirlpoolUtxo utxo) {
-                return utxo.getUtxo().value >= balanceMin;
-              }
-            })
-
-        // take UTXO closest to balancePreferred (and higher when possible)
-        .sorted(new UnspentOutputPreferredAmountMinComparator(balancePreferred))
-        .collect(Collectors.<WhirlpoolUtxo>toList());
   }
 
   public Pools getPools() throws Exception {
@@ -538,4 +496,10 @@ public class WhirlpoolWallet {
   }
 
   protected void onUtxoRemoved(WhirlpoolUtxo whirlpoolUtxo) {}
+
+  public void onEmptyWalletException(EmptyWalletException e) {
+    String depositAddress = getDepositAddress(false);
+    String message = e.getMessageDeposit(depositAddress);
+    log.error(message);
+  }
 }

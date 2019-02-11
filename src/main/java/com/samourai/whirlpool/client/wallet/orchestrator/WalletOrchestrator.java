@@ -8,6 +8,7 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletState;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.util.Collection;
+import java8.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,11 +17,17 @@ public class WalletOrchestrator extends AbstractOrchestrator {
   private static final int LOOP_DELAY = 120000;
   private WhirlpoolWallet whirlpoolWallet;
   private MixOrchestrator mixOrchestrator;
+  private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
 
-  public WalletOrchestrator(WhirlpoolWallet whirlpoolWallet, int maxClients, int clientDelay) {
+  public WalletOrchestrator(
+      WhirlpoolWallet whirlpoolWallet,
+      int maxClients,
+      int clientDelay,
+      Optional<AutoTx0Orchestrator> autoTx0Orchestrator) {
     super(LOOP_DELAY);
     this.whirlpoolWallet = whirlpoolWallet;
     this.mixOrchestrator = new MixOrchestrator(whirlpoolWallet, maxClients, clientDelay);
+    this.autoTx0Orchestrator = autoTx0Orchestrator;
   }
 
   @Override
@@ -74,12 +81,18 @@ public class WalletOrchestrator extends AbstractOrchestrator {
   public synchronized void start() {
     super.start();
     this.mixOrchestrator.start();
+    if (this.autoTx0Orchestrator.isPresent()) {
+      this.autoTx0Orchestrator.get().start();
+    }
   }
 
   @Override
   public synchronized void stop() {
     super.stop();
     this.mixOrchestrator.stop();
+    if (this.autoTx0Orchestrator.isPresent()) {
+      this.autoTx0Orchestrator.get().stop();
+    }
   }
 
   public synchronized void addToMix(WhirlpoolUtxo whirlpoolUtxo) {
