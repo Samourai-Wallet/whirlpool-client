@@ -8,7 +8,7 @@ public abstract class AbstractOrchestrator {
   private final int LOOP_DELAY;
 
   private boolean started;
-  private Thread myThread;
+  protected Thread myThread;
 
   public AbstractOrchestrator(int loopDelay) {
     this.LOOP_DELAY = loopDelay;
@@ -37,7 +37,7 @@ public abstract class AbstractOrchestrator {
     this.myThread.start();
   }
 
-  private synchronized void doRun() {
+  private void doRun() {
     while (started) {
       try {
         runOrchestrator();

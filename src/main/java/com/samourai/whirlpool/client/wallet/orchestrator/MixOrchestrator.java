@@ -50,7 +50,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   @Override
-  protected synchronized void runOrchestrator() {
+  protected void runOrchestrator() {
     MixOrchestratorState state = getState();
     String status = "Threads running: " + state.getNbMixing() + "/" + maxClients;
     int nbIdle = state.getNbIdle();

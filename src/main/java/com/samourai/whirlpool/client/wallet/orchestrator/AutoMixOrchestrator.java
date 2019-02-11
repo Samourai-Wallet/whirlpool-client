@@ -36,31 +36,8 @@ public class AutoMixOrchestrator extends AbstractOrchestrator {
     if (log.isDebugEnabled()) {
       log.debug("Checking for PREMIX utxos ready to mix...");
     }
-    // find utxos from premix
-    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolWallet.getUtxosPremix()) {
-      resume(whirlpoolUtxo);
-    }
-  }
-
-  protected void resume(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
-    if (WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())
-        && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())) {
-
-      // assign pool if not already assigned
-      if (whirlpoolUtxo.getPool() == null) {
-        Collection<Pool> pools = whirlpoolWallet.getPools().findForPremix(whirlpoolUtxo);
-        if (pools.isEmpty()) {
-          log.warn("No pool for this denomination: " + whirlpoolUtxo.toString());
-          whirlpoolUtxo.setError("No pool for this denomination");
-          return;
-        }
-
-        // assign pool from biggest denomination possible
-        whirlpoolUtxo.setPool(pools.iterator().next());
-      }
-
-      whirlpoolWallet.mixQueue(whirlpoolUtxo);
-    }
+    // rescan premix
+    whirlpoolWallet.getUtxosPremix(true);
   }
 
   @Override
@@ -75,7 +52,31 @@ public class AutoMixOrchestrator extends AbstractOrchestrator {
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
     try {
-      resume(whirlpoolUtxo);
+      if (WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())
+          && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())) {
+
+        // assign pool if not already assigned
+        if (whirlpoolUtxo.getPool() == null) {
+          Collection<Pool> pools = whirlpoolWallet.getPools().findForPremix(whirlpoolUtxo);
+          if (pools.isEmpty()) {
+            log.warn("No pool for this denomination: " + whirlpoolUtxo.toString());
+            whirlpoolUtxo.setError("No pool for this denomination");
+            return;
+          }
+
+          // assign pool from biggest denomination possible
+          whirlpoolUtxo.setPool(pools.iterator().next());
+        }
+
+        if (log.isDebugEnabled()) {
+          log.debug(" o AutoMix: new utxo detected, adding to mixQueue: " + whirlpoolUtxo);
+        }
+        whirlpoolWallet.mixQueue(whirlpoolUtxo);
+      } else {
+        if (log.isDebugEnabled()) {
+          log.debug(" o AutoMix: new utxo detected, NOT adding to mixQueue: " + whirlpoolUtxo);
+        }
+      }
     } catch (Exception e) {
       log.error("", e);
     }

@@ -556,7 +556,9 @@ public class Tx0Service {
           whirlpoolUtxo.setPool(eligiblePools.iterator().next());
         }
       }
-      return whirlpoolUtxo;
+      if (whirlpoolUtxo.getPool() != null) {
+        return whirlpoolUtxo;
+      }
     }
     // no eligible deposit UTXO found
     long requiredBalance =

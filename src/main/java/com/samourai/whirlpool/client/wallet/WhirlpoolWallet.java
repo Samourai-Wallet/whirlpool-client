@@ -170,9 +170,9 @@ public class WhirlpoolWallet {
       log.debug("Fetching utxos from " + account + "... " + fetchedUtxos.size() + " utxos found");
       ClientUtils.logUtxos(fetchedUtxos);
     }
-    final Map<String, WhirlpoolUtxo> freshUtxos = new HashMap<String, WhirlpoolUtxo>();
+    final Map<String, UnspentOutput> freshUtxos = new HashMap<String, UnspentOutput>();
     for (UnspentOutput utxo : fetchedUtxos) {
-      freshUtxos.put(utxo.toKey(), new WhirlpoolUtxo(utxo, account, WhirlpoolUtxoStatus.READY));
+      freshUtxos.put(utxo.toKey(), utxo);
     }
 
     // replace utxos
@@ -181,7 +181,8 @@ public class WhirlpoolWallet {
     lastFetchUtxos.put(account, System.currentTimeMillis());
   }
 
-  private void replaceUtxos(WhirlpoolAccount account, final Map<String, WhirlpoolUtxo> freshUtxos) {
+  private void replaceUtxos(
+      final WhirlpoolAccount account, final Map<String, UnspentOutput> freshUtxos) {
     Collection<WhirlpoolUtxo> currentUtxos = findUtxos(account);
 
     // remove obsolete utxos, keep valid ones
@@ -202,12 +203,14 @@ public class WhirlpoolWallet {
     // add missing utxos
     StreamSupport.stream(freshUtxos.values())
         .forEach(
-            new Consumer<WhirlpoolUtxo>() {
+            new Consumer<UnspentOutput>() {
               @Override
-              public void accept(WhirlpoolUtxo whirlpoolUtxo) {
-                String key = whirlpoolUtxo.getUtxo().toKey();
+              public void accept(UnspentOutput utxo) {
+                String key = utxo.toKey();
                 if (!utxos.containsKey(key)) {
                   // add missing
+                  WhirlpoolUtxo whirlpoolUtxo =
+                      new WhirlpoolUtxo(utxo, account, WhirlpoolUtxoStatus.READY);
                   utxos.put(key, whirlpoolUtxo);
                   onUtxoDetected(whirlpoolUtxo);
                 }
