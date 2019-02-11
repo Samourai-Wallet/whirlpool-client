@@ -25,6 +25,7 @@ public class WhirlpoolWalletService {
   private int maxClients;
   private int clientDelay;
   private int autoTx0Delay;
+  private int autoMixDelay;
 
   // private WhirlpoolManager whirlpoolManager;
 
@@ -38,7 +39,8 @@ public class WhirlpoolWalletService {
       WhirlpoolClientConfig whirlpoolClientConfig,
       int maxClients,
       int clientDelay,
-      int autoTx0Delay) {
+      int autoTx0Delay,
+      int autoMixDelay) {
     this.params = params;
     this.samouraiApi = samouraiApi;
     this.pushTxService = pushTxService;
@@ -49,6 +51,7 @@ public class WhirlpoolWalletService {
     this.maxClients = maxClients;
     this.clientDelay = clientDelay;
     this.autoTx0Delay = autoTx0Delay;
+    this.autoMixDelay = autoMixDelay;
   }
 
   public WhirlpoolWallet openWallet(
@@ -67,6 +70,7 @@ public class WhirlpoolWalletService {
         maxClients,
         clientDelay,
         autoTx0Delay,
+        autoMixDelay,
         feeIndexHandler,
         depositWallet,
         premixWallet,

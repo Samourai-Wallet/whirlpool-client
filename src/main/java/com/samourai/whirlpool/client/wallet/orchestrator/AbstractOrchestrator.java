@@ -37,7 +37,7 @@ public abstract class AbstractOrchestrator {
     this.myThread.start();
   }
 
-  private void doRun() {
+  private synchronized void doRun() {
     while (started) {
       try {
         runOrchestrator();

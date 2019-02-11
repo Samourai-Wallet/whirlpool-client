@@ -19,11 +19,13 @@ import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.beans.MixOrchestratorState;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletState;
+import com.samourai.whirlpool.client.wallet.orchestrator.AutoMixOrchestrator;
 import com.samourai.whirlpool.client.wallet.orchestrator.AutoTx0Orchestrator;
-import com.samourai.whirlpool.client.wallet.orchestrator.WalletOrchestrator;
+import com.samourai.whirlpool.client.wallet.orchestrator.MixOrchestrator;
 import com.samourai.whirlpool.client.wallet.pushTx.PushTxService;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
@@ -64,13 +66,16 @@ public class WhirlpoolWallet {
   private int maxClients;
   private int clientDelay;
   private int autoTx0Delay;
+  private int autoMixDelay;
 
   // TODO cache expiry
   private Pools pools;
   private Map<String, WhirlpoolUtxo> utxos;
   private Map<WhirlpoolAccount, Long> lastFetchUtxos;
 
-  private WalletOrchestrator walletOrchestrator;
+  private MixOrchestrator mixOrchestrator;
+  private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
+  private Optional<AutoMixOrchestrator> autoMixOrchestrator;
 
   protected WhirlpoolWallet(WhirlpoolWallet whirlpoolWallet) {
     this(
@@ -84,6 +89,7 @@ public class WhirlpoolWallet {
         whirlpoolWallet.maxClients,
         whirlpoolWallet.clientDelay,
         whirlpoolWallet.autoTx0Delay,
+        whirlpoolWallet.autoMixDelay,
         whirlpoolWallet.feeIndexHandler,
         whirlpoolWallet.depositWallet,
         whirlpoolWallet.premixWallet,
@@ -100,7 +106,8 @@ public class WhirlpoolWallet {
       WhirlpoolClientConfig whirlpoolClientConfig,
       int maxClients,
       int clientDelay,
-      int autoTx0Delay, // 0 to disable autoTx0
+      int autoTx0Delay, // 0 to disable
+      int autoMixDelay, // 0 to disable
       IIndexHandler feeIndexHandler,
       Bip84ApiWallet depositWallet,
       Bip84ApiWallet premixWallet,
@@ -121,18 +128,24 @@ public class WhirlpoolWallet {
     this.postmixWallet = postmixWallet;
 
     this.autoTx0Delay = autoTx0Delay;
-    Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
+    this.autoMixDelay = autoMixDelay;
+
+    this.mixOrchestrator = new MixOrchestrator(this, maxClients, clientDelay);
+
     if (autoTx0Delay > 0) {
       int nbOutputsPreferred = maxClients;
-      autoTx0Orchestrator =
+      this.autoTx0Orchestrator =
           Optional.of(
               new AutoTx0Orchestrator(
                   tx0Service, samouraiApi, this, autoTx0Delay * 1000, nbOutputsPreferred));
     } else {
-      autoTx0Orchestrator = Optional.empty();
+      this.autoTx0Orchestrator = Optional.empty();
     }
-    this.walletOrchestrator =
-        new WalletOrchestrator(this, maxClients, clientDelay, autoTx0Orchestrator);
+    if (autoMixDelay > 0) {
+      this.autoMixOrchestrator = Optional.of(new AutoMixOrchestrator(this, autoMixDelay * 1000));
+    } else {
+      this.autoMixOrchestrator = Optional.empty();
+    }
     this.clearCache();
   }
 
@@ -196,7 +209,7 @@ public class WhirlpoolWallet {
                 if (!utxos.containsKey(key)) {
                   // add missing
                   utxos.put(key, whirlpoolUtxo);
-                  onUtxoAdded(whirlpoolUtxo);
+                  onUtxoDetected(whirlpoolUtxo);
                 }
               }
             });
@@ -282,7 +295,14 @@ public class WhirlpoolWallet {
       return;
     }
     log.info(" • Starting WhirlpoolWallet");
-    this.walletOrchestrator.start();
+
+    this.mixOrchestrator.start();
+    if (this.autoTx0Orchestrator.isPresent()) {
+      this.autoTx0Orchestrator.get().start();
+    }
+    if (this.autoMixOrchestrator.isPresent()) {
+      this.autoMixOrchestrator.get().start();
+    }
   }
 
   public void stop() {
@@ -291,12 +311,17 @@ public class WhirlpoolWallet {
       return;
     }
     log.info(" • Stopping WhirlpoolWallet");
-    this.walletOrchestrator.stop();
+    this.mixOrchestrator.stop();
+    if (this.autoTx0Orchestrator.isPresent()) {
+      this.autoTx0Orchestrator.get().stop();
+    }
+    if (this.autoMixOrchestrator.isPresent()) {
+      this.autoMixOrchestrator.get().stop();
+    }
   }
 
-  public void addToMix(WhirlpoolUtxo whirlpoolUtxo, Pool pool) {
-    whirlpoolUtxo.setPool(pool);
-    this.walletOrchestrator.addToMix(whirlpoolUtxo);
+  public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) {
+    this.mixOrchestrator.mixQueue(whirlpoolUtxo);
   }
 
   public Pools getPools() throws Exception {
@@ -477,22 +502,23 @@ public class WhirlpoolWallet {
   }
 
   public boolean isStarted() {
-    return walletOrchestrator.isStarted();
+    return mixOrchestrator.isStarted();
   }
 
   public WhirlpoolWalletState getState() {
-    return walletOrchestrator.getState();
+    MixOrchestratorState mixState = mixOrchestrator.getState();
+    return new WhirlpoolWalletState(isStarted(), mixState);
   }
 
   public String getDepositAddress(boolean increment) {
     return bech32Util.toBech32(depositWallet.getNextAddress(increment), params);
   }
 
-  protected void onUtxoAdded(WhirlpoolUtxo whirlpoolUtxo) {
-    if (log.isDebugEnabled()) {
-      log.debug(" o New UTXO detected: " + whirlpoolUtxo);
+  protected void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
+    mixOrchestrator.onUtxoDetected(whirlpoolUtxo);
+    if (autoMixOrchestrator.isPresent()) {
+      autoMixOrchestrator.get().onUtxoDetected(whirlpoolUtxo);
     }
-    walletOrchestrator.onUtxoAdded(whirlpoolUtxo);
   }
 
   protected void onUtxoRemoved(WhirlpoolUtxo whirlpoolUtxo) {}

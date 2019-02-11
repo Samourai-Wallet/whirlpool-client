@@ -98,7 +98,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     }
   }
 
-  protected MixOrchestratorState getState() {
+  public MixOrchestratorState getState() {
     List<WhirlpoolUtxo> utxosMixing =
         StreamSupport.stream(mixing.values())
             .map(
@@ -161,21 +161,21 @@ public class MixOrchestrator extends AbstractOrchestrator {
         .orElse(null);
   }
 
-  public synchronized void addToMix(WhirlpoolUtxo whirlpoolUtxo) {
+  public synchronized void mixQueue(WhirlpoolUtxo whirlpoolUtxo) {
     if (whirlpoolUtxo.getPool() == null) {
-      log.warn("addToMix ignored: no pool set for " + whirlpoolUtxo);
+      log.warn("mixQueue ignored: no pool set for " + whirlpoolUtxo);
       return;
     }
     String key = whirlpoolUtxo.getUtxo().toKey();
     if (!toMix.containsKey(key) && !mixing.containsKey(key)) {
       whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_QUEUE);
       if (log.isDebugEnabled()) {
-        log.debug(" + Queued to mix: " + whirlpoolUtxo.toString());
+        log.debug(" + mixQueue: " + whirlpoolUtxo.toString());
       }
       toMix.put(key, whirlpoolUtxo);
       notifyOrchestrator();
     } else {
-      log.warn("addToMix ignored: utxo already queued or mixing: " + whirlpoolUtxo);
+      log.warn("mixQueue ignored: utxo already queued or mixing: " + whirlpoolUtxo);
     }
   }
 
@@ -186,6 +186,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
           @Override
           public void success(int nbMixs, MixSuccess mixSuccess) {
             whirlpoolWallet.clearCache(whirlpoolUtxo.getAccount());
+            whirlpoolWallet.clearCache(WhirlpoolAccount.POSTMIX);
           }
 
           @Override
@@ -215,6 +216,15 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
     mixing.put(key, new Mixing(whirlpoolUtxo, listener));
     toMix.remove(key);
+  }
+
+  public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
+    // enqueue unfinished POSTMIX utxos
+    if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())
+        && whirlpoolUtxo.getMixsTarget() < whirlpoolUtxo.getMixsDone()
+        && whirlpoolUtxo.getPool() != null) {
+      mixQueue(whirlpoolUtxo);
+    }
   }
 
   private static class Mixing {
