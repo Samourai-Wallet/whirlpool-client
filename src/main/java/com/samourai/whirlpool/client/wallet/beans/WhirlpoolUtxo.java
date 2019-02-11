@@ -12,23 +12,29 @@ public class WhirlpoolUtxo {
   private UnspentOutput utxo;
   private WhirlpoolAccount account;
   private WhirlpoolUtxoStatus status;
+  private Integer progressPercent;
+  private String progressLabel;
   private Pool pool;
   private int priority;
   private int mixsTarget;
   private int mixsDone;
   private String message;
   private String error;
+  private Long lastActivity;
 
   public WhirlpoolUtxo(UnspentOutput utxo, WhirlpoolAccount account, WhirlpoolUtxoStatus status) {
     this.utxo = utxo;
     this.account = account;
     this.status = status;
+    this.progressPercent = null;
+    this.progressLabel = null;
     this.pool = null;
     this.priority = PRIORITY_DEFAULT;
     this.mixsTarget = MIX_TARGET_DEFAULT;
     this.mixsDone = 0;
     this.message = null;
     this.error = null;
+    this.lastActivity = null;
   }
 
   public UnspentOutput getUtxo() {
@@ -41,6 +47,20 @@ public class WhirlpoolUtxo {
 
   public WhirlpoolUtxoStatus getStatus() {
     return status;
+  }
+
+  public Integer getProgressPercent() {
+    return progressPercent;
+  }
+
+  public String getProgressLabel() {
+    return progressLabel;
+  }
+
+  public void setProgress(Integer progressPercent, String progressLabel) {
+    this.progressPercent = progressPercent;
+    this.progressLabel = progressLabel;
+    setLastActivity();
   }
 
   public void setPool(Pool pool) {
@@ -77,6 +97,7 @@ public class WhirlpoolUtxo {
 
   public void setMessage(String message) {
     this.message = message;
+    setLastActivity();
   }
 
   public boolean hasMessage() {
@@ -94,6 +115,7 @@ public class WhirlpoolUtxo {
 
   public void setError(String error) {
     this.error = error;
+    setLastActivity();
   }
 
   public boolean hasError() {
@@ -104,21 +126,49 @@ public class WhirlpoolUtxo {
     return error;
   }
 
-  public void setStatus(WhirlpoolUtxoStatus status) {
+  public void setStatus(WhirlpoolUtxoStatus status, Integer progressPercent, String progressLabel) {
     this.status = status;
+    this.progressPercent = progressPercent;
+    this.progressLabel = progressLabel;
     this.error = null;
+    setLastActivity();
+  }
+
+  public void setStatus(WhirlpoolUtxoStatus status) {
+    setStatus(status, null, null);
+  }
+
+  public void setStatus(WhirlpoolUtxoStatus status, int progressPercent) {
+    setStatus(status, progressPercent, null);
   }
 
   public void setUtxo(UnspentOutput utxo) {
     this.utxo = utxo;
   }
 
+  public Long getLastActivity() {
+    return lastActivity;
+  }
+
+  public void setLastActivity() {
+    this.lastActivity = System.currentTimeMillis();
+  }
+
   @Override
   public String toString() {
-    return "status="
-        + status
-        + ", account="
+    String progressStr = "";
+    if (progressPercent != null) {
+      progressStr += progressPercent + "%";
+    }
+    if (progressLabel != null) {
+      progressStr += " " + progressLabel;
+    }
+
+    return "account="
         + account
+        + ", status="
+        + status
+        + (!progressStr.isEmpty() ? " (" + progressStr + ")" : "")
         + (pool != null ? ", poolId=" + pool.getPoolId() : "")
         + (hasMessage() ? ", message=" + message : "")
         + (hasError() ? ", error=" + error : "")

@@ -14,9 +14,8 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Collection;
-import java8.util.function.Function;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
+import java.util.LinkedList;
+import java.util.List;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
@@ -112,17 +111,12 @@ public class ClientUtils {
     log.info("\n" + sb.toString());
   }
 
-  public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos) {
-    logUtxos(
-        StreamSupport.stream(utxos)
-            .map(
-                new Function<WhirlpoolUtxo, UnspentOutput>() {
-                  @Override
-                  public UnspentOutput apply(WhirlpoolUtxo whirlpoolUtxo) {
-                    return whirlpoolUtxo.getUtxo();
-                  }
-                })
-            .collect(Collectors.<UnspentOutput>toList()));
+  public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
+    List<UnspentOutput> utxos = new LinkedList<UnspentOutput>();
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
+      utxos.add(whirlpoolUtxo.getUtxo());
+    }
+    logUtxos(utxos);
   }
 
   public static double satToBtc(long sat) {

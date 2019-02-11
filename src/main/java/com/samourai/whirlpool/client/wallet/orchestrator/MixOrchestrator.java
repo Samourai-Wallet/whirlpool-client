@@ -13,6 +13,7 @@ import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,6 +34,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
   private Map<String, WhirlpoolUtxo> toMix;
   private Map<String, Mixing> mixing;
   private long lastMixStarted;
+  private boolean sleeping;
 
   public MixOrchestrator(WhirlpoolWallet whirlpoolWallet, int maxClients, int clientDelay) {
     super(LOOP_DELAY);
@@ -47,6 +49,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     this.toMix = new HashMap<String, WhirlpoolUtxo>();
     this.mixing = new HashMap<String, Mixing>();
     this.lastMixStarted = 0;
+    this.sleeping = false;
   }
 
   @Override
@@ -67,8 +70,10 @@ public class MixOrchestrator extends AbstractOrchestrator {
       try {
         // start mixing up to nbIdle utxos
         Collection<WhirlpoolUtxo> whirlpoolUtxos = findToMixByPriority(nbIdle);
+        if (log.isDebugEnabled()) {
+          log.debug("Found " + whirlpoolUtxos.size() + " queued utxos to mix...");
+        }
         for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
-
           // sleep clientDelay
           long elapsedTimeSinceLastMix = System.currentTimeMillis() - lastMixStarted;
           long timeToWait = clientDelay * 1000 - elapsedTimeSinceLastMix;
@@ -76,10 +81,12 @@ public class MixOrchestrator extends AbstractOrchestrator {
             if (log.isDebugEnabled()) {
               log.debug("Sleeping for clientDelay: " + (timeToWait / 1000) + "s");
             }
+            sleeping = true;
             try {
               Thread.sleep(timeToWait);
             } catch (InterruptedException e) {
             }
+            sleeping = false;
           }
 
           // start mix
@@ -114,20 +121,14 @@ public class MixOrchestrator extends AbstractOrchestrator {
     return new MixOrchestratorState(utxosMixing, maxClients, nbIdle, nbQueued);
   }
 
-  protected synchronized List<WhirlpoolUtxo> findToMixByPriority(int nbUtxos) {
+  protected List<WhirlpoolUtxo> findToMixByPriority(int nbUtxos) {
     List<WhirlpoolUtxo> results = new ArrayList<WhirlpoolUtxo>();
 
     // exclude hashs of utxos currently mixing
-    Set<String> excludedHashs =
-        StreamSupport.stream(mixing.values())
-            .map(
-                new Function<Mixing, String>() {
-                  @Override
-                  public String apply(Mixing mixing) {
-                    return mixing.getUtxo().getUtxo().tx_hash;
-                  }
-                })
-            .collect(Collectors.<String>toSet());
+    Set<String> excludedHashs = new HashSet<String>();
+    for (Mixing m : mixing.values()) {
+      excludedHashs.add(m.getUtxo().getUtxo().tx_hash);
+    }
 
     while (results.size() < nbUtxos) {
       WhirlpoolUtxo whirlpoolUtxo = findToMixByPriority(excludedHashs);
@@ -173,7 +174,14 @@ public class MixOrchestrator extends AbstractOrchestrator {
         log.debug(" + mixQueue: " + whirlpoolUtxo.toString());
       }
       toMix.put(key, whirlpoolUtxo);
-      notifyOrchestrator();
+
+      if (!sleeping) {
+        notifyOrchestrator();
+      } else {
+        if (log.isDebugEnabled()) {
+          log.debug("Sleeping...");
+        }
+      }
     } else {
       log.warn("mixQueue ignored: utxo already queued or mixing: " + whirlpoolUtxo);
     }

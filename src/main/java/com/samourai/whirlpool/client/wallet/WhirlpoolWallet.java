@@ -15,6 +15,7 @@ import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.mix.handler.PremixHandler;
 import com.samourai.whirlpool.client.mix.handler.UtxoWithBalance;
+import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
@@ -227,7 +228,7 @@ public class WhirlpoolWallet {
   public synchronized Tx0 tx0(
       Pool pool, int nbOutputsPreferred, WhirlpoolUtxo whirlpoolUtxoSpendFrom, int feeSatPerByte)
       throws Exception {
-    whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TXO);
+    whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TXO, 50);
     try {
       UnspentOutput utxoSpendFrom = whirlpoolUtxoSpendFrom.getUtxo();
 
@@ -277,7 +278,7 @@ public class WhirlpoolWallet {
       pushTxService.pushTx(tx0.getTx());
 
       // success
-      whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TXO_SUCCESS);
+      whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TXO_SUCCESS, 100);
       whirlpoolUtxoSpendFrom.setMessage("TX0 txid: " + tx0.getTx().getHashAsString());
 
       // refresh utxos
@@ -298,6 +299,9 @@ public class WhirlpoolWallet {
       return;
     }
     log.info(" • Starting WhirlpoolWallet");
+
+    // reset utxos
+    clearCache();
 
     this.mixOrchestrator.start();
     if (this.autoTx0Orchestrator.isPresent()) {
@@ -321,6 +325,9 @@ public class WhirlpoolWallet {
     if (this.autoMixOrchestrator.isPresent()) {
       this.autoMixOrchestrator.get().stop();
     }
+
+    // reset utxos
+    clearCache();
   }
 
   public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) {
@@ -368,7 +375,7 @@ public class WhirlpoolWallet {
 
   public WhirlpoolClientListener mix(
       final WhirlpoolUtxo whirlpoolUtxo, WhirlpoolClientListener notifyListener) {
-    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_STARTED);
+    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_STARTED, 1);
     if (log.isDebugEnabled()) {
       log.debug(" • Connecting client: utxo=" + whirlpoolUtxo);
     } else {
@@ -390,6 +397,19 @@ public class WhirlpoolWallet {
           }
 
           @Override
+          public void progress(
+              int currentMix,
+              int nbMixs,
+              MixStep step,
+              String stepInfo,
+              int stepNumber,
+              int nbSteps) {
+            super.progress(currentMix, nbMixs, step, stepInfo, stepNumber, nbSteps);
+            int progressPercent = Math.round(stepNumber * 100 / nbSteps);
+            whirlpoolUtxo.setProgress(progressPercent, step.name());
+          }
+
+          @Override
           public void fail(int currentMix, int nbMixs) {
             super.fail(currentMix, nbMixs);
             whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_FAILED);
@@ -399,7 +419,7 @@ public class WhirlpoolWallet {
           @Override
           public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
             super.mixSuccess(currentMix, nbMixs, mixSuccess);
-            whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS);
+            whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS, 100);
           }
         };
 
@@ -466,8 +486,8 @@ public class WhirlpoolWallet {
     return getUtxos(WhirlpoolAccount.POSTMIX, clearCache);
   }
 
-  public synchronized Collection<WhirlpoolUtxo> getUtxos(
-      WhirlpoolAccount account, boolean clearCache) throws Exception {
+  public Collection<WhirlpoolUtxo> getUtxos(WhirlpoolAccount account, boolean clearCache)
+      throws Exception {
     Long lastFetchElapsedTime = System.currentTimeMillis() - getLastFetchUtxos(account);
     if (clearCache || lastFetchElapsedTime >= CACHE_EXPIRY_UTXOS) {
       if (log.isDebugEnabled()) {
