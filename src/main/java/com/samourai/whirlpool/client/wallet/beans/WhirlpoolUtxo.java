@@ -100,6 +100,10 @@ public class WhirlpoolUtxo {
     return error != null;
   }
 
+  public String getError() {
+    return error;
+  }
+
   public void setStatus(WhirlpoolUtxoStatus status) {
     this.status = status;
     this.error = null;
