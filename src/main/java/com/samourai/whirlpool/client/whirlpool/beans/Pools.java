@@ -1,7 +1,5 @@
 package com.samourai.whirlpool.client.whirlpool.beans;
 
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -38,25 +36,6 @@ public class Pools {
       }
     }
     return null;
-  }
-
-  public Collection<Pool> findForPremix(WhirlpoolUtxo whirlpoolUtxo) {
-    long utxoValue = whirlpoolUtxo.getUtxo().value;
-
-    List<Pool> poolsAccepted = new ArrayList<Pool>();
-    // pools ordered by denomination DESC
-    for (Pool pool : pools) {
-      long balanceMin =
-          WhirlpoolProtocol.computeInputBalanceMin(
-              pool.getDenomination(), false, pool.getMinerFeeMin());
-      long balanceMax =
-          WhirlpoolProtocol.computeInputBalanceMax(
-              pool.getDenomination(), false, pool.getMinerFeeMax());
-      if (utxoValue >= balanceMin && utxoValue <= balanceMax) {
-        poolsAccepted.add(pool);
-      }
-    }
-    return poolsAccepted;
   }
 
   public Collection<Pool> getPools() {

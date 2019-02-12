@@ -39,7 +39,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
 
   @Override
   protected void runOrchestrator() {
-    if (!mixOrchestrator.isSleeping()) {
+    if (!mixOrchestrator.isDontDisturb()) {
       try {
         int missingMustMixUtxos = whirlpoolWallet.getState().getMixState().getNbIdle();
         if (missingMustMixUtxos > 0) {
@@ -59,13 +59,13 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
       }
     } else {
       if (log.isDebugEnabled()) {
-        log.debug("AutoTx0: skipping (MixOrchestrator is sleeping)");
+        log.debug("AutoTx0: skipping (MixOrchestrator is sleeping for clientDelay)");
       }
     }
   }
 
   private void tx0() throws Exception {
-    Collection<Pool> poolsByPriority = whirlpoolWallet.getPools().getPools();
+    Collection<Pool> poolsByPriority = whirlpoolWallet.getPoolsByPriority();
     int feeSatPerByte = samouraiApi.fetchFees();
     int nbOutputsMin = 1;
 

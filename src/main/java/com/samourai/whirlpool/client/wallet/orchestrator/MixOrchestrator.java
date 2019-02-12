@@ -34,7 +34,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
   private Map<String, WhirlpoolUtxo> toMix;
   private Map<String, Mixing> mixing;
   private long lastMixStarted;
-  private boolean sleeping;
 
   public MixOrchestrator(WhirlpoolWallet whirlpoolWallet, int maxClients, int clientDelay) {
     super(LOOP_DELAY);
@@ -49,7 +48,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
     this.toMix = new HashMap<String, WhirlpoolUtxo>();
     this.mixing = new HashMap<String, Mixing>();
     this.lastMixStarted = 0;
-    this.sleeping = false;
   }
 
   @Override
@@ -81,14 +79,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
             if (log.isDebugEnabled()) {
               log.debug("Sleeping for clientDelay: " + (timeToWait / 1000) + "s");
             }
-            sleeping = true;
-            try {
-              synchronized (myThread) {
-                myThread.wait(timeToWait);
-              }
-            } catch (InterruptedException e) {
-            }
-            sleeping = false;
+            sleepOrchestrator(timeToWait, true);
           }
 
           // start mix
@@ -177,13 +168,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
       }
       toMix.put(key, whirlpoolUtxo);
 
-      if (!sleeping) {
-        notifyOrchestrator();
-      } else {
-        if (log.isDebugEnabled()) {
-          log.debug("Sleeping...");
-        }
-      }
+      notifyOrchestrator();
     } else {
       log.warn("mixQueue ignored: utxo already queued or mixing: " + whirlpoolUtxo);
     }
@@ -235,10 +220,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
         && whirlpoolUtxo.getPool() != null) {
       mixQueue(whirlpoolUtxo);
     }
-  }
-
-  public boolean isSleeping() {
-    return sleeping;
   }
 
   private static class Mixing {

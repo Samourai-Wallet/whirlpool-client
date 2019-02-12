@@ -57,10 +57,11 @@ public class AutoMixOrchestrator extends AbstractOrchestrator {
 
         // assign pool if not already assigned
         if (whirlpoolUtxo.getPool() == null) {
-          Collection<Pool> pools = whirlpoolWallet.getPools().findForPremix(whirlpoolUtxo);
+          long utxoValue = whirlpoolUtxo.getUtxo().value;
+          Collection<Pool> pools = whirlpoolWallet.findPoolsByPriorityForPremix(utxoValue);
           if (pools.isEmpty()) {
-            log.warn("No pool for this denomination: " + whirlpoolUtxo.toString());
-            whirlpoolUtxo.setError("No pool for this denomination");
+            log.warn("No pool for this utxo balance: " + whirlpoolUtxo.toString());
+            whirlpoolUtxo.setError("No pool for this utxo balance");
             return;
           }
 

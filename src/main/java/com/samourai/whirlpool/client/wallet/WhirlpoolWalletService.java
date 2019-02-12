@@ -8,6 +8,7 @@ import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.wallet.pushTx.PushTxService;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
+import java.util.Collection;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ public class WhirlpoolWalletService {
   private int clientDelay;
   private int autoTx0Delay;
   private int autoMixDelay;
+  private Collection<String> poolsByPriority;
 
   // private WhirlpoolManager whirlpoolManager;
 
@@ -40,7 +42,8 @@ public class WhirlpoolWalletService {
       int maxClients,
       int clientDelay,
       int autoTx0Delay,
-      int autoMixDelay) {
+      int autoMixDelay,
+      Collection<String> poolsByPriority) {
     this.params = params;
     this.samouraiApi = samouraiApi;
     this.pushTxService = pushTxService;
@@ -52,6 +55,7 @@ public class WhirlpoolWalletService {
     this.clientDelay = clientDelay;
     this.autoTx0Delay = autoTx0Delay;
     this.autoMixDelay = autoMixDelay;
+    this.poolsByPriority = poolsByPriority;
   }
 
   public WhirlpoolWallet openWallet(
@@ -71,6 +75,7 @@ public class WhirlpoolWalletService {
         clientDelay,
         autoTx0Delay,
         autoMixDelay,
+        poolsByPriority,
         feeIndexHandler,
         depositWallet,
         premixWallet,

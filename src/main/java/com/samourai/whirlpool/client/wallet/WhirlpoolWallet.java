@@ -33,8 +33,11 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientListener;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java8.util.Optional;
@@ -68,8 +71,10 @@ public class WhirlpoolWallet {
   private int clientDelay;
   private int autoTx0Delay;
   private int autoMixDelay;
+  private Collection<String> poolIdsByPriority;
 
   // TODO cache expiry
+  private Collection<Pool> poolsByPriority;
   private Pools pools;
   private Map<String, WhirlpoolUtxo> utxos;
   private Map<WhirlpoolAccount, Long> lastFetchUtxos;
@@ -91,6 +96,7 @@ public class WhirlpoolWallet {
         whirlpoolWallet.clientDelay,
         whirlpoolWallet.autoTx0Delay,
         whirlpoolWallet.autoMixDelay,
+        whirlpoolWallet.poolIdsByPriority,
         whirlpoolWallet.feeIndexHandler,
         whirlpoolWallet.depositWallet,
         whirlpoolWallet.premixWallet,
@@ -109,6 +115,7 @@ public class WhirlpoolWallet {
       int clientDelay,
       int autoTx0Delay, // 0 to disable
       int autoMixDelay, // 0 to disable
+      Collection<String> poolIdsByPriority,
       IIndexHandler feeIndexHandler,
       Bip84ApiWallet depositWallet,
       Bip84ApiWallet premixWallet,
@@ -130,6 +137,7 @@ public class WhirlpoolWallet {
 
     this.autoTx0Delay = autoTx0Delay;
     this.autoMixDelay = autoMixDelay;
+    this.poolIdsByPriority = poolIdsByPriority;
 
     this.mixOrchestrator = new MixOrchestrator(this, maxClients, clientDelay);
 
@@ -344,6 +352,49 @@ public class WhirlpoolWallet {
       fetchPools();
     }
     return pools;
+  }
+
+  public Collection<Pool> getPoolsByPriority() throws Exception {
+    if (poolsByPriority == null) {
+      Pools pools = getPools();
+
+      // add pools by priority
+      poolsByPriority = new LinkedList<Pool>();
+      if (poolIdsByPriority != null) {
+        for (String poolId : poolIdsByPriority) {
+          Pool pool = pools.findPoolById(poolId);
+          if (pool != null) {
+            poolsByPriority.add(pool);
+          }
+        }
+      }
+
+      // fallback
+      if (poolsByPriority.isEmpty()) {
+        if (log.isDebugEnabled()) {
+          log.debug("getPoolsByPriority: no priority defined, using all pools");
+        }
+        poolsByPriority = pools.getPools();
+      }
+    }
+    return poolsByPriority;
+  }
+
+  public Collection<Pool> findPoolsByPriorityForPremix(long utxoValue) throws Exception {
+    List<Pool> poolsAccepted = new ArrayList<Pool>();
+    // pools ordered by denomination DESC
+    for (Pool pool : getPoolsByPriority()) {
+      long balanceMin =
+          WhirlpoolProtocol.computeInputBalanceMin(
+              pool.getDenomination(), false, pool.getMinerFeeMin());
+      long balanceMax =
+          WhirlpoolProtocol.computeInputBalanceMax(
+              pool.getDenomination(), false, pool.getMinerFeeMax());
+      if (utxoValue >= balanceMin && utxoValue <= balanceMax) {
+        poolsAccepted.add(pool);
+      }
+    }
+    return poolsAccepted;
   }
 
   protected Bip84ApiWallet getWalletDeposit() {

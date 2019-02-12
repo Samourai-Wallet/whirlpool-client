@@ -8,6 +8,7 @@ import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
@@ -545,7 +546,12 @@ public class Tx0Service {
       int feeSatPerByte,
       int nbOutputsPreferred,
       int nbOutputsMin)
-      throws EmptyWalletException {
+      throws EmptyWalletException, NotifiableException {
+
+    if (poolsByPriority.isEmpty()) {
+      throw new NotifiableException("No pool to spend tx0 from");
+    }
+
     for (WhirlpoolUtxo whirlpoolUtxo : depositUtxosByPriority) {
       if (whirlpoolUtxo.getPool() == null) {
         // find eligible pool for utxo
