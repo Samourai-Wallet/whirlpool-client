@@ -10,6 +10,7 @@ public abstract class AbstractOrchestrator {
   private boolean started;
   protected Thread myThread;
   private boolean dontDisturb;
+  private long lastRun;
 
   public AbstractOrchestrator(int loopDelay, String orchestratorName) {
     this.log = LoggerFactory.getLogger(orchestratorName);
@@ -19,6 +20,7 @@ public abstract class AbstractOrchestrator {
 
   protected void resetOrchestrator() {
     this.dontDisturb = false;
+    this.lastRun = 0;
   }
 
   public synchronized void start() {
@@ -108,6 +110,28 @@ public abstract class AbstractOrchestrator {
     if (log.isDebugEnabled()) {
       log.debug("waking up from doSleep");
     }
+  }
+
+  protected long computeWaitForLastRunDelay(int delay) {
+    long elapsedTimeSinceLastRun = System.currentTimeMillis() - lastRun;
+    long timeToWait = (delay * 1000) - elapsedTimeSinceLastRun;
+    return timeToWait;
+  }
+
+  protected boolean waitForLastRunDelay(int delay, String logMessage) {
+    long timeToWait = computeWaitForLastRunDelay(delay);
+    if (timeToWait > 0) {
+      if (log.isDebugEnabled()) {
+        log.debug(logMessage + " (" + (timeToWait / 1000) + "s to wait)");
+      }
+      sleepOrchestrator(timeToWait, true);
+      return true;
+    }
+    return false;
+  }
+
+  protected void setLastRun() {
+    this.lastRun = System.currentTimeMillis();
   }
 
   public boolean isStarted() {

@@ -21,6 +21,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
   private WhirlpoolWallet whirlpoolWallet;
   private MixOrchestrator mixOrchestrator;
   private int nbOutputsPreferred;
+  private int tx0Delay;
 
   public AutoTx0Orchestrator(
       Tx0Service tx0Service,
@@ -28,13 +29,15 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
       WhirlpoolWallet whirlpoolWallet,
       MixOrchestrator mixOrchestrator,
       int loopDelay,
-      int nbOutputsPreferred) {
+      int nbOutputsPreferred,
+      int tx0Delay) {
     super(loopDelay, "AutoTx0Orchestrator");
     this.tx0Service = tx0Service;
     this.samouraiApi = samouraiApi;
     this.whirlpoolWallet = whirlpoolWallet;
     this.mixOrchestrator = mixOrchestrator;
     this.nbOutputsPreferred = nbOutputsPreferred;
+    this.tx0Delay = tx0Delay;
   }
 
   @Override
@@ -54,6 +57,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
         log.info(" o AutoTx0: preparing for " + missingMustMixUtxos + " Tx0s...");
         // not enough mustMixUtxos => Tx0
         for (int i = 0; i < missingMustMixUtxos; i++) {
+          waitForLastRunDelay(tx0Delay, "Sleeping for tx0Delay");
           log.info(" • Tx0 (" + (i + 1) + "/" + missingMustMixUtxos + ")...");
           tx0();
         }

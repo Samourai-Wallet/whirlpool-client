@@ -32,7 +32,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
   private Map<String, WhirlpoolUtxo> toMix;
   private Map<String, Mixing> mixing;
-  private long lastMixStarted;
 
   public MixOrchestrator(WhirlpoolWallet whirlpoolWallet, int maxClients, int clientDelay) {
     super(LOOP_DELAY, "MixOrchestrator");
@@ -46,7 +45,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
     super.resetOrchestrator();
     this.toMix = new HashMap<String, WhirlpoolUtxo>();
     this.mixing = new HashMap<String, Mixing>();
-    this.lastMixStarted = 0;
   }
 
   @Override
@@ -55,14 +53,8 @@ public class MixOrchestrator extends AbstractOrchestrator {
     while (computeNbIdle() > 0) {
 
       // sleep clientDelay
-      long elapsedTimeSinceLastMix = System.currentTimeMillis() - lastMixStarted;
-      long timeToWait = clientDelay * 1000 - elapsedTimeSinceLastMix;
-      if (timeToWait > 0) {
-        if (log.isDebugEnabled()) {
-          log.debug("Sleeping for clientDelay: " + (timeToWait / 1000) + "s");
-        }
-        sleepOrchestrator(timeToWait, true);
-
+      boolean waited = waitForLastRunDelay(clientDelay, "Sleeping for clientDelay");
+      if (waited) {
         // re-check for idle on wakeup
         if (computeNbIdle() == 0) {
           return;
@@ -116,7 +108,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     }
 
     // start mix
-    lastMixStarted = System.currentTimeMillis();
+    setLastRun();
     mix(whirlpoolUtxo);
     return true;
   }

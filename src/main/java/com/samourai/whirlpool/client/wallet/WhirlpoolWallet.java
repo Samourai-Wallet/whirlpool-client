@@ -71,6 +71,7 @@ public class WhirlpoolWallet {
   private int clientDelay;
   private int autoTx0Delay;
   private int autoMixDelay;
+  private int tx0Delay;
   private Collection<String> poolIdsByPriority;
 
   // TODO cache expiry
@@ -96,6 +97,7 @@ public class WhirlpoolWallet {
         whirlpoolWallet.clientDelay,
         whirlpoolWallet.autoTx0Delay,
         whirlpoolWallet.autoMixDelay,
+        whirlpoolWallet.tx0Delay,
         whirlpoolWallet.poolIdsByPriority,
         whirlpoolWallet.feeIndexHandler,
         whirlpoolWallet.depositWallet,
@@ -115,6 +117,7 @@ public class WhirlpoolWallet {
       int clientDelay,
       int autoTx0Delay, // 0 to disable
       int autoMixDelay, // 0 to disable
+      int tx0Delay, // 0 to disable
       Collection<String> poolIdsByPriority,
       IIndexHandler feeIndexHandler,
       Bip84ApiWallet depositWallet,
@@ -137,6 +140,7 @@ public class WhirlpoolWallet {
 
     this.autoTx0Delay = autoTx0Delay;
     this.autoMixDelay = autoMixDelay;
+    this.tx0Delay = tx0Delay;
     this.poolIdsByPriority = poolIdsByPriority;
 
     this.mixOrchestrator = new MixOrchestrator(this, maxClients, clientDelay);
@@ -151,7 +155,8 @@ public class WhirlpoolWallet {
                   this,
                   this.mixOrchestrator,
                   autoTx0Delay * 1000,
-                  nbOutputsPreferred));
+                  nbOutputsPreferred,
+                  tx0Delay));
     } else {
       this.autoTx0Orchestrator = Optional.empty();
     }
