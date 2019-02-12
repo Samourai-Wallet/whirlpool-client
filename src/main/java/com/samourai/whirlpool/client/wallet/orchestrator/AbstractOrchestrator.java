@@ -44,8 +44,15 @@ public abstract class AbstractOrchestrator {
     while (started) {
       try {
         runOrchestrator();
-        synchronized (myThread) {
-          myThread.wait(LOOP_DELAY);
+
+        // orchestrator may have been stopped in the meantime, as function is not synchronized
+        if (myThread != null) {
+          synchronized (myThread) {
+            myThread.wait(LOOP_DELAY);
+          }
+        }
+        else {
+          log.warn("myThread=null");
         }
       } catch (InterruptedException e) {
         // normal
