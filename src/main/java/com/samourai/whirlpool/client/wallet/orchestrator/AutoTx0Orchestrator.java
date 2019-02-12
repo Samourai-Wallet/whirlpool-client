@@ -19,39 +19,48 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
   private Tx0Service tx0Service;
   private SamouraiApi samouraiApi;
   private WhirlpoolWallet whirlpoolWallet;
+  private MixOrchestrator mixOrchestrator;
   private int nbOutputsPreferred;
 
   public AutoTx0Orchestrator(
       Tx0Service tx0Service,
       SamouraiApi samouraiApi,
       WhirlpoolWallet whirlpoolWallet,
+      MixOrchestrator mixOrchestrator,
       int loopDelay,
       int nbOutputsPreferred) {
     super(loopDelay);
     this.tx0Service = tx0Service;
     this.samouraiApi = samouraiApi;
     this.whirlpoolWallet = whirlpoolWallet;
+    this.mixOrchestrator = mixOrchestrator;
     this.nbOutputsPreferred = nbOutputsPreferred;
   }
 
   @Override
   protected void runOrchestrator() {
-    try {
-      int missingMustMixUtxos = whirlpoolWallet.getState().getMixState().getNbIdle();
-      if (missingMustMixUtxos > 0) {
-        if (log.isDebugEnabled()) {
-          log.info("AutoTx0: preparing for " + missingMustMixUtxos + " Tx0s...");
+    if (!mixOrchestrator.isSleeping()) {
+      try {
+        int missingMustMixUtxos = whirlpoolWallet.getState().getMixState().getNbIdle();
+        if (missingMustMixUtxos > 0) {
+          if (log.isDebugEnabled()) {
+            log.info("AutoTx0: preparing for " + missingMustMixUtxos + " Tx0s...");
+          }
+          // not enough mustMixUtxos => Tx0
+          for (int i = 0; i < missingMustMixUtxos; i++) {
+            log.info(" • Tx0 (" + (i + 1) + "/" + missingMustMixUtxos + ")...");
+            tx0();
+          }
         }
-        // not enough mustMixUtxos => Tx0
-        for (int i = 0; i < missingMustMixUtxos; i++) {
-          log.info(" • Tx0 (" + (i + 1) + "/" + missingMustMixUtxos + ")...");
-          tx0();
-        }
+      } catch (EmptyWalletException e) {
+        whirlpoolWallet.onEmptyWalletException(e);
+      } catch (Exception e) {
+        log.error("", e);
       }
-    } catch (EmptyWalletException e) {
-      whirlpoolWallet.onEmptyWalletException(e);
-    } catch (Exception e) {
-      log.error("", e);
+    } else {
+      if (log.isDebugEnabled()) {
+        log.debug("AutoTx0: skipping (MixOrchestrator is sleeping)");
+      }
     }
   }
 

@@ -83,7 +83,9 @@ public class MixOrchestrator extends AbstractOrchestrator {
             }
             sleeping = true;
             try {
-              Thread.sleep(timeToWait);
+              synchronized (myThread) {
+                myThread.wait(timeToWait);
+              }
             } catch (InterruptedException e) {
             }
             sleeping = false;
@@ -233,6 +235,10 @@ public class MixOrchestrator extends AbstractOrchestrator {
         && whirlpoolUtxo.getPool() != null) {
       mixQueue(whirlpoolUtxo);
     }
+  }
+
+  public boolean isSleeping() {
+    return sleeping;
   }
 
   private static class Mixing {

@@ -138,7 +138,12 @@ public class WhirlpoolWallet {
       this.autoTx0Orchestrator =
           Optional.of(
               new AutoTx0Orchestrator(
-                  tx0Service, samouraiApi, this, autoTx0Delay * 1000, nbOutputsPreferred));
+                  tx0Service,
+                  samouraiApi,
+                  this,
+                  this.mixOrchestrator,
+                  autoTx0Delay * 1000,
+                  nbOutputsPreferred));
     } else {
       this.autoTx0Orchestrator = Optional.empty();
     }
