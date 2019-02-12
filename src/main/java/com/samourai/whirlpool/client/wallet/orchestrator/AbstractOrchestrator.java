@@ -4,14 +4,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class AbstractOrchestrator {
-  private final Logger log = LoggerFactory.getLogger(AbstractOrchestrator.class);
+  private Logger log;
   private final int LOOP_DELAY;
 
   private boolean started;
   protected Thread myThread;
   private boolean dontDisturb;
 
-  public AbstractOrchestrator(int loopDelay) {
+  public AbstractOrchestrator(int loopDelay, String orchestratorName) {
+    this.log = LoggerFactory.getLogger(orchestratorName);
     this.LOOP_DELAY = loopDelay;
     resetOrchestrator();
   }
@@ -34,35 +35,23 @@ public abstract class AbstractOrchestrator {
             new Runnable() {
               @Override
               public void run() {
-                doRun();
+                while (started) {
+                  runOrchestrator();
+
+                  // orchestrator may have been stopped in the meantime, as function is not
+                  // synchronized
+                  doSleep(LOOP_DELAY);
+                }
+
+                // thread exiting
+                myThread = null;
+                if (log.isDebugEnabled()) {
+                  log.debug("Ended.");
+                }
+                resetOrchestrator();
               }
             });
     this.myThread.start();
-  }
-
-  private void doRun() {
-    while (started) {
-      try {
-        runOrchestrator();
-
-        // orchestrator may have been stopped in the meantime, as function is not synchronized
-        if (myThread != null) {
-          synchronized (myThread) {
-            myThread.wait(LOOP_DELAY);
-          }
-        }
-        else {
-          log.warn("myThread=null");
-        }
-      } catch (InterruptedException e) {
-        // normal
-      }
-    }
-    this.myThread = null;
-    if (log.isDebugEnabled()) {
-      log.debug("Ended.");
-    }
-    resetOrchestrator();
   }
 
   protected abstract void runOrchestrator();
@@ -78,21 +67,16 @@ public abstract class AbstractOrchestrator {
     synchronized (myThread) {
       this.started = false;
       myThread.notify();
-      myThread = null;
     }
   }
 
-  protected void notifyOrchestrator() {
-    if (!dontDisturb) {
-      if (myThread != null) {
-        if (log.isDebugEnabled()) {
-          log.debug("Notifying...");
-        }
-        synchronized (myThread) {
-          myThread.notify();
-        }
-      } else {
-        log.error("Notifying failed, myThread=null");
+  protected synchronized void notifyOrchestrator() {
+    if (isStarted() && !isDontDisturb()) {
+      if (log.isDebugEnabled()) {
+        log.debug("Notifying...");
+      }
+      synchronized (myThread) {
+        myThread.notify();
       }
     } else {
       if (log.isDebugEnabled()) {
@@ -101,21 +85,28 @@ public abstract class AbstractOrchestrator {
     }
   }
 
-  protected void sleepOrchestrator(long timeToWait, boolean withDontDisturb) {
+  protected synchronized void sleepOrchestrator(long timeToWait, boolean withDontDisturb) {
+    if (withDontDisturb) {
+      dontDisturb = true;
+    }
+    doSleep(timeToWait);
+    if (withDontDisturb) {
+      dontDisturb = false;
+    }
+  }
+
+  private void doSleep(long timeToWait) {
+    if (log.isDebugEnabled()) {
+      log.debug("doSleep");
+    }
     try {
       synchronized (myThread) {
-        if (withDontDisturb) {
-          dontDisturb = true;
-        }
-        if (log.isDebugEnabled()) {
-          log.debug("sleepOrchestrator... withDontDisturb=" + withDontDisturb);
-        }
         myThread.wait(timeToWait);
-        if (withDontDisturb) {
-          dontDisturb = false;
-        }
       }
     } catch (InterruptedException e) {
+    }
+    if (log.isDebugEnabled()) {
+      log.debug("waking up from doSleep");
     }
   }
 

@@ -29,7 +29,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
       MixOrchestrator mixOrchestrator,
       int loopDelay,
       int nbOutputsPreferred) {
-    super(loopDelay);
+    super(loopDelay, "AutoTx0Orchestrator");
     this.tx0Service = tx0Service;
     this.samouraiApi = samouraiApi;
     this.whirlpoolWallet = whirlpoolWallet;
@@ -39,28 +39,29 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
 
   @Override
   protected void runOrchestrator() {
-    if (!mixOrchestrator.isDontDisturb()) {
-      try {
-        int missingMustMixUtxos = whirlpoolWallet.getState().getMixState().getNbIdle();
-        if (missingMustMixUtxos > 0) {
-          if (log.isDebugEnabled()) {
-            log.info("AutoTx0: preparing for " + missingMustMixUtxos + " Tx0s...");
-          }
-          // not enough mustMixUtxos => Tx0
-          for (int i = 0; i < missingMustMixUtxos; i++) {
-            log.info(" • Tx0 (" + (i + 1) + "/" + missingMustMixUtxos + ")...");
-            tx0();
-          }
-        }
-      } catch (EmptyWalletException e) {
-        whirlpoolWallet.onEmptyWalletException(e);
-      } catch (Exception e) {
-        log.error("", e);
-      }
-    } else {
+    if (mixOrchestrator.isDontDisturb()) {
+      // no need for more tx0 when mixOrchestrator is sleeping for clientDelay
       if (log.isDebugEnabled()) {
         log.debug("AutoTx0: skipping (MixOrchestrator is sleeping for clientDelay)");
       }
+      return;
+    }
+
+    // do we have idle threads?
+    try {
+      int missingMustMixUtxos = whirlpoolWallet.getState().getMixState().getNbIdle();
+      if (missingMustMixUtxos > 0) {
+        log.info(" o AutoTx0: preparing for " + missingMustMixUtxos + " Tx0s...");
+        // not enough mustMixUtxos => Tx0
+        for (int i = 0; i < missingMustMixUtxos; i++) {
+          log.info(" • Tx0 (" + (i + 1) + "/" + missingMustMixUtxos + ")...");
+          tx0();
+        }
+      }
+    } catch (EmptyWalletException e) {
+      whirlpoolWallet.onEmptyWalletException(e);
+    } catch (Exception e) {
+      log.error("", e);
     }
   }
 

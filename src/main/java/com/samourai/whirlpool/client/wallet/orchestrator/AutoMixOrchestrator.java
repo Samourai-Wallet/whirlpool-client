@@ -14,13 +14,8 @@ public class AutoMixOrchestrator extends AbstractOrchestrator {
   private WhirlpoolWallet whirlpoolWallet;
 
   public AutoMixOrchestrator(WhirlpoolWallet whirlpoolWallet, int loopDelay) {
-    super(loopDelay);
+    super(loopDelay, "AutoMixOrchestrator");
     this.whirlpoolWallet = whirlpoolWallet;
-  }
-
-  @Override
-  protected void resetOrchestrator() {
-    super.resetOrchestrator();
   }
 
   @Override
@@ -38,16 +33,6 @@ public class AutoMixOrchestrator extends AbstractOrchestrator {
     }
     // rescan premix
     whirlpoolWallet.getUtxosPremix(true);
-  }
-
-  @Override
-  public synchronized void start() {
-    super.start();
-  }
-
-  @Override
-  public synchronized void stop() {
-    super.stop();
   }
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
@@ -69,9 +54,7 @@ public class AutoMixOrchestrator extends AbstractOrchestrator {
           whirlpoolUtxo.setPool(pools.iterator().next());
         }
 
-        if (log.isDebugEnabled()) {
-          log.debug(" o AutoMix: new utxo detected, adding to mixQueue: " + whirlpoolUtxo);
-        }
+        log.info(" o AutoMix: new utxo detected, adding to mixQueue: " + whirlpoolUtxo);
         whirlpoolWallet.mixQueue(whirlpoolUtxo);
       } else {
         if (log.isDebugEnabled()) {

@@ -87,8 +87,8 @@ public class WhirlpoolUtxo {
     return mixsTarget;
   }
 
-  public void incrementMixsDone(int mixsDone) {
-    this.mixsDone = mixsDone;
+  public void incrementMixsDone() {
+    this.mixsDone++;
   }
 
   public int getMixsDone() {

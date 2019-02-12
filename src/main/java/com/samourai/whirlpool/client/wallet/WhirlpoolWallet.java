@@ -433,7 +433,11 @@ public class WhirlpoolWallet {
       final WhirlpoolUtxo whirlpoolUtxo, WhirlpoolClientListener notifyListener) {
     whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_STARTED, 1);
     if (log.isDebugEnabled()) {
-      log.debug(" • Connecting client: utxo=" + whirlpoolUtxo);
+      log.info(
+          " • Connecting client to pool: "
+              + whirlpoolUtxo.getPool().getPoolId()
+              + ", utxo="
+              + whirlpoolUtxo);
     } else {
       log.info(" • Connecting client to pool: " + whirlpoolUtxo.getPool().getPoolId());
     }
@@ -476,6 +480,7 @@ public class WhirlpoolWallet {
           public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
             super.mixSuccess(currentMix, nbMixs, mixSuccess);
             whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS, 100);
+            whirlpoolUtxo.incrementMixsDone();
           }
         };
 

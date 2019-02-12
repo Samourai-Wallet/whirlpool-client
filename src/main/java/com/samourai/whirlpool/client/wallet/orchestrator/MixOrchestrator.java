@@ -2,7 +2,6 @@ package com.samourai.whirlpool.client.wallet.orchestrator;
 
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
-import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.MixOrchestratorState;
@@ -36,7 +35,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
   private long lastMixStarted;
 
   public MixOrchestrator(WhirlpoolWallet whirlpoolWallet, int maxClients, int clientDelay) {
-    super(LOOP_DELAY);
+    super(LOOP_DELAY, "MixOrchestrator");
     this.whirlpoolWallet = whirlpoolWallet;
     this.maxClients = maxClients;
     this.clientDelay = clientDelay;
@@ -52,50 +51,74 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
   @Override
   protected void runOrchestrator() {
-    MixOrchestratorState state = getState();
-    String status = "Threads running: " + state.getNbMixing() + "/" + maxClients;
-    int nbIdle = state.getNbIdle();
-    if (nbIdle > 0) {
-      // more clients available
+    // check idles
+    while (computeNbIdle() > 0) {
+
+      // sleep clientDelay
+      long elapsedTimeSinceLastMix = System.currentTimeMillis() - lastMixStarted;
+      long timeToWait = clientDelay * 1000 - elapsedTimeSinceLastMix;
+      if (timeToWait > 0) {
+        if (log.isDebugEnabled()) {
+          log.debug("Sleeping for clientDelay: " + (timeToWait / 1000) + "s");
+        }
+        sleepOrchestrator(timeToWait, true);
+
+        // re-check for idle on wakeup
+        if (computeNbIdle() == 0) {
+          return;
+        }
+      }
+
+      // idles detected
       if (log.isDebugEnabled()) {
         log.debug(
-            status
+            "Threads running: "
+                + getState().getNbMixing()
+                + "/"
+                + maxClients
                 + ". More threads available, checking for queued utxos to mix... ("
                 + toMix.size()
                 + " queued)");
-        ClientUtils.logWhirlpoolUtxos(toMix.values());
       }
-      try {
-        // start mixing up to nbIdle utxos
-        Collection<WhirlpoolUtxo> whirlpoolUtxos = findToMixByPriority(nbIdle);
-        if (log.isDebugEnabled()) {
-          log.debug("Found " + whirlpoolUtxos.size() + " queued utxos to mix...");
-        }
-        for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
-          // sleep clientDelay
-          long elapsedTimeSinceLastMix = System.currentTimeMillis() - lastMixStarted;
-          long timeToWait = clientDelay * 1000 - elapsedTimeSinceLastMix;
-          if (timeToWait > 0) {
-            if (log.isDebugEnabled()) {
-              log.debug("Sleeping for clientDelay: " + (timeToWait / 1000) + "s");
-            }
-            sleepOrchestrator(timeToWait, true);
-          }
 
-          // start mix
-          lastMixStarted = System.currentTimeMillis();
-          mix(whirlpoolUtxo);
-        }
-      } catch (Exception e) {
-        log.error("", e);
+      // find & mix
+      boolean startedNewMix = findQueuedAndMix();
+      if (!startedNewMix) {
+        // nothing more to mix => exit this loop
+        return;
       }
-    } else {
-      if (log.isDebugEnabled()) {
-        log.debug(status + ". All threads running.");
-        ClientUtils.logWhirlpoolUtxos(toMix.values());
-      }
-      // no client available
     }
+
+    // all threads running
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "Threads running: "
+              + getState().getNbMixing()
+              + "/"
+              + maxClients
+              + ". All threads running.");
+    }
+  }
+
+  public synchronized boolean findQueuedAndMix() {
+    // start mixing up to nbIdle utxos
+    Collection<WhirlpoolUtxo> whirlpoolUtxos = findToMixByPriority(1);
+    if (whirlpoolUtxos.isEmpty()) {
+      if (log.isDebugEnabled()) {
+        log.debug("No queued utxo to mix now.");
+      }
+      return false;
+    }
+
+    WhirlpoolUtxo whirlpoolUtxo = whirlpoolUtxos.iterator().next();
+    if (log.isDebugEnabled()) {
+      log.debug("Found queued utxo to mix => mix now");
+    }
+
+    // start mix
+    lastMixStarted = System.currentTimeMillis();
+    mix(whirlpoolUtxo);
+    return true;
   }
 
   public MixOrchestratorState getState() {
@@ -109,9 +132,14 @@ public class MixOrchestrator extends AbstractOrchestrator {
                   }
                 })
             .collect(Collectors.<WhirlpoolUtxo>toList());
-    int nbIdle = maxClients - mixing.size();
+    int nbIdle = computeNbIdle();
     int nbQueued = toMix.size();
     return new MixOrchestratorState(utxosMixing, maxClients, nbIdle, nbQueued);
+  }
+
+  private int computeNbIdle() {
+    int nbIdle = maxClients - mixing.size();
+    return nbIdle;
   }
 
   protected List<WhirlpoolUtxo> findToMixByPriority(int nbUtxos) {
@@ -187,6 +215,9 @@ public class MixOrchestrator extends AbstractOrchestrator {
           @Override
           public void fail(int currentMix, int nbMixs) {
             mixing.remove(key);
+
+            // idle => notify orchestrator
+            notifyOrchestrator();
           }
 
           @Override
@@ -203,6 +234,9 @@ public class MixOrchestrator extends AbstractOrchestrator {
             whirlpoolWallet.clearCache(whirlpoolUtxo.getAccount());
             whirlpoolWallet.clearCache(WhirlpoolAccount.POSTMIX);
             mixing.remove(key);
+
+            // idle => notify orchestrator
+            notifyOrchestrator();
           }
         };
 
