@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.orchestrator;
 
 import com.samourai.api.client.SamouraiApi;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
+import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
@@ -59,7 +60,11 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
         for (int i = 0; i < missingMustMixUtxos; i++) {
           waitForLastRunDelay(tx0Delay, "Sleeping for tx0Delay");
           log.info(" • Tx0 (" + (i + 1) + "/" + missingMustMixUtxos + ")...");
-          tx0();
+          Tx0 tx0 = tx0();
+          if (tx0 == null) {
+            // no tx0 can be made now, wait for spendFrom to confirm...
+            break;
+          }
         }
       }
     } catch (EmptyWalletException e) {
@@ -69,7 +74,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     }
   }
 
-  private void tx0() throws Exception {
+  private Tx0 tx0() throws Exception {
     Collection<Pool> poolsByPriority = whirlpoolWallet.getPoolsByPriority();
     int feeSatPerByte = samouraiApi.fetchFees();
     int nbOutputsMin = 1;
@@ -88,7 +93,13 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
             nbOutputsPreferred,
             nbOutputsMin); // throws EmptyWalletException
 
-    // run TX0
-    whirlpoolWallet.tx0(spendFrom.getPool(), nbOutputsPreferred, spendFrom);
+    if (spendFrom.getUtxo().confirmations > 0) {
+      // run TX0
+      return whirlpoolWallet.tx0(spendFrom.getPool(), nbOutputsPreferred, spendFrom);
+    } else {
+      // wait for spendFrom to confirm...
+      log.info(" => Tx0: waiting for spendFrom to confirm: " + spendFrom.toString());
+      return null;
+    }
   }
 }

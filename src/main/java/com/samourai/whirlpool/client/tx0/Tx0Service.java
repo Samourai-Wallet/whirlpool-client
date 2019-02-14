@@ -552,6 +552,7 @@ public class Tx0Service {
       throw new NotifiableException("No pool to spend tx0 from");
     }
 
+    WhirlpoolUtxo unconfirmedUtxo = null;
     for (WhirlpoolUtxo whirlpoolUtxo : depositUtxosByPriority) {
       if (whirlpoolUtxo.getPool() == null) {
         // find eligible pool for utxo
@@ -563,9 +564,19 @@ public class Tx0Service {
         }
       }
       if (whirlpoolUtxo.getPool() != null) {
-        return whirlpoolUtxo;
+        if (whirlpoolUtxo.getUtxo().confirmations > 0) {
+          return whirlpoolUtxo;
+        } else {
+          unconfirmedUtxo = whirlpoolUtxo;
+        }
       }
     }
+
+    if (unconfirmedUtxo != null) {
+      // return unconfirmed utxo
+      return unconfirmedUtxo;
+    }
+
     // no eligible deposit UTXO found
     long requiredBalance =
         computeSpendFromBalanceMin(poolsByPriority.iterator().next(), feeSatPerByte, nbOutputsMin);
