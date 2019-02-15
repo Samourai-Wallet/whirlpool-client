@@ -55,12 +55,10 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     try {
       int missingMustMixUtxos = whirlpoolWallet.getState().getMixState().getNbIdle();
       if (missingMustMixUtxos > 0) {
-        log.info(" o AutoTx0: preparing for " + missingMustMixUtxos + " Tx0s...");
         // not enough mustMixUtxos => Tx0
         for (int i = 0; i < missingMustMixUtxos; i++) {
           waitForLastRunDelay(tx0Delay, "Sleeping for tx0Delay");
-          log.info(" • Tx0 (" + (i + 1) + "/" + missingMustMixUtxos + ")...");
-          Tx0 tx0 = tx0();
+          Tx0 tx0 = tx0(i + 1, missingMustMixUtxos);
           if (tx0 == null) {
             // no tx0 can be made now, wait for spendFrom to confirm...
             break;
@@ -74,7 +72,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     }
   }
 
-  private Tx0 tx0() throws Exception {
+  private Tx0 tx0(int i, int nb) throws Exception {
     Collection<Pool> poolsByPriority = whirlpoolWallet.getPoolsByPriority();
     int feeSatPerByte = samouraiApi.fetchFees();
     int nbOutputsMin = 1;
@@ -95,10 +93,16 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
 
     if (spendFrom.getUtxo().confirmations > 0) {
       // run TX0
+      log.info(" • Tx0 (" + i + "/" + nb + ")...");
       return whirlpoolWallet.tx0(spendFrom.getPool(), nbOutputsPreferred, spendFrom);
     } else {
       // wait for spendFrom to confirm...
-      log.info(" => Tx0: waiting for spendFrom to confirm: " + spendFrom.toString());
+      String message = " • Tx0 (" + i + "/" + nb + "): waiting for deposit confirmation";
+      if (log.isDebugEnabled()) {
+        log.debug(message + ": " + spendFrom.toString());
+      } else {
+        log.info(message);
+      }
       return null;
     }
   }
