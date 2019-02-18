@@ -11,15 +11,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AutoTx0Orchestrator extends AbstractOrchestrator {
-
   private static final Logger log = LoggerFactory.getLogger(AutoTx0Orchestrator.class);
-  private static final int LOOP_DELAY = 120000;
 
   private WhirlpoolWallet whirlpoolWallet;
   private int tx0Delay;
 
-  public AutoTx0Orchestrator(WhirlpoolWallet whirlpoolWallet, int tx0Delay) {
-    super(LOOP_DELAY, "AutoTx0Orchestrator");
+  public AutoTx0Orchestrator(int loopDelay, WhirlpoolWallet whirlpoolWallet, int tx0Delay) {
+    super(loopDelay);
     this.whirlpoolWallet = whirlpoolWallet;
     this.tx0Delay = tx0Delay;
   }
@@ -66,15 +64,25 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
   }
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
-    try {
-      if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())
-          && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())) {
+    if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())
+        && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())) {
 
-        log.info(" o AutoTx0: new DEPOSIT utxo detected: " + whirlpoolUtxo);
+      if (whirlpoolUtxo.getUtxo().confirmations >= WhirlpoolWallet.TX0_MIN_CONFIRMATIONS) {
+        log.info(" o AutoTx0: new DEPOSIT utxo detected, checking for tx0: " + whirlpoolUtxo);
         notifyOrchestrator();
+      } else {
+        log.info(
+            " o AutoTx0: new DEPOSIT utxo detected, waiting for confirmation: " + whirlpoolUtxo);
       }
-    } catch (Exception e) {
-      log.error("", e);
+    }
+  }
+
+  public void onUtxoConfirmed(WhirlpoolUtxo whirlpoolUtxo) {
+    if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())
+        && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())
+        && whirlpoolUtxo.getUtxo().confirmations >= WhirlpoolWallet.TX0_MIN_CONFIRMATIONS) {
+      log.info(" o AutoTx0: new DEPOSIT utxo CONFIRMED, checking for tx0: " + whirlpoolUtxo);
+      notifyOrchestrator();
     }
   }
 }

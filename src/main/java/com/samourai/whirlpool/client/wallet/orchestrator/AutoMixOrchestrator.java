@@ -13,8 +13,8 @@ public class AutoMixOrchestrator extends AbstractOrchestrator {
   private final Logger log = LoggerFactory.getLogger(AutoMixOrchestrator.class);
   private WhirlpoolWallet whirlpoolWallet;
 
-  public AutoMixOrchestrator(WhirlpoolWallet whirlpoolWallet, int loopDelay) {
-    super(loopDelay, "AutoMixOrchestrator");
+  public AutoMixOrchestrator(int loopDelay, WhirlpoolWallet whirlpoolWallet) {
+    super(loopDelay);
     this.whirlpoolWallet = whirlpoolWallet;
   }
 
@@ -32,7 +32,7 @@ public class AutoMixOrchestrator extends AbstractOrchestrator {
       log.debug("Checking for PREMIX utxos ready to mix...");
     }
     // rescan premix
-    whirlpoolWallet.getUtxosPremix(true);
+    whirlpoolWallet.getUtxosPremix(false);
   }
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {

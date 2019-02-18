@@ -16,26 +16,26 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java8.util.Optional;
 import java8.util.function.Function;
 import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
+import java8.util.stream.Stream;
 import java8.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MixOrchestrator extends AbstractOrchestrator {
   private final Logger log = LoggerFactory.getLogger(MixOrchestrator.class);
-  private static final int LOOP_DELAY = 120000;
-  private static final int MIX_MIN_CONFIRMATIONS = 1;
   private WhirlpoolWallet whirlpoolWallet;
   private int maxClients;
   private int clientDelay;
 
-  private Map<String, WhirlpoolUtxo> toMix;
   private Map<String, Mixing> mixing;
 
-  public MixOrchestrator(WhirlpoolWallet whirlpoolWallet, int maxClients, int clientDelay) {
-    super(LOOP_DELAY, "MixOrchestrator");
+  public MixOrchestrator(
+      int loopDelay, WhirlpoolWallet whirlpoolWallet, int maxClients, int clientDelay) {
+    super(loopDelay);
     this.whirlpoolWallet = whirlpoolWallet;
     this.maxClients = maxClients;
     this.clientDelay = clientDelay;
@@ -44,61 +44,57 @@ public class MixOrchestrator extends AbstractOrchestrator {
   @Override
   protected void resetOrchestrator() {
     super.resetOrchestrator();
-    this.toMix = new HashMap<String, WhirlpoolUtxo>();
     this.mixing = new HashMap<String, Mixing>();
   }
 
   @Override
   protected void runOrchestrator() {
     // check idles
-    while (computeNbIdle() > 0) {
+    try {
+      while (computeNbIdle() > 0) {
 
-      // sleep clientDelay
-      boolean waited = waitForLastRunDelay(clientDelay, "Sleeping for clientDelay");
-      if (waited) {
-        // re-check for idle on wakeup
-        if (computeNbIdle() == 0) {
+        // sleep clientDelay
+        boolean waited = waitForLastRunDelay(clientDelay, "Sleeping for clientDelay");
+        if (waited) {
+          // re-check for idle on wakeup
+          if (computeNbIdle() == 0) {
+            return;
+          }
+        }
+
+        // idles detected
+        if (log.isDebugEnabled()) {
+          log.debug(
+              getState().getNbMixing()
+                  + "/"
+                  + maxClients
+                  + " threads running => checking for queued utxos to mix...");
+        }
+
+        // find & mix
+        boolean startedNewMix = findQueuedAndMix();
+        if (!startedNewMix) {
+          // nothing more to mix => exit this loop
           return;
         }
       }
 
-      // idles detected
+      // all threads running
       if (log.isDebugEnabled()) {
         log.debug(
-            "Threads running: "
-                + getState().getNbMixing()
-                + "/"
-                + maxClients
-                + ". More threads available, checking for queued utxos to mix... ("
-                + toMix.size()
-                + " queued)");
+            getState().getNbMixing() + "/" + maxClients + " threads running: all threads running.");
       }
-
-      // find & mix
-      boolean startedNewMix = findQueuedAndMix();
-      if (!startedNewMix) {
-        // nothing more to mix => exit this loop
-        return;
-      }
-    }
-
-    // all threads running
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "Threads running: "
-              + getState().getNbMixing()
-              + "/"
-              + maxClients
-              + ". All threads running.");
+    } catch (Exception e) {
+      log.error("", e);
     }
   }
 
-  public synchronized boolean findQueuedAndMix() {
+  public synchronized boolean findQueuedAndMix() throws Exception {
     // start mixing up to nbIdle utxos
     Collection<WhirlpoolUtxo> whirlpoolUtxos = findToMixByPriority(1);
     if (whirlpoolUtxos.isEmpty()) {
       if (log.isDebugEnabled()) {
-        log.debug("No queued utxo to mix now.");
+        log.debug("No queued utxo mixable now.");
       }
       return false;
     }
@@ -126,7 +122,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
                 })
             .collect(Collectors.<WhirlpoolUtxo>toList());
     int nbIdle = computeNbIdle();
-    int nbQueued = toMix.size();
+    int nbQueued = (int) findToMix().count();
     return new MixOrchestratorState(utxosMixing, maxClients, nbIdle, nbQueued);
   }
 
@@ -158,11 +154,24 @@ public class MixOrchestrator extends AbstractOrchestrator {
     return results;
   }
 
-  protected WhirlpoolUtxo findToMixByPriority(final Set<String> excludedHashs) {
-    if (toMix.isEmpty()) {
-      return null;
+  protected Stream<WhirlpoolUtxo> findToMix() {
+    try {
+      return StreamSupport.stream(
+              whirlpoolWallet.getUtxos(false, WhirlpoolAccount.PREMIX, WhirlpoolAccount.POSTMIX))
+          .filter(
+              new Predicate<WhirlpoolUtxo>() {
+                @Override
+                public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
+                  return WhirlpoolUtxoStatus.MIX_QUEUE.equals(whirlpoolUtxo.getStatus());
+                }
+              });
+    } catch (Exception e) {
+      return StreamSupport.stream(new ArrayList());
     }
-    return StreamSupport.stream(toMix.values())
+  }
+
+  protected WhirlpoolUtxo findToMixByPriority(final Set<String> excludedHashs) {
+    return findToMix()
         // exclude hashs
         .filter(
             new Predicate<WhirlpoolUtxo>() {
@@ -175,7 +184,8 @@ public class MixOrchestrator extends AbstractOrchestrator {
             new Predicate<WhirlpoolUtxo>() {
               @Override
               public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                return whirlpoolUtxo.getUtxo().confirmations >= MIX_MIN_CONFIRMATIONS;
+                return whirlpoolUtxo.getUtxo().confirmations
+                    >= WhirlpoolWallet.MIX_MIN_CONFIRMATIONS;
               }
             })
         .sorted(new WhirlpoolUtxoPriorityComparator())
@@ -188,13 +198,24 @@ public class MixOrchestrator extends AbstractOrchestrator {
       log.warn("mixQueue ignored: no pool set for " + whirlpoolUtxo);
       return;
     }
-    String key = whirlpoolUtxo.getUtxo().toKey();
-    if (!toMix.containsKey(key) && !mixing.containsKey(key)) {
+    final String key = whirlpoolUtxo.getUtxo().toKey();
+
+    Optional<WhirlpoolUtxo> existingToMix =
+        findToMix()
+            .filter(
+                new Predicate<WhirlpoolUtxo>() {
+                  @Override
+                  public boolean test(WhirlpoolUtxo toMix) {
+                    return key.equals(toMix.getUtxo().toKey());
+                  }
+                })
+            .findFirst();
+    if (!existingToMix.isPresent() && !mixing.containsKey(key)) {
+      // add to queue
       whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_QUEUE);
       if (log.isDebugEnabled()) {
         log.debug(" + mixQueue: " + whirlpoolUtxo.toString());
       }
-      toMix.put(key, whirlpoolUtxo);
 
       notifyOrchestrator();
     } else {
@@ -202,7 +223,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     }
   }
 
-  private synchronized void mix(final WhirlpoolUtxo whirlpoolUtxo) {
+  private synchronized void mix(final WhirlpoolUtxo whirlpoolUtxo) throws Exception {
     final String key = whirlpoolUtxo.getUtxo().toKey();
     WhirlpoolClientListener utxoListener =
         new WhirlpoolClientListener() {
@@ -244,7 +265,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
     WhirlpoolClientListener listener = whirlpoolWallet.mix(whirlpoolUtxo, utxoListener);
 
     mixing.put(key, new Mixing(whirlpoolUtxo, listener));
-    toMix.remove(key);
   }
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
@@ -256,6 +276,15 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
       log.info(" o Mix: new POSTMIX utxo detected, adding to mixQueue: " + whirlpoolUtxo);
       mixQueue(whirlpoolUtxo);
+    }
+  }
+
+  public void onUtxoConfirmed(WhirlpoolUtxo whirlpoolUtxo) {
+    // wakeup on confirmed PREMIX/POSTMIX
+    if (WhirlpoolUtxoStatus.MIX_QUEUE.equals(whirlpoolUtxo.getStatus())
+        && whirlpoolUtxo.getUtxo().confirmations >= WhirlpoolWallet.MIX_MIN_CONFIRMATIONS) {
+      log.info(" o Mix: new CONFIRMED utxo detected, checking for mix: " + whirlpoolUtxo);
+      notifyOrchestrator();
     }
   }
 

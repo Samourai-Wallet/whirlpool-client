@@ -12,8 +12,8 @@ public abstract class AbstractOrchestrator {
   private boolean dontDisturb;
   private long lastRun;
 
-  public AbstractOrchestrator(int loopDelay, String orchestratorName) {
-    this.log = LoggerFactory.getLogger(orchestratorName);
+  public AbstractOrchestrator(int loopDelay) {
+    this.log = LoggerFactory.getLogger(getClass().getName());
     this.LOOP_DELAY = loopDelay;
     resetOrchestrator();
   }
@@ -48,7 +48,7 @@ public abstract class AbstractOrchestrator {
                 // thread exiting
                 myThread = null;
                 if (log.isDebugEnabled()) {
-                  log.debug("Ended.");
+                  log.debug("Ended. started=" + started);
                 }
                 resetOrchestrator();
               }
@@ -99,7 +99,7 @@ public abstract class AbstractOrchestrator {
 
   private void doSleep(long timeToWait) {
     if (log.isDebugEnabled()) {
-      log.debug("doSleep");
+      log.debug("doSleep " + timeToWait);
     }
     try {
       synchronized (myThread) {
@@ -108,7 +108,7 @@ public abstract class AbstractOrchestrator {
     } catch (InterruptedException e) {
     }
     if (log.isDebugEnabled()) {
-      log.debug("waking up from doSleep");
+      log.debug("doSleep waking up");
     }
   }
 
