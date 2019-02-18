@@ -728,6 +728,9 @@ public class WhirlpoolWallet {
   }
 
   protected void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
+    if (log.isDebugEnabled()) {
+      log.debug("New utxo detected: " + whirlpoolUtxo);
+    }
     mixOrchestrator.onUtxoDetected(whirlpoolUtxo);
     if (autoTx0Orchestrator.isPresent()) {
       autoTx0Orchestrator.get().onUtxoDetected(whirlpoolUtxo);

@@ -33,7 +33,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
         // try tx0 with automatic selection of best available utxo
         try {
           if (log.isDebugEnabled()) {
-            log.debug("AutoTx0: attempting new Tx0...");
+            log.debug("AutoTx0: looking for Tx0...");
           }
           whirlpoolWallet.tx0(); // throws UnconfirmedUtxoException, EmptyWalletException
           log.info(" • AutoTx0: SUCCESS");
