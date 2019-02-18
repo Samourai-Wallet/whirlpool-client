@@ -117,8 +117,7 @@ public class WhirlpoolWallet {
         new MixOrchestrator(this, config.getMaxClients(), config.getClientDelay());
 
     if (config.isAutoTx0()) {
-      this.autoTx0Orchestrator =
-          Optional.of(new AutoTx0Orchestrator(this, this.mixOrchestrator, config.getTx0Delay()));
+      this.autoTx0Orchestrator = Optional.of(new AutoTx0Orchestrator(this, config.getTx0Delay()));
     } else {
       this.autoTx0Orchestrator = Optional.empty();
     }
@@ -730,6 +729,9 @@ public class WhirlpoolWallet {
 
   protected void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
     mixOrchestrator.onUtxoDetected(whirlpoolUtxo);
+    if (autoTx0Orchestrator.isPresent()) {
+      autoTx0Orchestrator.get().onUtxoDetected(whirlpoolUtxo);
+    }
     if (autoMixOrchestrator.isPresent()) {
       autoMixOrchestrator.get().onUtxoDetected(whirlpoolUtxo);
     }
