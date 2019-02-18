@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 public class MixOrchestrator extends AbstractOrchestrator {
   private final Logger log = LoggerFactory.getLogger(MixOrchestrator.class);
   private static final int LOOP_DELAY = 120000;
+  private static final int MIX_MIN_CONFIRMATIONS = 1;
   private WhirlpoolWallet whirlpoolWallet;
   private int maxClients;
   private int clientDelay;
@@ -168,6 +169,13 @@ public class MixOrchestrator extends AbstractOrchestrator {
               @Override
               public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
                 return !excludedHashs.contains(whirlpoolUtxo.getUtxo().tx_hash);
+              }
+            })
+        .filter(
+            new Predicate<WhirlpoolUtxo>() {
+              @Override
+              public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
+                return whirlpoolUtxo.getUtxo().confirmations >= MIX_MIN_CONFIRMATIONS;
               }
             })
         .sorted(new WhirlpoolUtxoPriorityComparator())
