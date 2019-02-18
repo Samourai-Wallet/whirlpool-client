@@ -117,11 +117,8 @@ public class WhirlpoolWallet {
         new MixOrchestrator(this, config.getMaxClients(), config.getClientDelay());
 
     if (config.isAutoTx0()) {
-      int autoTx0LoopDelay = (config.getClientDelay() + 5) * 1000;
       this.autoTx0Orchestrator =
-          Optional.of(
-              new AutoTx0Orchestrator(
-                  this, this.mixOrchestrator, autoTx0LoopDelay, config.getTx0Delay()));
+          Optional.of(new AutoTx0Orchestrator(this, this.mixOrchestrator, config.getTx0Delay()));
     } else {
       this.autoTx0Orchestrator = Optional.empty();
     }
@@ -148,7 +145,6 @@ public class WhirlpoolWallet {
   }
 
   private synchronized void fetchUtxos(WhirlpoolAccount account) throws Exception {
-    // fetch new utxos
     Bip84ApiWallet wallet = getWallet(account);
     List<UnspentOutput> fetchedUtxos = wallet.fetchUtxos();
     if (log.isDebugEnabled()) {
@@ -170,14 +166,19 @@ public class WhirlpoolWallet {
       final WhirlpoolAccount account, final Map<String, UnspentOutput> freshUtxos) {
     Collection<WhirlpoolUtxo> currentUtxos = findUtxos(account);
 
-    // remove obsolete utxos, keep valid ones
+    // remove obsolete utxos, update valid ones
     StreamSupport.stream(currentUtxos)
         .forEach(
             new Consumer<WhirlpoolUtxo>() {
               @Override
               public void accept(WhirlpoolUtxo whirlpoolUtxo) {
                 String key = whirlpoolUtxo.getUtxo().toKey();
-                if (!freshUtxos.containsKey(key)) {
+
+                UnspentOutput freshUtxo = freshUtxos.get(key);
+                if (freshUtxo != null) {
+                  // update existing utxo
+                  whirlpoolUtxo.setUtxo(freshUtxo);
+                } else {
                   // remove obsolete
                   utxos.remove(key);
                   onUtxoRemoved(whirlpoolUtxo);
@@ -674,8 +675,11 @@ public class WhirlpoolWallet {
 
   public Collection<WhirlpoolUtxo> getUtxos(WhirlpoolAccount account, boolean clearCache)
       throws Exception {
+    if (clearCache) {
+      clearCache(account);
+    }
     Long lastFetchElapsedTime = System.currentTimeMillis() - getLastFetchUtxos(account);
-    if (clearCache || lastFetchElapsedTime >= CACHE_EXPIRY_UTXOS) {
+    if (lastFetchElapsedTime >= CACHE_EXPIRY_UTXOS) {
       if (log.isDebugEnabled()) {
         log.debug(
             "getUtxos("

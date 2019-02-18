@@ -9,17 +9,15 @@ import org.slf4j.LoggerFactory;
 
 public class AutoTx0Orchestrator extends AbstractOrchestrator {
   private static final Logger log = LoggerFactory.getLogger(AutoTx0Orchestrator.class);
+  private static final int LOOP_DELAY = 120000;
 
   private WhirlpoolWallet whirlpoolWallet;
   private MixOrchestrator mixOrchestrator;
   private int tx0Delay;
 
   public AutoTx0Orchestrator(
-      WhirlpoolWallet whirlpoolWallet,
-      MixOrchestrator mixOrchestrator,
-      int loopDelay,
-      int tx0Delay) {
-    super(loopDelay, "AutoTx0Orchestrator");
+      WhirlpoolWallet whirlpoolWallet, MixOrchestrator mixOrchestrator, int tx0Delay) {
+    super(LOOP_DELAY, "AutoTx0Orchestrator");
     this.whirlpoolWallet = whirlpoolWallet;
     this.mixOrchestrator = mixOrchestrator;
     this.tx0Delay = tx0Delay;
