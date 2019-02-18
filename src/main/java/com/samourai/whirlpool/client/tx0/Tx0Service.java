@@ -174,7 +174,7 @@ public class Tx0Service {
     return feeAddressBech32;
   }
 
-  /** Generate nbPremixPreferred premixes outputs max. */
+  /** Generate maxOutputs premixes outputs max. */
   public Tx0 tx0(
       byte[] spendFromPrivKey,
       TransactionOutPoint depositSpendFrom,
@@ -184,7 +184,7 @@ public class Tx0Service {
       int feeSatPerByte,
       Pools pools,
       Pool pool,
-      Integer nbPremixPreferred)
+      Integer maxOutputs)
       throws Exception {
 
     // compute premixValue for pool
@@ -196,7 +196,7 @@ public class Tx0Service {
         premixWallet,
         feeIndexHandler,
         feeSatPerByte,
-        nbPremixPreferred,
+        maxOutputs,
         premixValue,
         pools.getFeePaymentCode(),
         pools.getFeePayload());
@@ -209,7 +209,7 @@ public class Tx0Service {
       Bip84Wallet premixWallet,
       IIndexHandler feeIndexHandler,
       long feeSatPerByte,
-      Integer nbPremixPreferred,
+      Integer maxOutputs,
       long premixValue,
       String feePaymentCode,
       byte[] feePayload)
@@ -235,7 +235,7 @@ public class Tx0Service {
         depositWallet,
         premixWallet,
         feeSatPerByte,
-        nbPremixPreferred,
+        maxOutputs,
         premixValue,
         opReturnValue,
         feeAddressBech32);
@@ -247,7 +247,7 @@ public class Tx0Service {
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
       long feeSatPerByte,
-      Integer nbPremixPreferred,
+      Integer maxOutputs,
       long premixValue,
       byte[] opReturnValue,
       String feeAddressBech32)
@@ -259,8 +259,8 @@ public class Tx0Service {
     int nbPremix =
         computeNbPremixMax(
             premixValue, depositSpendFrom, feeSatPerByte); // cap with balance and tx0 minerFee
-    if (nbPremixPreferred != null) {
-      nbPremix = Math.min(nbPremixPreferred, nbPremix); // cap with nbPremixPreferred
+    if (maxOutputs != null) {
+      nbPremix = Math.min(maxOutputs, nbPremix); // cap with maxOutputs
     }
     nbPremix = Math.min(NB_PREMIX_MAX, nbPremix); // cap with UTXO NB_PREMIX_MAX
 

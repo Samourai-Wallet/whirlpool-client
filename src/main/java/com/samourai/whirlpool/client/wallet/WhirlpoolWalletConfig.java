@@ -21,6 +21,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private SamouraiApi samouraiApi;
   private PushTxService pushTxService;
   private int tx0Delay;
+  private Integer tx0MaxOutputs;
   private int refreshUtxoDelay;
 
   public WhirlpoolWalletConfig(
@@ -59,6 +60,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.samouraiApi = new SamouraiApi(httpClient); // single instance to SamouraiApi
     this.pushTxService = samouraiApi; // use backend as default push service
     this.tx0Delay = 30;
+    this.tx0MaxOutputs = null; // spend whole utxo when possible
     this.refreshUtxoDelay = 60; // 1 minute
   }
 
@@ -128,6 +130,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setTx0Delay(int tx0Delay) {
     this.tx0Delay = tx0Delay;
+  }
+
+  public Integer getTx0MaxOutputs() {
+    return tx0MaxOutputs;
+  }
+
+  public void setTx0MaxOutputs(Integer tx0MaxOutputs) {
+    this.tx0MaxOutputs = tx0MaxOutputs;
   }
 
   public int getRefreshUtxoDelay() {

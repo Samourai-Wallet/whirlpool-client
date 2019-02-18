@@ -227,7 +227,7 @@ public class WhirlpoolWallet {
       Collection<Pool> poolsByPriority,
       Collection<WhirlpoolUtxo> depositUtxosByPriority,
       int feeSatPerByte,
-      Integer nbOutputsPreferred)
+      Integer maxOutputs)
       throws EmptyWalletException, UnconfirmedUtxoException, NotifiableException {
 
     if (poolsByPriority.isEmpty()) {
@@ -238,21 +238,8 @@ public class WhirlpoolWallet {
     for (WhirlpoolUtxo whirlpoolUtxo : depositUtxosByPriority) {
       Pool eligiblePool = whirlpoolUtxo.getPool();
       if (eligiblePool == null) {
-
-        Collection<Pool> eligiblePools = null;
-        // find eligible pools for nbOutputsPreferred
-        if (nbOutputsPreferred != null) {
-          eligiblePools =
-              tx0Service.findPools(
-                  nbOutputsPreferred, poolsByPriority, whirlpoolUtxo, feeSatPerByte);
-        }
-
-        // otherwise, find eligible pools for nbOutputsMin
-        if (eligiblePools == null || eligiblePools.isEmpty()) {
-          eligiblePools =
-              tx0Service.findPools(nbOutputsMin, poolsByPriority, whirlpoolUtxo, feeSatPerByte);
-        }
-
+        Collection<Pool> eligiblePools =
+            tx0Service.findPools(nbOutputsMin, poolsByPriority, whirlpoolUtxo, feeSatPerByte);
         if (!eligiblePools.isEmpty()) {
           eligiblePool = eligiblePools.iterator().next();
         }
@@ -307,11 +294,11 @@ public class WhirlpoolWallet {
 
   public synchronized Tx0 tx0(WhirlpoolUtxo whirlpoolUtxoSpendFrom) throws Exception {
     int feeSatPerByte = config.getSamouraiApi().fetchFees();
-    return tx0(whirlpoolUtxoSpendFrom, feeSatPerByte, null);
+    return tx0(whirlpoolUtxoSpendFrom, feeSatPerByte, config.getTx0MaxOutputs());
   }
 
   public synchronized Tx0 tx0(
-      WhirlpoolUtxo whirlpoolUtxoSpendFrom, int feeSatPerByte, Integer nbOutputsPreferred)
+      WhirlpoolUtxo whirlpoolUtxoSpendFrom, int feeSatPerByte, Integer maxOutputs)
       throws Exception {
 
     // check pool
@@ -340,13 +327,7 @@ public class WhirlpoolWallet {
       long spendFromValue = whirlpoolUtxoSpendFrom.getUtxo().value;
 
       Tx0 tx0 =
-          tx0(
-              spendFromOutpoint,
-              spendFromPrivKey,
-              spendFromValue,
-              pool,
-              feeSatPerByte,
-              nbOutputsPreferred);
+          tx0(spendFromOutpoint, spendFromPrivKey, spendFromValue, pool, feeSatPerByte, maxOutputs);
 
       // success
       whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TXO_SUCCESS, 100);
@@ -368,7 +349,13 @@ public class WhirlpoolWallet {
       Pool pool)
       throws Exception {
     int feeSatPerByte = config.getSamouraiApi().fetchFees();
-    return tx0(spendFromOutpoint, spendFromPrivKey, spendFromValue, pool, feeSatPerByte, null);
+    return tx0(
+        spendFromOutpoint,
+        spendFromPrivKey,
+        spendFromValue,
+        pool,
+        feeSatPerByte,
+        config.getTx0MaxOutputs());
   }
 
   public synchronized Tx0 tx0(
@@ -377,7 +364,7 @@ public class WhirlpoolWallet {
       long spendFromValue,
       Pool pool,
       int feeSatPerByte,
-      Integer nbOutputsPreferred)
+      Integer maxOutputs)
       throws Exception {
 
     // check balance min
@@ -395,8 +382,8 @@ public class WhirlpoolWallet {
             + " sats)"
             + ", poolId="
             + pool.getPoolId()
-            + ", nbOutputsPreferred="
-            + (nbOutputsPreferred != null ? nbOutputsPreferred : "MAX"));
+            + ", maxOutputs="
+            + (maxOutputs != null ? maxOutputs : "*"));
 
     // run tx0
     Tx0 tx0 =
@@ -409,7 +396,7 @@ public class WhirlpoolWallet {
             feeSatPerByte,
             getPools(),
             pool,
-            nbOutputsPreferred);
+            maxOutputs);
 
     log.info(
         " • Tx0 result: txid="
