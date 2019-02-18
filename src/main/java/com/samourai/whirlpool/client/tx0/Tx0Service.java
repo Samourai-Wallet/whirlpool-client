@@ -7,8 +7,6 @@ import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
-import com.samourai.whirlpool.client.exception.EmptyWalletException;
-import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
@@ -538,48 +536,5 @@ public class Tx0Service {
       }
     }
     return eligiblePools;
-  }
-
-  public WhirlpoolUtxo findSpendFrom(
-      Collection<WhirlpoolUtxo> depositUtxosByPriority,
-      Collection<Pool> poolsByPriority,
-      int feeSatPerByte,
-      int nbOutputsPreferred,
-      int nbOutputsMin)
-      throws EmptyWalletException, NotifiableException {
-
-    if (poolsByPriority.isEmpty()) {
-      throw new NotifiableException("No pool to spend tx0 from");
-    }
-
-    WhirlpoolUtxo unconfirmedUtxo = null;
-    for (WhirlpoolUtxo whirlpoolUtxo : depositUtxosByPriority) {
-      if (whirlpoolUtxo.getPool() == null) {
-        // find eligible pool for utxo
-        Collection<Pool> eligiblePools =
-            findPools(
-                whirlpoolUtxo, poolsByPriority, feeSatPerByte, nbOutputsPreferred, nbOutputsMin);
-        if (!eligiblePools.isEmpty()) {
-          whirlpoolUtxo.setPool(eligiblePools.iterator().next());
-        }
-      }
-      if (whirlpoolUtxo.getPool() != null) {
-        if (whirlpoolUtxo.getUtxo().confirmations > 0) {
-          return whirlpoolUtxo;
-        } else {
-          unconfirmedUtxo = whirlpoolUtxo;
-        }
-      }
-    }
-
-    if (unconfirmedUtxo != null) {
-      // return unconfirmed utxo
-      return unconfirmedUtxo;
-    }
-
-    // no eligible deposit UTXO found
-    long requiredBalance =
-        computeSpendFromBalanceMin(poolsByPriority.iterator().next(), feeSatPerByte, nbOutputsMin);
-    throw new EmptyWalletException("No UTXO found to spend TX0 from", requiredBalance);
   }
 }

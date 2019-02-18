@@ -1,43 +1,27 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
-import com.samourai.api.client.SamouraiApi;
+import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
-import com.samourai.whirlpool.client.tx0.Tx0;
-import com.samourai.whirlpool.client.tx0.Tx0Service;
+import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoPriorityComparator;
-import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import java.util.Collection;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AutoTx0Orchestrator extends AbstractOrchestrator {
   private static final Logger log = LoggerFactory.getLogger(AutoTx0Orchestrator.class);
 
-  private Tx0Service tx0Service;
-  private SamouraiApi samouraiApi;
   private WhirlpoolWallet whirlpoolWallet;
   private MixOrchestrator mixOrchestrator;
-  private int nbOutputsPreferred;
   private int tx0Delay;
 
   public AutoTx0Orchestrator(
-      Tx0Service tx0Service,
-      SamouraiApi samouraiApi,
       WhirlpoolWallet whirlpoolWallet,
       MixOrchestrator mixOrchestrator,
       int loopDelay,
-      int nbOutputsPreferred,
       int tx0Delay) {
     super(loopDelay, "AutoTx0Orchestrator");
-    this.tx0Service = tx0Service;
-    this.samouraiApi = samouraiApi;
     this.whirlpoolWallet = whirlpoolWallet;
     this.mixOrchestrator = mixOrchestrator;
-    this.nbOutputsPreferred = nbOutputsPreferred;
     this.tx0Delay = tx0Delay;
   }
 
@@ -58,8 +42,25 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
         // not enough mustMixUtxos => Tx0
         for (int i = 0; i < missingMustMixUtxos; i++) {
           waitForLastRunDelay(tx0Delay, "Sleeping for tx0Delay");
-          Tx0 tx0 = tx0(i + 1, missingMustMixUtxos);
-          if (tx0 == null) {
+
+          // try tx0 with automatic selection of best available utxo
+          try {
+            whirlpoolWallet.tx0(); // throws UnconfirmedUtxoException, EmptyWalletException
+            log.info(" • Tx0 (" + (i + 1) + "/" + missingMustMixUtxos + "): SUCCESS");
+          } catch (UnconfirmedUtxoException e) {
+            String message =
+                " • Tx0 ("
+                    + (i + 1)
+                    + "/"
+                    + missingMustMixUtxos
+                    + "): waiting for deposit confirmation";
+            if (log.isDebugEnabled()) {
+              UnspentOutput utxo = e.getUtxo();
+              log.debug(message + ": " + utxo.toString());
+            } else {
+              log.info(message);
+            }
+
             // no tx0 can be made now, wait for spendFrom to confirm...
             break;
           }
@@ -69,41 +70,6 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
       whirlpoolWallet.onEmptyWalletException(e);
     } catch (Exception e) {
       log.error("", e);
-    }
-  }
-
-  private Tx0 tx0(int i, int nb) throws Exception {
-    Collection<Pool> poolsByPriority = whirlpoolWallet.getPoolsByPriority();
-    int feeSatPerByte = samouraiApi.fetchFees();
-    int nbOutputsMin = 1;
-
-    Collection<WhirlpoolUtxo> depositUtxosByPriority =
-        StreamSupport.stream(whirlpoolWallet.getUtxosDeposit(true))
-            .sorted(new WhirlpoolUtxoPriorityComparator())
-            .collect(Collectors.<WhirlpoolUtxo>toList());
-
-    // find utxo to spend from
-    WhirlpoolUtxo spendFrom =
-        tx0Service.findSpendFrom(
-            depositUtxosByPriority,
-            poolsByPriority,
-            feeSatPerByte,
-            nbOutputsPreferred,
-            nbOutputsMin); // throws EmptyWalletException
-
-    if (spendFrom.getUtxo().confirmations > 0) {
-      // run TX0
-      log.info(" • Tx0 (" + i + "/" + nb + ")...");
-      return whirlpoolWallet.tx0(spendFrom.getPool(), nbOutputsPreferred, spendFrom);
-    } else {
-      // wait for spendFrom to confirm...
-      String message = " • Tx0 (" + i + "/" + nb + "): waiting for deposit confirmation";
-      if (log.isDebugEnabled()) {
-        log.debug(message + ": " + spendFrom.toString());
-      } else {
-        log.info(message);
-      }
-      return null;
     }
   }
 }

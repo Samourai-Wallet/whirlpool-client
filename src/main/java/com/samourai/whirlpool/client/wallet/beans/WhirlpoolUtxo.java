@@ -2,7 +2,6 @@ package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.whirlpool.client.exception.NotifiableException;
-import com.samourai.whirlpool.client.wallet.WhirlpoolAccount;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 
 public class WhirlpoolUtxo {

@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
-import com.samourai.whirlpool.client.wallet.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;

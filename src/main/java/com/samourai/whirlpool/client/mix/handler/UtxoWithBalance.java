@@ -21,6 +21,6 @@ public class UtxoWithBalance extends Utxo {
   }
 
   public String toString() {
-    return getHash() + "-" + getIndex() + " (" + balance + "sats)";
+    return getHash() + "-" + getIndex() + ", balance=" + balance + "sats";
   }
 }

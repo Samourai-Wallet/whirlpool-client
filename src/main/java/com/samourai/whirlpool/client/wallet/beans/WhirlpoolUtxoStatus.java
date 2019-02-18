@@ -4,6 +4,7 @@ public enum WhirlpoolUtxoStatus {
   READY,
 
   TXO,
+  TXO_FAILED,
   TXO_SUCCESS,
 
   MIX_QUEUE,
