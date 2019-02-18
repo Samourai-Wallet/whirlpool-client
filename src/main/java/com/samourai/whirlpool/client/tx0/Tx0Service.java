@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 
 public class Tx0Service {
   private Logger log = LoggerFactory.getLogger(Tx0Service.class);
-  protected static final int NB_PREMIX_MAX = 100;
+  protected static final int NB_PREMIX_MAX = 600;
 
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private final WhirlpoolFee whirlpoolFee = WhirlpoolFee.getInstance();
@@ -174,29 +174,6 @@ public class Tx0Service {
     return feeAddressBech32;
   }
 
-  /** Generate maximum possible premixes outputs. */
-  public Tx0 tx0(
-      byte[] spendFromPrivKey,
-      TransactionOutPoint depositSpendFrom,
-      Bip84Wallet depositWallet,
-      Bip84Wallet premixWallet,
-      IIndexHandler feeIndexHandler,
-      int feeSatPerByte,
-      Pools pools,
-      Pool pool)
-      throws Exception {
-    return tx0(
-        spendFromPrivKey,
-        depositSpendFrom,
-        depositWallet,
-        premixWallet,
-        feeIndexHandler,
-        feeSatPerByte,
-        pools,
-        pool,
-        NB_PREMIX_MAX);
-  }
-
   /** Generate nbPremixPreferred premixes outputs max. */
   public Tx0 tx0(
       byte[] spendFromPrivKey,
@@ -207,7 +184,7 @@ public class Tx0Service {
       int feeSatPerByte,
       Pools pools,
       Pool pool,
-      int nbPremixPreferred)
+      Integer nbPremixPreferred)
       throws Exception {
 
     // compute premixValue for pool
@@ -232,7 +209,7 @@ public class Tx0Service {
       Bip84Wallet premixWallet,
       IIndexHandler feeIndexHandler,
       long feeSatPerByte,
-      int nbPremixPreferred,
+      Integer nbPremixPreferred,
       long premixValue,
       String feePaymentCode,
       byte[] feePayload)
@@ -270,7 +247,7 @@ public class Tx0Service {
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
       long feeSatPerByte,
-      int nbPremixPreferred,
+      Integer nbPremixPreferred,
       long premixValue,
       byte[] opReturnValue,
       String feeAddressBech32)
@@ -282,7 +259,9 @@ public class Tx0Service {
     int nbPremix =
         computeNbPremixMax(
             premixValue, depositSpendFrom, feeSatPerByte); // cap with balance and tx0 minerFee
-    nbPremix = Math.min(nbPremixPreferred, nbPremix); // cap with nbPremixPreferred
+    if (nbPremixPreferred != null) {
+      nbPremix = Math.min(nbPremixPreferred, nbPremix); // cap with nbPremixPreferred
+    }
     nbPremix = Math.min(NB_PREMIX_MAX, nbPremix); // cap with UTXO NB_PREMIX_MAX
 
     // at least 1 nbPremix
@@ -449,90 +428,16 @@ public class Tx0Service {
     return feeAddressBech32;
   }
 
-  /*
-  public WhirlpoolUtxo findUtxoDepositForTx0(
-      Pool pool, int feeSatPerByte, Collection<WhirlpoolUtxo> depositUtxos) throws Exception {
-    return findUtxoDepositForTx0(pool, feeSatPerByte, depositUtxos, NB_PREMIX_MAX, 1);
-  }
-
-  public WhirlpoolUtxo findUtxoDepositForTx0(
-      Pool pool,
-      int feeSatPerByte,
-      Collection<WhirlpoolUtxo> depositUtxos,
-      int nbOutputsPreferred,
-      int nbOutputsMin)
-      throws Exception {
-
-    // find utxo to spend Tx0 from
-    final long spendFromBalanceMin = computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsMin);
-    final long spendFromBalancePreferred =
-        computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsPreferred);
-
-    List<WhirlpoolUtxo> depositSpendFroms =
-        filterUtxosByBalancePreferred(spendFromBalanceMin, spendFromBalancePreferred, depositUtxos);
-    if (depositSpendFroms.isEmpty()) {
-      throw new EmptyWalletException("Insufficient balance for Tx0", spendFromBalanceMin);
-    }
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "Found "
-              + depositSpendFroms.size()
-              + " utxos to use as Tx0 input for spendFromBalanceMin="
-              + spendFromBalanceMin
-              + ", spendFromBalancePreferred="
-              + spendFromBalancePreferred
-              + ", nbOutputsMin="
-              + nbOutputsMin
-              + ", nbOutputsPreferred="
-              + nbOutputsPreferred);
-      ClientUtils.logWhirlpoolUtxos(depositSpendFroms);
-    }
-    WhirlpoolUtxo whirlpoolUtxoSpendFrom = depositSpendFroms.get(0);
-    return whirlpoolUtxoSpendFrom;
-  }
-
-  private List<WhirlpoolUtxo> filterUtxosByBalancePreferred(
-      final long balanceMin, final long balancePreferred, Collection<WhirlpoolUtxo> utxos) {
-    if (utxos.isEmpty()) {
-      return new ArrayList<WhirlpoolUtxo>();
-    }
-    return StreamSupport.stream(utxos)
-        .filter(
-            new Predicate<WhirlpoolUtxo>() {
-              @Override
-              public boolean test(WhirlpoolUtxo utxo) {
-                return utxo.getUtxo().value >= balanceMin;
-              }
-            })
-
-        // take UTXO closest to balancePreferred (and higher when possible)
-        .sorted(new UnspentOutputPreferredAmountMinComparator(balancePreferred))
-        .collect(Collectors.<WhirlpoolUtxo>toList());
-  }*/
-
   public Collection<Pool> findPools(
-      WhirlpoolUtxo depositUtxo,
+      int nbOutputsMin,
       Collection<Pool> poolsByPriority,
-      int feeSatPerByte,
-      int nbOutputsPreferred,
-      int nbOutputsMin) {
+      WhirlpoolUtxo depositUtxo,
+      int feeSatPerByte) {
     List<Pool> eligiblePools = new LinkedList<Pool>();
-
-    // first, add pools eligible for: nbOutputsPreferred
     for (Pool pool : poolsByPriority) {
-      long balanceMin = computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsPreferred);
+      long balanceMin = computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsMin);
       if (depositUtxo.getUtxo().value >= balanceMin) {
         eligiblePools.add(pool);
-      }
-    }
-
-    // then add pools eligible for: nbOutputsMin
-    for (Pool pool : poolsByPriority) {
-      if (!eligiblePools.contains(pool)) {
-        long balanceMin = computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsMin);
-        if (depositUtxo.getUtxo().value >= balanceMin) {
-          eligiblePools.add(pool);
-        }
       }
     }
     return eligiblePools;
