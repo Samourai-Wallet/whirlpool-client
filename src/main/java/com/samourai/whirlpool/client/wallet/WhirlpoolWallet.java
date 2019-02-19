@@ -218,16 +218,14 @@ public class WhirlpoolWallet {
         nbOutputsMin,
         poolsByPriority,
         depositUtxosByPriority,
-        feeSatPerByte,
-        null); // throws EmptyWalletException, UnconfirmedUtxoException
+        feeSatPerByte); // throws EmptyWalletException, UnconfirmedUtxoException
   }
 
   private WhirlpoolUtxo findTx0SpendFrom(
       int nbOutputsMin,
       Collection<Pool> poolsByPriority,
       Collection<WhirlpoolUtxo> depositUtxosByPriority,
-      int feeSatPerByte,
-      Integer maxOutputs)
+      int feeSatPerByte)
       throws EmptyWalletException, UnconfirmedUtxoException, NotifiableException {
 
     if (poolsByPriority.isEmpty()) {
@@ -469,17 +467,18 @@ public class WhirlpoolWallet {
 
       // add pools by priority
       poolsByPriority = new LinkedList<Pool>();
-      if (config.getPoolIdsByPriority() != null) {
+      if (config.getPoolIdsByPriority() != null && !config.getPoolIdsByPriority().isEmpty()) {
+        // use user-specified pools
         for (String poolId : config.getPoolIdsByPriority()) {
           Pool pool = pools.findPoolById(poolId);
           if (pool != null) {
             poolsByPriority.add(pool);
+          } else {
+            log.error("No such pool: " + poolId);
           }
         }
-      }
-
-      // fallback
-      if (poolsByPriority.isEmpty()) {
+      } else {
+        // use all pools
         if (log.isDebugEnabled()) {
           log.debug("getPoolsByPriority: no priority defined, using all pools");
         }
