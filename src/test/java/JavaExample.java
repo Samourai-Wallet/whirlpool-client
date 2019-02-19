@@ -19,8 +19,8 @@ public class JavaExample {
 
   // TODO configure these values as you wish
   private WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
-    IHttpClient httpClient = null; // TODO provide impl here, ie: new AndroidHttpclient();
-    IStompClient stompClient = null; // TODO provide impl here, ie: new AndroidStompClient();
+    IHttpClient httpClient = null; // provide impl here, ie: new AndroidHttpclient();
+    IStompClient stompClient = null; // provide impl here, ie: new AndroidStompClient();
     WhirlpoolServer whirlpoolServer = WhirlpoolServer.TEST;
 
     WhirlpoolWalletConfig whirlpoolWalletConfig =
