@@ -4,6 +4,7 @@ import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
+import com.samourai.whirlpool.client.wallet.beans.MixOrchestratorState;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
@@ -52,6 +53,12 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
         } catch (EmptyWalletException e) {
           if (log.isDebugEnabled()) {
             log.debug("AutoTx0: no Tx0 candidate yet.");
+          }
+
+          // make sure that mixOrchestrator has no more to mix
+          MixOrchestratorState mixState = whirlpoolWallet.getState().getMixState();
+          if (mixState.getNbMixing() == 0 && mixState.getNbQueued() == 0) {
+            whirlpoolWallet.onEmptyWalletException(e);
           }
 
           // no tx0 can be made now, check back later...
