@@ -3,9 +3,9 @@ package com.samourai.whirlpool.client.wallet.beans;
 public enum WhirlpoolUtxoStatus {
   READY,
 
-  TXO,
-  TXO_FAILED,
-  TXO_SUCCESS,
+  TX0,
+  TX0_FAILED,
+  TX0_SUCCESS,
 
   MIX_QUEUE,
   MIX_STARTED,
