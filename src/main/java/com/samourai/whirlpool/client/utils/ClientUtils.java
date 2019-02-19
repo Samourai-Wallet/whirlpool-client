@@ -122,4 +122,8 @@ public class ClientUtils {
   public static double satToBtc(long sat) {
     return sat / 100000000.0;
   }
+
+  public static String utxoToKey(String utxoHash, int utxoIndex) {
+    return utxoHash + ':' + utxoIndex;
+  }
 }

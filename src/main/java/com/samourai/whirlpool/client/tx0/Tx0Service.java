@@ -7,7 +7,6 @@ import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -429,14 +428,11 @@ public class Tx0Service {
   }
 
   public Collection<Pool> findPools(
-      int nbOutputsMin,
-      Collection<Pool> poolsByPriority,
-      WhirlpoolUtxo depositUtxo,
-      int feeSatPerByte) {
+      int nbOutputsMin, Collection<Pool> poolsByPriority, long utxoValue, int feeSatPerByte) {
     List<Pool> eligiblePools = new LinkedList<Pool>();
     for (Pool pool : poolsByPriority) {
       long balanceMin = computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsMin);
-      if (depositUtxo.getUtxo().value >= balanceMin) {
+      if (utxoValue >= balanceMin) {
         eligiblePools.add(pool);
       }
     }

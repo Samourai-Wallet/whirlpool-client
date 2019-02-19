@@ -59,11 +59,7 @@ public class WhirlpoolWalletCacheData {
         Suppliers.memoizeWithExpiration(initFeeSatPerByte(), FEE_REFRESH_DELAY, TimeUnit.SECONDS);
 
     // pools
-    this.pools =
-        Suppliers.memoizeWithExpiration(initPools(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
-    this.poolsByPriority =
-        Suppliers.memoizeWithExpiration(
-            initPoolsByPriority(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
+    clearPools();
 
     // utxos
     this.utxos = new HashMap<WhirlpoolAccount, Supplier<Map<String, WhirlpoolUtxo>>>();
@@ -93,6 +89,15 @@ public class WhirlpoolWalletCacheData {
 
   // POOLS
 
+  public void clearPools() {
+    this.pools =
+        Suppliers.memoizeWithExpiration(initPools(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
+
+    this.poolsByPriority =
+        Suppliers.memoizeWithExpiration(
+            initPoolsByPriority(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
+  }
+
   public Pools getPools() {
     return pools.get();
   }
@@ -114,7 +119,7 @@ public class WhirlpoolWalletCacheData {
     };
   }
 
-  public Collection<Pool> getPoolsByPriority() throws Exception {
+  public Collection<Pool> getPoolsByPriority() {
     return poolsByPriority.get();
   }
 
@@ -175,6 +180,21 @@ public class WhirlpoolWalletCacheData {
       }
     }
     return findUtxos(accounts);
+  }
+
+  public WhirlpoolUtxo findUtxo(
+      String utxoHash, int utxoIndex, WhirlpoolAccount... whirlpoolAccounts) {
+    String utxoKey = ClientUtils.utxoToKey(utxoHash, utxoIndex);
+    for (WhirlpoolAccount whirlpoolAccount : whirlpoolAccounts) {
+      WhirlpoolUtxo whirlpoolUtxo = utxos.get(whirlpoolAccount).get().get(utxoKey);
+      if (whirlpoolUtxo != null) {
+        return whirlpoolUtxo;
+      }
+    }
+    if (log.isDebugEnabled()) {
+      log.debug("findUtxo(" + utxoKey + "): not found");
+    }
+    return null;
   }
 
   private Supplier<Map<String, WhirlpoolUtxo>> initUtxos(final WhirlpoolAccount whirlpoolAccount) {

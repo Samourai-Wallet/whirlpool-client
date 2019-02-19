@@ -1,5 +1,6 @@
 package com.samourai.api.client.beans;
 
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
@@ -59,7 +60,7 @@ public class UnspentResponse {
     }
 
     public String toKey() {
-      return tx_hash + ':' + tx_output_n;
+      return ClientUtils.utxoToKey(tx_hash, tx_output_n);
     }
   }
 }
