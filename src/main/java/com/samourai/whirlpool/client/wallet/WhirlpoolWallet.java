@@ -463,6 +463,13 @@ public class WhirlpoolWallet {
 
   public Collection<Pool> getPoolsByPriority() throws Exception {
     if (poolsByPriority == null) {
+      initPoolsByPriority();
+    }
+    return poolsByPriority;
+  }
+
+  private synchronized void initPoolsByPriority() throws Exception {
+    if (poolsByPriority == null) {
       Pools pools = getPools();
 
       // add pools by priority
@@ -489,7 +496,6 @@ public class WhirlpoolWallet {
                 .collect(Collectors.<Pool>toList());
       }
     }
-    return poolsByPriority;
   }
 
   public Collection<Pool> findPoolsByPriorityForPremix(long utxoValue) throws Exception {
