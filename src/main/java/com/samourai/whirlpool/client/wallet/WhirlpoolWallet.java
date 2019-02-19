@@ -278,12 +278,11 @@ public class WhirlpoolWallet {
     throw new EmptyWalletException("No UTXO found to spend TX0 from", requiredBalance);
   }
 
-  public synchronized Tx0 tx0()
-      throws Exception { // throws UnconfirmedUtxoException, EmptyWalletException
+  public Tx0 tx0() throws Exception { // throws UnconfirmedUtxoException, EmptyWalletException
     return tx0(1);
   }
 
-  public synchronized Tx0 tx0(int nbOutputsMin)
+  public Tx0 tx0(int nbOutputsMin)
       throws Exception { // throws UnconfirmedUtxoException, EmptyWalletException
     Collection<Pool> poolsByPriority = getPoolsByPriority();
     WhirlpoolUtxo spendFrom =
@@ -292,13 +291,12 @@ public class WhirlpoolWallet {
     return tx0(spendFrom);
   }
 
-  public synchronized Tx0 tx0(WhirlpoolUtxo whirlpoolUtxoSpendFrom) throws Exception {
+  public Tx0 tx0(WhirlpoolUtxo whirlpoolUtxoSpendFrom) throws Exception {
     int feeSatPerByte = config.getSamouraiApi().fetchFees();
     return tx0(whirlpoolUtxoSpendFrom, feeSatPerByte, config.getTx0MaxOutputs());
   }
 
-  public synchronized Tx0 tx0(
-      WhirlpoolUtxo whirlpoolUtxoSpendFrom, int feeSatPerByte, Integer maxOutputs)
+  public Tx0 tx0(WhirlpoolUtxo whirlpoolUtxoSpendFrom, int feeSatPerByte, Integer maxOutputs)
       throws Exception {
 
     // check pool
@@ -342,7 +340,7 @@ public class WhirlpoolWallet {
     }
   }
 
-  public synchronized Tx0 tx0(
+  public Tx0 tx0(
       TransactionOutPoint spendFromOutpoint,
       byte[] spendFromPrivKey,
       long spendFromValue,
@@ -358,7 +356,7 @@ public class WhirlpoolWallet {
         config.getTx0MaxOutputs());
   }
 
-  public synchronized Tx0 tx0(
+  public Tx0 tx0(
       TransactionOutPoint spendFromOutpoint,
       byte[] spendFromPrivKey,
       long spendFromValue,
@@ -669,57 +667,52 @@ public class WhirlpoolWallet {
     return getUtxos(clearCache, WhirlpoolAccount.POSTMIX);
   }
 
-  public synchronized Collection<WhirlpoolUtxo> getUtxos(
-      boolean clearCache, WhirlpoolAccount... accounts) throws Exception {
-    long refreshDelay = config.getRefreshUtxoDelay() * 1000;
+  public Collection<WhirlpoolUtxo> getUtxos(boolean clearCache, WhirlpoolAccount... accounts)
+      throws Exception {
     for (WhirlpoolAccount account : accounts) {
       if (clearCache) {
         clearCache(account);
       }
-
-      Long lastFetchElapsedTime = System.currentTimeMillis() - getLastFetchUtxos(account);
-      if (lastFetchElapsedTime >= refreshDelay) {
-        if (log.isDebugEnabled()) {
-          log.debug(
-              "fetchUtxos("
-                  + account
-                  + "): clearCache="
-                  + clearCache
-                  + ", lastFetchElapsedTime="
-                  + lastFetchElapsedTime);
-        }
-        fetchUtxos(account);
-      } else {
-        if (log.isDebugEnabled()) {
-          log.debug(
-              "getUtxos("
-                  + account
-                  + "): cached, lastFetchElapsedTime="
-                  + lastFetchElapsedTime
-                  + " < "
-                  + refreshDelay);
-        }
-      }
+      fetchUtxosIfExpired(account);
     }
     return findUtxos(accounts);
   }
 
-  private synchronized void fetchUtxos(WhirlpoolAccount account) throws Exception {
-    lastFetchUtxos.put(account, System.currentTimeMillis());
+  private synchronized void fetchUtxosIfExpired(WhirlpoolAccount account) throws Exception {
+    long refreshDelay = config.getRefreshUtxoDelay() * 1000;
 
-    Bip84ApiWallet wallet = getWallet(account);
-    List<UnspentOutput> fetchedUtxos = wallet.fetchUtxos();
-    if (log.isDebugEnabled()) {
-      log.debug("Fetching utxos from " + account + "... " + fetchedUtxos.size() + " utxos found");
-      ClientUtils.logUtxos(fetchedUtxos);
-    }
-    final Map<String, UnspentOutput> freshUtxos = new HashMap<String, UnspentOutput>();
-    for (UnspentOutput utxo : fetchedUtxos) {
-      freshUtxos.put(utxo.toKey(), utxo);
-    }
+    Long lastFetchElapsedTime = System.currentTimeMillis() - getLastFetchUtxos(account);
+    if (lastFetchElapsedTime >= refreshDelay) {
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "getUtxos(" + account + ") => fetching, lastFetchElapsedTime=" + lastFetchElapsedTime);
+      }
+      lastFetchUtxos.put(account, System.currentTimeMillis());
 
-    // replace utxos
-    replaceUtxos(account, freshUtxos);
+      Bip84ApiWallet wallet = getWallet(account);
+      List<UnspentOutput> fetchedUtxos = wallet.fetchUtxos();
+      if (log.isDebugEnabled()) {
+        log.debug("Fetching utxos from " + account + "... " + fetchedUtxos.size() + " utxos found");
+        ClientUtils.logUtxos(fetchedUtxos);
+      }
+      final Map<String, UnspentOutput> freshUtxos = new HashMap<String, UnspentOutput>();
+      for (UnspentOutput utxo : fetchedUtxos) {
+        freshUtxos.put(utxo.toKey(), utxo);
+      }
+
+      // replace utxos
+      replaceUtxos(account, freshUtxos);
+    } else {
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "getUtxos("
+                + account
+                + ") => cached, lastFetchElapsedTime="
+                + lastFetchElapsedTime
+                + " < "
+                + refreshDelay);
+      }
+    }
   }
 
   private long getLastFetchUtxos(WhirlpoolAccount account) {

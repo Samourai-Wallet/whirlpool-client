@@ -16,7 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java8.util.Optional;
 import java8.util.function.Function;
 import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
@@ -89,7 +88,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     }
   }
 
-  public synchronized boolean findQueuedAndMix() throws Exception {
+  public boolean findQueuedAndMix() throws Exception {
     // start mixing up to nbIdle utxos
     Collection<WhirlpoolUtxo> whirlpoolUtxos = findToMixByPriority(1);
     if (whirlpoolUtxos.isEmpty()) {
@@ -193,37 +192,25 @@ public class MixOrchestrator extends AbstractOrchestrator {
         .orElse(null);
   }
 
-  public synchronized void mixQueue(WhirlpoolUtxo whirlpoolUtxo) {
+  public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) {
     if (whirlpoolUtxo.getPool() == null) {
       log.warn("mixQueue ignored: no pool set for " + whirlpoolUtxo);
       return;
     }
     final String key = whirlpoolUtxo.getUtxo().toKey();
-
-    Optional<WhirlpoolUtxo> existingToMix =
-        findToMix()
-            .filter(
-                new Predicate<WhirlpoolUtxo>() {
-                  @Override
-                  public boolean test(WhirlpoolUtxo toMix) {
-                    return key.equals(toMix.getUtxo().toKey());
-                  }
-                })
-            .findFirst();
-    if (!existingToMix.isPresent() && !mixing.containsKey(key)) {
+    if (!mixing.containsKey(key)) {
       // add to queue
       whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_QUEUE);
       if (log.isDebugEnabled()) {
         log.debug(" + mixQueue: " + whirlpoolUtxo.toString());
       }
-
       notifyOrchestrator();
     } else {
       log.warn("mixQueue ignored: utxo already queued or mixing: " + whirlpoolUtxo);
     }
   }
 
-  private synchronized void mix(final WhirlpoolUtxo whirlpoolUtxo) throws Exception {
+  private void mix(final WhirlpoolUtxo whirlpoolUtxo) throws Exception {
     final String key = whirlpoolUtxo.getUtxo().toKey();
     WhirlpoolClientListener utxoListener =
         new WhirlpoolClientListener() {
