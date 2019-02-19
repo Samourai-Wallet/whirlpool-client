@@ -99,7 +99,7 @@ public abstract class AbstractOrchestrator {
 
   private void doSleep(long timeToWait) {
     if (log.isDebugEnabled()) {
-      log.debug("doSleep " + timeToWait);
+      log.debug("sleep " + timeToWait);
     }
     try {
       synchronized (myThread) {
@@ -108,7 +108,7 @@ public abstract class AbstractOrchestrator {
     } catch (InterruptedException e) {
     }
     if (log.isDebugEnabled()) {
-      log.debug("doSleep waking up");
+      log.debug("wakeup");
     }
   }
 
