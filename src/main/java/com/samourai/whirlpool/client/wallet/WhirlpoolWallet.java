@@ -678,20 +678,32 @@ public class WhirlpoolWallet {
       if (clearCache) {
         clearCache(account);
       }
-      fetchUtxosIfExpired(account);
+      if (isLastFetchUtxosExpired(account)) {
+        fetchUtxos(account);
+      }
     }
     return findUtxos(accounts);
   }
 
-  private synchronized void fetchUtxosIfExpired(WhirlpoolAccount account) throws Exception {
+  private boolean isLastFetchUtxosExpired(WhirlpoolAccount account) {
     long refreshDelay = config.getRefreshUtxoDelay() * 1000;
 
     Long lastFetchElapsedTime = System.currentTimeMillis() - getLastFetchUtxos(account);
-    if (lastFetchElapsedTime >= refreshDelay) {
-      if (log.isDebugEnabled()) {
-        log.debug(
-            "getUtxos(" + account + ") => fetching, lastFetchElapsedTime=" + lastFetchElapsedTime);
-      }
+    boolean expired = (lastFetchElapsedTime >= refreshDelay);
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "lastFetch "
+              + account
+              + ": "
+              + lastFetchElapsedTime
+              + ", expired="
+              + Boolean.toString(expired));
+    }
+    return expired;
+  }
+
+  private synchronized void fetchUtxos(WhirlpoolAccount account) throws Exception {
+    if (isLastFetchUtxosExpired(account)) {
       lastFetchUtxos.put(account, System.currentTimeMillis());
 
       Bip84ApiWallet wallet = getWallet(account);
@@ -707,16 +719,6 @@ public class WhirlpoolWallet {
 
       // replace utxos
       replaceUtxos(account, freshUtxos);
-    } else {
-      if (log.isDebugEnabled()) {
-        log.debug(
-            "getUtxos("
-                + account
-                + ") => cached, lastFetchElapsedTime="
-                + lastFetchElapsedTime
-                + " < "
-                + refreshDelay);
-      }
     }
   }
 
