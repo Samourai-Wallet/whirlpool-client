@@ -13,7 +13,7 @@ mvn clean install -Dmaven.test.skip=true
 ```
 
 ## Java integration
-See [JavaExample.java](src/test/java/JavaExample.java) for Java integration.
+See [JavaExample.java](https://github.com/Samourai-Wallet/whirlpool-client/blob/develop/src/test/java/JavaExample.java) for Java integration.
 
 ## Resources
  * [whirlpool](https://github.com/Samourai-Wallet/Whirlpool)
