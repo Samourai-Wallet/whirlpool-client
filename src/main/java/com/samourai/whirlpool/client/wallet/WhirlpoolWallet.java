@@ -237,6 +237,13 @@ public class WhirlpoolWallet {
       WhirlpoolUtxo whirlpoolUtxoSpendFrom, Pool pool, int feeSatPerByte, Integer maxOutputs)
       throws Exception {
 
+    // check status
+    WhirlpoolUtxoStatus utxoStatus = whirlpoolUtxoSpendFrom.getStatus();
+    if (!WhirlpoolUtxoStatus.READY.equals(utxoStatus)
+        && !WhirlpoolUtxoStatus.TX0_FAILED.equals(utxoStatus)) {
+      throw new NotifiableException("Cannot Tx0: utxoStatus=" + utxoStatus);
+    }
+
     // check pool
     if (pool == null) {
       whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, 0);
@@ -390,8 +397,12 @@ public class WhirlpoolWallet {
     clearCache();
   }
 
-  public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) {
+  public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
     this.mixOrchestrator.mixQueue(whirlpoolUtxo);
+  }
+
+  public void mixStop(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
+    this.mixOrchestrator.mixStop(whirlpoolUtxo);
   }
 
   public int getFeeSatPerByte() {

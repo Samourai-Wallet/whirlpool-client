@@ -82,7 +82,8 @@ public class JavaExample {
 
       // find eligible pools for this utxo
       int nbOutputsMinForTx0 = 1;
-      Collection<Pool> eligiblePools = whirlpoolWallet.findTx0Pools(whirlpoolUtxo.getUtxo().value, nbOutputsMinForTx0);
+      Collection<Pool> eligiblePools =
+          whirlpoolWallet.findTx0Pools(whirlpoolUtxo.getUtxo().value, nbOutputsMinForTx0);
 
       // pool for tx0
       Pool pool = eligiblePools.iterator().next();

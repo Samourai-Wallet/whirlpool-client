@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
@@ -192,10 +193,14 @@ public class MixOrchestrator extends AbstractOrchestrator {
         .orElse(null);
   }
 
-  public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) {
+  public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
+    WhirlpoolUtxoStatus utxoStatus = whirlpoolUtxo.getStatus();
+    if (!WhirlpoolUtxoStatus.MIX_FAILED.equals(utxoStatus)
+        && !WhirlpoolUtxoStatus.READY.equals(utxoStatus)) {
+      throw new NotifiableException("cannot add to mix queue: utxoStatus=" + utxoStatus);
+    }
     if (whirlpoolUtxo.getPool() == null) {
-      log.warn("mixQueue ignored: no pool set for " + whirlpoolUtxo);
-      return;
+      throw new NotifiableException("cannot add to mix queue: no pool set");
     }
     final String key = whirlpoolUtxo.getUtxo().toKey();
     if (!mixing.containsKey(key)) {
@@ -206,8 +211,29 @@ public class MixOrchestrator extends AbstractOrchestrator {
       }
       notifyOrchestrator();
     } else {
-      log.warn("mixQueue ignored: utxo already queued or mixing: " + whirlpoolUtxo);
+      log.warn("mixQueue ignored: utxo already queued or mixing");
     }
+  }
+
+  public synchronized void mixStop(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
+    WhirlpoolUtxoStatus utxoStatus = whirlpoolUtxo.getStatus();
+    if (!WhirlpoolUtxoStatus.MIX_QUEUE.equals(utxoStatus)
+        && !WhirlpoolUtxoStatus.MIX_FAILED.equals(utxoStatus)
+        && !WhirlpoolUtxoStatus.MIX_STARTED.equals(utxoStatus)
+        && !WhirlpoolUtxoStatus.MIX_SUCCESS.equals(utxoStatus)) {
+      log.warn("mixStop ignored: utxoStatus=" + utxoStatus);
+      return;
+    }
+
+    final String key = whirlpoolUtxo.getUtxo().toKey();
+    if (mixing.containsKey(key)) {
+      // utxo already mixing, cannot stop
+      throw new NotifiableException("Cannot stop mixing utxo: currently mixing");
+    }
+
+    // stop mixing
+    mixing.remove(key);
+    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.READY);
   }
 
   private void mix(final WhirlpoolUtxo whirlpoolUtxo) throws Exception {
@@ -262,7 +288,11 @@ public class MixOrchestrator extends AbstractOrchestrator {
         && whirlpoolUtxo.getPool() != null) {
 
       log.info(" o Mix: new POSTMIX utxo detected, adding to mixQueue: " + whirlpoolUtxo);
-      mixQueue(whirlpoolUtxo);
+      try {
+        whirlpoolWallet.mixQueue(whirlpoolUtxo);
+      } catch (Exception e) {
+        log.error("onUtxoDetected failed", e);
+      }
     }
   }
 
