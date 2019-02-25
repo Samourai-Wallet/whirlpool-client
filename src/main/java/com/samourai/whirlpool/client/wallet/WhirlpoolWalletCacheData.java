@@ -69,7 +69,6 @@ public class WhirlpoolWalletCacheData {
     this.previousUtxos = new HashMap<WhirlpoolAccount, Map<String, WhirlpoolUtxo>>();
     for (WhirlpoolAccount whirlpoolAccount : WhirlpoolAccount.values()) {
       clearUtxos(whirlpoolAccount);
-      this.previousUtxos.put(whirlpoolAccount, new HashMap<String, WhirlpoolUtxo>());
     }
   }
 
@@ -219,8 +218,14 @@ public class WhirlpoolWalletCacheData {
           }
 
           // replace utxos
+          boolean isFirstFetch = false;
+          if (previousUtxos.get(whirlpoolAccount) == null) {
+            previousUtxos.put(whirlpoolAccount, new HashMap<String, WhirlpoolUtxo>());
+            isFirstFetch = true;
+          }
           Map<String, WhirlpoolUtxo> oldUtxos = previousUtxos.get(whirlpoolAccount);
-          Map<String, WhirlpoolUtxo> result = replaceUtxos(whirlpoolAccount, oldUtxos, freshUtxos);
+          Map<String, WhirlpoolUtxo> result =
+              replaceUtxos(whirlpoolAccount, oldUtxos, freshUtxos, isFirstFetch);
 
           previousUtxos.get(whirlpoolAccount).clear();
           previousUtxos.get(whirlpoolAccount).putAll(result);
@@ -248,7 +253,8 @@ public class WhirlpoolWalletCacheData {
   private Map<String, WhirlpoolUtxo> replaceUtxos(
       final WhirlpoolAccount account,
       final Map<String, WhirlpoolUtxo> currentUtxos,
-      final Map<String, UnspentOutput> freshUtxos) {
+      final Map<String, UnspentOutput> freshUtxos,
+      final boolean isFirstFetch) {
     final Map<String, WhirlpoolUtxo> result = new HashMap<String, WhirlpoolUtxo>();
 
     // add existing utxos
@@ -287,6 +293,10 @@ public class WhirlpoolWalletCacheData {
                   // add missing
                   WhirlpoolUtxo whirlpoolUtxo =
                       new WhirlpoolUtxo(utxo, account, WhirlpoolUtxoStatus.READY);
+                  if (!isFirstFetch) {
+                    // set lastActivity when utxo is detected but ignore on first fetch
+                    whirlpoolUtxo.setLastActivity();
+                  }
                   whirlpoolWallet.onUtxoDetected(whirlpoolUtxo);
                   result.put(key, whirlpoolUtxo);
                 }
