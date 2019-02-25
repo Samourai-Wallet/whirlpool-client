@@ -14,7 +14,7 @@ public class Pool {
   private int mixAnonymitySet;
   private MixStatus mixStatus;
   private long elapsedTime;
-  private int mixNbConfirmed;
+  private int nbConfirmed;
 
   public Pool() {}
 
@@ -104,11 +104,11 @@ public class Pool {
     this.elapsedTime = elapsedTime;
   }
 
-  public int getMixNbConfirmed() {
-    return mixNbConfirmed;
+  public int getNbConfirmed() {
+    return nbConfirmed;
   }
 
-  public void setMixNbConfirmed(int mixNbConfirmed) {
-    this.mixNbConfirmed = mixNbConfirmed;
+  public void setNbConfirmed(int nbConfirmed) {
+    this.nbConfirmed = nbConfirmed;
   }
 }

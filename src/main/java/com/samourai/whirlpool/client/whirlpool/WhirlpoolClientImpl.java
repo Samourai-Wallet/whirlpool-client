@@ -82,7 +82,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
       pool.setMixAnonymitySet(poolInfo.mixAnonymitySet);
       pool.setMixStatus(poolInfo.mixStatus);
       pool.setElapsedTime(poolInfo.elapsedTime);
-      pool.setMixNbConfirmed(poolInfo.mixNbConfirmed);
+      pool.setNbConfirmed(poolInfo.nbConfirmed);
       listPools.add(pool);
     }
     Pools pools =
