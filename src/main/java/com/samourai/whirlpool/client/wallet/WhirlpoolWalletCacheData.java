@@ -12,6 +12,8 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
+import com.zeroleak.throwingsupplier.Throwing;
+import com.zeroleak.throwingsupplier.ThrowingSupplier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,11 +41,11 @@ public class WhirlpoolWalletCacheData {
   private Supplier<Integer> feeSatPerByte;
 
   // pools
-  private Supplier<Pools> pools;
-  private Supplier<Collection<Pool>> poolsByPriority;
+  private Supplier<Throwing<Pools, Exception>> pools;
+  private Supplier<Throwing<Collection<Pool>, Exception>> poolsByPriority;
 
   // utxos
-  private Map<WhirlpoolAccount, Supplier<Map<String, WhirlpoolUtxo>>> utxos;
+  private Map<WhirlpoolAccount, Supplier<Throwing<Map<String, WhirlpoolUtxo>, Exception>>> utxos;
   private Map<WhirlpoolAccount, Map<String, WhirlpoolUtxo>> previousUtxos;
 
   public WhirlpoolWalletCacheData(
@@ -62,7 +64,8 @@ public class WhirlpoolWalletCacheData {
     clearPools();
 
     // utxos
-    this.utxos = new HashMap<WhirlpoolAccount, Supplier<Map<String, WhirlpoolUtxo>>>();
+    this.utxos =
+        new HashMap<WhirlpoolAccount, Supplier<Throwing<Map<String, WhirlpoolUtxo>, Exception>>>();
     this.previousUtxos = new HashMap<WhirlpoolAccount, Map<String, WhirlpoolUtxo>>();
     for (WhirlpoolAccount whirlpoolAccount : WhirlpoolAccount.values()) {
       clearUtxos(whirlpoolAccount);
@@ -98,35 +101,30 @@ public class WhirlpoolWalletCacheData {
             initPoolsByPriority(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
   }
 
-  public Pools getPools() {
-    return pools.get();
+  public Pools getPools() throws Exception {
+    return pools.get().getOrThrow();
   }
 
-  private Supplier<Pools> initPools() {
-    return new Supplier<Pools>() {
+  private ThrowingSupplier<Pools, Exception> initPools() {
+    return new ThrowingSupplier<Pools, Exception>() {
       @Override
-      public Pools get() {
-        try {
-          if (log.isDebugEnabled()) {
-            log.debug("fetching pools");
-          }
-          return whirlpoolClient.fetchPools();
-        } catch (Exception e) {
-          log.error("Unable to fetch pools", e);
-          return new Pools(new ArrayList<Pool>(), null, null);
+      public Pools getOrThrow() throws Exception {
+        if (log.isDebugEnabled()) {
+          log.debug("fetching pools");
         }
+        return whirlpoolClient.fetchPools();
       }
     };
   }
 
-  public Collection<Pool> getPoolsByPriority() {
-    return poolsByPriority.get();
+  public Collection<Pool> getPoolsByPriority() throws Exception {
+    return poolsByPriority.get().getOrThrow();
   }
 
-  private Supplier<Collection<Pool>> initPoolsByPriority() {
-    return new Supplier<Collection<Pool>>() {
+  private ThrowingSupplier<Collection<Pool>, Exception> initPoolsByPriority() {
+    return new ThrowingSupplier<Collection<Pool>, Exception>() {
       @Override
-      public Collection<Pool> get() {
+      public Collection<Pool> getOrThrow() throws Exception {
         if (log.isDebugEnabled()) {
           log.debug("fetching poolsByPriority");
         }
@@ -173,7 +171,8 @@ public class WhirlpoolWalletCacheData {
             initUtxos(whirlpoolAccount), config.getRefreshUtxoDelay(), TimeUnit.SECONDS));
   }
 
-  public Collection<WhirlpoolUtxo> getUtxos(boolean clearCache, WhirlpoolAccount... accounts) {
+  public Collection<WhirlpoolUtxo> getUtxos(boolean clearCache, WhirlpoolAccount... accounts)
+      throws Exception {
     for (WhirlpoolAccount account : accounts) {
       if (clearCache) {
         clearUtxos(account);
@@ -183,10 +182,10 @@ public class WhirlpoolWalletCacheData {
   }
 
   public WhirlpoolUtxo findUtxo(
-      String utxoHash, int utxoIndex, WhirlpoolAccount... whirlpoolAccounts) {
+      String utxoHash, int utxoIndex, WhirlpoolAccount... whirlpoolAccounts) throws Exception {
     String utxoKey = ClientUtils.utxoToKey(utxoHash, utxoIndex);
     for (WhirlpoolAccount whirlpoolAccount : whirlpoolAccounts) {
-      WhirlpoolUtxo whirlpoolUtxo = utxos.get(whirlpoolAccount).get().get(utxoKey);
+      WhirlpoolUtxo whirlpoolUtxo = utxos.get(whirlpoolAccount).get().getOrThrow().get(utxoKey);
       if (whirlpoolUtxo != null) {
         return whirlpoolUtxo;
       }
@@ -197,10 +196,11 @@ public class WhirlpoolWalletCacheData {
     return null;
   }
 
-  private Supplier<Map<String, WhirlpoolUtxo>> initUtxos(final WhirlpoolAccount whirlpoolAccount) {
-    return new Supplier<Map<String, WhirlpoolUtxo>>() {
+  private ThrowingSupplier<Map<String, WhirlpoolUtxo>, Exception> initUtxos(
+      final WhirlpoolAccount whirlpoolAccount) {
+    return new ThrowingSupplier<Map<String, WhirlpoolUtxo>, Exception>() {
       @Override
-      public Map<String, WhirlpoolUtxo> get() {
+      public Map<String, WhirlpoolUtxo> getOrThrow() throws Exception {
         try {
           Bip84ApiWallet wallet = whirlpoolWallet.getWallet(whirlpoolAccount);
           List<UnspentOutput> fetchedUtxos = wallet.fetchUtxos();
@@ -234,10 +234,12 @@ public class WhirlpoolWalletCacheData {
     };
   }
 
-  private Collection<WhirlpoolUtxo> findUtxos(final WhirlpoolAccount... whirlpoolAccounts) {
+  private Collection<WhirlpoolUtxo> findUtxos(final WhirlpoolAccount... whirlpoolAccounts)
+      throws Exception {
     List<WhirlpoolUtxo> result = new ArrayList<WhirlpoolUtxo>();
     for (WhirlpoolAccount whirlpoolAccount : whirlpoolAccounts) {
-      Collection<WhirlpoolUtxo> accountUtxos = utxos.get(whirlpoolAccount).get().values();
+      Collection<WhirlpoolUtxo> accountUtxos =
+          utxos.get(whirlpoolAccount).get().getOrThrow().values();
       result.addAll(accountUtxos);
     }
     return result;
