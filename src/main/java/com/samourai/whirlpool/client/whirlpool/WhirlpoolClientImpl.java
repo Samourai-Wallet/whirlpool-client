@@ -88,6 +88,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     Pools pools =
         new Pools(
             listPools,
+            poolsResponse.feeValue,
             poolsResponse.feePaymentCode,
             WhirlpoolProtocol.decodeBytes(poolsResponse.feePayload64));
     return pools;

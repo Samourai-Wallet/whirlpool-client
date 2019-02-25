@@ -19,17 +19,17 @@ public class Pool {
   public Pool() {}
 
   public boolean checkInputBalance(long inputBalance, boolean liquidity) {
-    long minBalance = computeInputBalanceMin(liquidity);
-    long maxBalance = computeInputBalanceMax(liquidity);
+    long minBalance = computePremixBalanceMin(liquidity);
+    long maxBalance = computePremixBalanceMax(liquidity);
     return inputBalance >= minBalance && inputBalance <= maxBalance;
   }
 
-  public long computeInputBalanceMin(boolean liquidity) {
-    return WhirlpoolProtocol.computeInputBalanceMin(denomination, mustMixBalanceMin, liquidity);
+  public long computePremixBalanceMin(boolean liquidity) {
+    return WhirlpoolProtocol.computePremixBalanceMin(denomination, mustMixBalanceMin, liquidity);
   }
 
-  public long computeInputBalanceMax(boolean liquidity) {
-    return WhirlpoolProtocol.computeInputBalanceMax(denomination, mustMixBalanceMax, liquidity);
+  public long computePremixBalanceMax(boolean liquidity) {
+    return WhirlpoolProtocol.computePremixBalanceMax(denomination, mustMixBalanceMax, liquidity);
   }
 
   public String getPoolId() {

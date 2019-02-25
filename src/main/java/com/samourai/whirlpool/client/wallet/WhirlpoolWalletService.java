@@ -29,8 +29,7 @@ public class WhirlpoolWalletService {
   public WhirlpoolWalletService(WhirlpoolWalletConfig config, WhirlpoolClient whirlpoolClient) {
     this.config = config;
 
-    this.tx0Service =
-        new Tx0Service(config.getNetworkParameters(), config.getFeeXpub(), config.getFeeValue());
+    this.tx0Service = new Tx0Service(config.getNetworkParameters(), config.getFeeXpub());
     this.bech32Util = Bech32UtilGeneric.getInstance();
 
     if (whirlpoolClient == null) {

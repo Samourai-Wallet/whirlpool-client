@@ -9,29 +9,24 @@ public enum WhirlpoolServer {
       "pool.whirl.mx:8081",
       TestNet3Params.get(),
       true,
-      "vpub5YS8pQgZKVbrSn9wtrmydDWmWMjHrxL2mBCZ81BDp7Z2QyCgTLZCrnBprufuoUJaQu1ZeiRvUkvdQTNqV6hS96WbbVZgweFxYR1RXYkBcKt",
-      10000),
-  MAIN("TODO", MainNetParams.get(), true, "TODO", 12345), // TODO
+      "vpub5YS8pQgZKVbrSn9wtrmydDWmWMjHrxL2mBCZ81BDp7Z2QyCgTLZCrnBprufuoUJaQu1ZeiRvUkvdQTNqV6hS96WbbVZgweFxYR1RXYkBcKt"),
+  MAIN("TODO", MainNetParams.get(), true, "TODO"), // TODO
   LOCAL_TEST(
       "127.0.0.1:8080",
       TestNet3Params.get(),
       false,
-      "vpub5YS8pQgZKVbrSn9wtrmydDWmWMjHrxL2mBCZ81BDp7Z2QyCgTLZCrnBprufuoUJaQu1ZeiRvUkvdQTNqV6hS96WbbVZgweFxYR1RXYkBcKt",
-      10000);
+      "vpub5YS8pQgZKVbrSn9wtrmydDWmWMjHrxL2mBCZ81BDp7Z2QyCgTLZCrnBprufuoUJaQu1ZeiRvUkvdQTNqV6hS96WbbVZgweFxYR1RXYkBcKt");
 
   private String serverUrl;
   private NetworkParameters params;
   private boolean ssl;
   private String feeXpub;
-  private long feeValue;
 
-  WhirlpoolServer(
-      String serverUrl, NetworkParameters params, boolean ssl, String feeXpub, long feeValue) {
+  WhirlpoolServer(String serverUrl, NetworkParameters params, boolean ssl, String feeXpub) {
     this.serverUrl = serverUrl;
     this.params = params;
     this.ssl = ssl;
     this.feeXpub = feeXpub;
-    this.feeValue = feeValue;
   }
 
   public String getServerUrl() {
@@ -48,9 +43,5 @@ public enum WhirlpoolServer {
 
   public String getFeeXpub() {
     return feeXpub;
-  }
-
-  public long getFeeValue() {
-    return feeValue;
   }
 }

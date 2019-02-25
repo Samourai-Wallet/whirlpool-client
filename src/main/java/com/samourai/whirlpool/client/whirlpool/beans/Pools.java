@@ -9,10 +9,11 @@ import java8.lang.Longs;
 
 public class Pools {
   private List<Pool> pools;
+  private long feeValue;
   private String feePaymentCode;
   private byte[] feePayload;
 
-  public Pools(Collection<Pool> pools, String feePaymentCode, byte[] feePayload) {
+  public Pools(Collection<Pool> pools, long feeValue, String feePaymentCode, byte[] feePayload) {
     this.pools = new ArrayList<Pool>(pools);
 
     // reversed sort: pools ordered by denomination DESC
@@ -25,6 +26,7 @@ public class Pools {
           }
         });
 
+    this.feeValue = feeValue;
     this.feePaymentCode = feePaymentCode;
     this.feePayload = feePayload;
   }
@@ -40,6 +42,10 @@ public class Pools {
 
   public Collection<Pool> getPools() {
     return pools;
+  }
+
+  public long getFeeValue() {
+    return feeValue;
   }
 
   public String getFeePaymentCode() {

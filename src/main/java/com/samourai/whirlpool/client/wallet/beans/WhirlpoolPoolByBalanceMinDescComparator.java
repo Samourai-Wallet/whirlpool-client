@@ -7,10 +7,10 @@ import java8.lang.Longs;
 public class WhirlpoolPoolByBalanceMinDescComparator implements Comparator<Pool> {
   @Override
   public int compare(Pool o1, Pool o2) {
-    long balanceMin1 = o1.computeInputBalanceMin(false);
-    long balanceMin2 = o2.computeInputBalanceMax(false);
+    long premixBalanceMin1 = o1.computePremixBalanceMin(false);
+    long premixBalanceMin2 = o2.computePremixBalanceMin(false);
 
     // reversed: biggest balanceMin first
-    return Longs.compare(balanceMin2, balanceMin1);
+    return Longs.compare(premixBalanceMin2, premixBalanceMin1);
   }
 }

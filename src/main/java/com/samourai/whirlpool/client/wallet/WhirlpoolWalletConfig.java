@@ -11,7 +11,6 @@ import org.bitcoinj.core.NetworkParameters;
 
 public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private String feeXpub;
-  private long feeValue;
   private int maxClients;
   private int clientDelay;
   private boolean autoTx0;
@@ -32,8 +31,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
         whirlpoolServer.getServerUrl(),
         whirlpoolServer.getParams(),
         whirlpoolServer.isSsl(),
-        whirlpoolServer.getFeeXpub(),
-        whirlpoolServer.getFeeValue());
+        whirlpoolServer.getFeeXpub());
   }
 
   public WhirlpoolWalletConfig(
@@ -42,12 +40,10 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
       String server,
       NetworkParameters params,
       boolean ssl,
-      String feeXpub,
-      long feeValue) {
+      String feeXpub) {
     super(httpClient, stompClient, server, params, ssl);
 
     this.feeXpub = feeXpub;
-    this.feeValue = feeValue;
 
     // default settings
     this.maxClients = 1;
@@ -66,10 +62,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public String getFeeXpub() {
     return feeXpub;
-  }
-
-  public long getFeeValue() {
-    return feeValue;
   }
 
   public int getMaxClients() {

@@ -139,8 +139,9 @@ public class WhirlpoolWallet {
 
     // find eligible pools
     Collection<Pool> poolsByPriority = getPoolsByPriority();
+    long feeValue = getPools().getFeeValue();
     int feeSatPerByte = getFeeSatPerByte();
-    return tx0Service.findPools(nbOutputsMin, poolsByPriority, utxoValue, feeSatPerByte);
+    return tx0Service.findPools(nbOutputsMin, poolsByPriority, feeValue, utxoValue, feeSatPerByte);
   }
 
   public WhirlpoolUtxo findTx0SpendFrom(int nbOutputsMin, Collection<Pool> poolsByPriority)
@@ -164,11 +165,12 @@ public class WhirlpoolWallet {
       Collection<Pool> poolsByPriority,
       Collection<WhirlpoolUtxo> depositUtxosByPriority,
       int feeSatPerByte)
-      throws EmptyWalletException, UnconfirmedUtxoException, NotifiableException {
+      throws EmptyWalletException, Exception, NotifiableException {
 
     if (poolsByPriority.isEmpty()) {
       throw new NotifiableException("No pool to spend tx0 from");
     }
+    long feeValue = getPools().getFeeValue();
 
     WhirlpoolUtxo unconfirmedUtxo = null;
     for (WhirlpoolUtxo whirlpoolUtxo : depositUtxosByPriority) {
@@ -176,7 +178,11 @@ public class WhirlpoolWallet {
       if (eligiblePool == null) {
         Collection<Pool> eligiblePools =
             tx0Service.findPools(
-                nbOutputsMin, poolsByPriority, whirlpoolUtxo.getUtxo().value, feeSatPerByte);
+                nbOutputsMin,
+                poolsByPriority,
+                feeValue,
+                whirlpoolUtxo.getUtxo().value,
+                feeSatPerByte);
         if (!eligiblePools.isEmpty()) {
           eligiblePool = eligiblePools.iterator().next();
         }
@@ -211,7 +217,7 @@ public class WhirlpoolWallet {
     // no eligible deposit UTXO found
     long requiredBalance =
         tx0Service.computeSpendFromBalanceMin(
-            poolsByPriority.iterator().next(), feeSatPerByte, nbOutputsMin);
+            poolsByPriority.iterator().next(), feeValue, feeSatPerByte, nbOutputsMin);
     throw new EmptyWalletException("No UTXO found to spend TX0 from", requiredBalance);
   }
 
@@ -310,8 +316,12 @@ public class WhirlpoolWallet {
       Integer maxOutputs)
       throws Exception {
 
+    Pools pools = getPools();
+
     // check balance min
-    final long spendFromBalanceMin = tx0Service.computeSpendFromBalanceMin(pool, feeSatPerByte, 1);
+    long feeValue = pools.getFeeValue();
+    final long spendFromBalanceMin =
+        tx0Service.computeSpendFromBalanceMin(pool, feeValue, feeSatPerByte, 1);
     if (spendFromValue < spendFromBalanceMin) {
       throw new Exception(
           "Insufficient utxo value for Tx0: " + spendFromValue + " < " + spendFromBalanceMin);
@@ -337,7 +347,7 @@ public class WhirlpoolWallet {
             premixWallet,
             feeIndexHandler,
             feeSatPerByte,
-            getPools(),
+            pools,
             pool,
             maxOutputs);
 
