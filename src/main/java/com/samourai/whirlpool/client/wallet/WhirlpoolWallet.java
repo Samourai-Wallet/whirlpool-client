@@ -126,12 +126,13 @@ public class WhirlpoolWallet {
     this.cacheData.clearUtxos(account);
   }
 
-  public Collection<Pool> findTx0Pools(long utxoValue, int nbOutputsMin) throws Exception {
-    return findTx0Pools(utxoValue, nbOutputsMin, false);
+  public Collection<Pool> findPoolsByPreferenceForTx0(long utxoValue, int nbOutputsMin)
+      throws Exception {
+    return findPoolsByPreferenceForTx0(utxoValue, nbOutputsMin, false);
   }
 
-  public Collection<Pool> findTx0Pools(long utxoValue, int nbOutputsMin, boolean clearCache)
-      throws Exception {
+  public Collection<Pool> findPoolsByPreferenceForTx0(
+      long utxoValue, int nbOutputsMin, boolean clearCache) throws Exception {
     // clear cache
     if (clearCache) {
       cacheData.clearPools();
@@ -669,12 +670,52 @@ public class WhirlpoolWallet {
     if (log.isDebugEnabled()) {
       log.debug("New utxo detected: " + whirlpoolUtxo);
     }
+
+    // auto-assign pool when possible
+    if (whirlpoolUtxo.getPool() == null) {
+      try {
+        autoAssignPool(whirlpoolUtxo);
+      } catch (Exception e) {
+        log.error("", e);
+      }
+    }
+
+    // notify orchestrators
     mixOrchestrator.onUtxoDetected(whirlpoolUtxo);
     if (autoTx0Orchestrator.isPresent()) {
       autoTx0Orchestrator.get().onUtxoDetected(whirlpoolUtxo);
     }
     if (autoMixOrchestrator.isPresent()) {
       autoMixOrchestrator.get().onUtxoDetected(whirlpoolUtxo);
+    }
+  }
+
+  private void autoAssignPool(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
+    Collection<Pool> eligiblePools = null;
+
+    // find eligible pools for tx0
+    if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())) {
+      if (WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())) {
+        eligiblePools = findPoolsByPreferenceForTx0(whirlpoolUtxo.getUtxo().value, 1);
+      }
+    }
+
+    // find eligible pools for mix
+    else if (WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())
+        || WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())) {
+      if (WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())) {
+        eligiblePools = findPoolsByPreferenceForPremix(whirlpoolUtxo.getUtxo().value);
+      }
+    }
+
+    // auto-assign pool by preference when found
+    if (eligiblePools != null) {
+      if (!eligiblePools.isEmpty()) {
+        whirlpoolUtxo.setPool(eligiblePools.iterator().next());
+      } else {
+        log.warn("No pool for this utxo balance: " + whirlpoolUtxo.toString());
+        whirlpoolUtxo.setError("No pool for this utxo balance");
+      }
     }
   }
 
