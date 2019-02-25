@@ -171,26 +171,24 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   protected WhirlpoolUtxo findToMixByPriority(final Set<String> excludedHashs) {
-    return findToMix()
-        // exclude hashs
-        .filter(
-            new Predicate<WhirlpoolUtxo>() {
-              @Override
-              public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                return !excludedHashs.contains(whirlpoolUtxo.getUtxo().tx_hash);
-              }
-            })
-        .filter(
-            new Predicate<WhirlpoolUtxo>() {
-              @Override
-              public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                return whirlpoolUtxo.getUtxo().confirmations
-                    >= WhirlpoolWallet.MIX_MIN_CONFIRMATIONS;
-              }
-            })
-        .sorted(new WhirlpoolUtxoPriorityComparator())
-        .findFirst()
-        .orElse(null);
+    Collection<WhirlpoolUtxo> toMixByPriority =
+        findToMix()
+            .sorted(new WhirlpoolUtxoPriorityComparator())
+            .collect(Collectors.<WhirlpoolUtxo>toList());
+
+    for (WhirlpoolUtxo whirlpoolUtxo : toMixByPriority) {
+      if (!excludedHashs.contains(whirlpoolUtxo.getUtxo().tx_hash)) {
+        if (whirlpoolUtxo.getUtxo().confirmations >= WhirlpoolWallet.MIX_MIN_CONFIRMATIONS) {
+          // found
+          return whirlpoolUtxo;
+        } else {
+          whirlpoolUtxo.setMessage("Queued: unconfirmed");
+        }
+      } else {
+        whirlpoolUtxo.setMessage("Queued: another utxo from same tx0 is mixing");
+      }
+    }
+    return null;
   }
 
   public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
