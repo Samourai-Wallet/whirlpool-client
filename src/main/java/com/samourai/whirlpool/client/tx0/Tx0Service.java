@@ -431,12 +431,12 @@ public class Tx0Service {
 
   public Collection<Pool> findPools(
       int nbOutputsMin,
-      Collection<Pool> poolsByPriority,
+      Collection<Pool> poolsByPreference,
       long feeValue,
       long utxoValue,
       int feeSatPerByte) {
     List<Pool> eligiblePools = new LinkedList<Pool>();
-    for (Pool pool : poolsByPriority) {
+    for (Pool pool : poolsByPreference) {
       long balanceMin = computeSpendFromBalanceMin(pool, feeValue, feeSatPerByte, nbOutputsMin);
       if (utxoValue >= balanceMin) {
         eligiblePools.add(pool);

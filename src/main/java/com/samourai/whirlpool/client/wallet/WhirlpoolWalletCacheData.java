@@ -41,8 +41,8 @@ public class WhirlpoolWalletCacheData {
   private Supplier<Integer> feeSatPerByte;
 
   // pools
-  private Supplier<Throwing<Pools, Exception>> pools;
-  private Supplier<Throwing<Collection<Pool>, Exception>> poolsByPriority;
+  private Supplier<Throwing<Pools, Exception>> poolsResponse;
+  private Supplier<Throwing<Collection<Pool>, Exception>> poolsByPreference;
 
   // utxos
   private Map<WhirlpoolAccount, Supplier<Throwing<Map<String, WhirlpoolUtxo>, Exception>>> utxos;
@@ -93,16 +93,16 @@ public class WhirlpoolWalletCacheData {
   // POOLS
 
   public void clearPools() {
-    this.pools =
+    this.poolsResponse =
         Suppliers.memoizeWithExpiration(initPools(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
 
-    this.poolsByPriority =
+    this.poolsByPreference =
         Suppliers.memoizeWithExpiration(
-            initPoolsByPriority(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
+            initPoolsByPreference(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
   }
 
-  public Pools getPools() throws Exception {
-    return pools.get().getOrThrow();
+  public Pools getPoolsResponse() throws Exception {
+    return poolsResponse.get().getOrThrow();
   }
 
   private ThrowingSupplier<Pools, Exception> initPools() {
@@ -110,35 +110,35 @@ public class WhirlpoolWalletCacheData {
       @Override
       public Pools getOrThrow() throws Exception {
         if (log.isDebugEnabled()) {
-          log.debug("fetching pools");
+          log.debug("fetching poolsResponse");
         }
         return whirlpoolClient.fetchPools();
       }
     };
   }
 
-  public Collection<Pool> getPoolsByPriority() throws Exception {
-    return poolsByPriority.get().getOrThrow();
+  public Collection<Pool> getPoolsByPreference() throws Exception {
+    return poolsByPreference.get().getOrThrow();
   }
 
-  private ThrowingSupplier<Collection<Pool>, Exception> initPoolsByPriority() {
+  private ThrowingSupplier<Collection<Pool>, Exception> initPoolsByPreference() {
     return new ThrowingSupplier<Collection<Pool>, Exception>() {
       @Override
       public Collection<Pool> getOrThrow() throws Exception {
         if (log.isDebugEnabled()) {
-          log.debug("fetching poolsByPriority");
+          log.debug("fetching poolsByPreference");
         }
 
-        Pools pools = getPools();
+        Pools pools = getPoolsResponse();
 
-        // add pools by priority
-        Collection<Pool> poolsByPriority = new LinkedList<Pool>();
+        // add pools by preference
+        Collection<Pool> poolsByPreference = new LinkedList<Pool>();
         if (config.getPoolIdsByPriority() != null && !config.getPoolIdsByPriority().isEmpty()) {
           // use user-specified pools
           for (String poolId : config.getPoolIdsByPriority()) {
             Pool pool = pools.findPoolById(poolId);
             if (pool != null) {
-              poolsByPriority.add(pool);
+              poolsByPreference.add(pool);
             } else {
               log.error("No such pool: " + poolId);
             }
@@ -146,15 +146,15 @@ public class WhirlpoolWalletCacheData {
         } else {
           // use all pools
           if (log.isDebugEnabled()) {
-            log.debug("getPoolsByPriority: no priority defined, using all pools");
+            log.debug("getPoolsByPreference: no priority defined, using all poolsResponse");
           }
           // biggest balanceMin first
-          poolsByPriority =
+          poolsByPreference =
               StreamSupport.stream(pools.getPools())
                   .sorted(new WhirlpoolPoolByBalanceMinDescComparator())
                   .collect(Collectors.<Pool>toList());
         }
-        return poolsByPriority;
+        return poolsByPreference;
       }
     };
   }
