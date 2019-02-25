@@ -39,6 +39,16 @@ public class WhirlpoolWalletService {
     this.whirlpoolClient = whirlpoolClient;
   }
 
+  public boolean testConnectivity() {
+    try {
+      this.whirlpoolClient.fetchPools();
+      return true;
+    } catch (Exception e) {
+      log.error("", e);
+      return false;
+    }
+  }
+
   public WhirlpoolWallet openWallet(
       HD_Wallet bip84w,
       IIndexHandler depositIndexHandler,

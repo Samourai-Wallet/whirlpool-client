@@ -43,6 +43,11 @@ public class JavaExample {
     WhirlpoolWalletService whirlpoolWalletService =
         new WhirlpoolWalletService(whirlpoolWalletConfig);
 
+    // check server connectivity
+    if (!whirlpoolWalletService.testConnectivity()) {
+      throw new Exception("Failed to connect to Whirlpool server");
+    }
+
     // configure wallet
     HD_Wallet bip84w = null; // provide your wallet here
 
