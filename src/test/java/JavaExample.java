@@ -83,6 +83,9 @@ public class JavaExample {
     // list all available pools (even those not in client preference)
     Collection<Pool> poolsAvailable = whirlpoolWallet.getPoolsAvailable();
 
+    // find pool by poolId
+    Pool pool05btc = whirlpoolWallet.findPoolById("0.5btc");
+
     // tx0 spending a whirlpool-managed utxo
     {
       // whirlpool utxo for tx0
@@ -116,7 +119,7 @@ public class JavaExample {
       long spendFromValue = 12345678; // provide utxo value
 
       // pool for tx0
-      Pool pool = whirlpoolWallet.getPoolsResponse().findPoolById("0.01btc"); // provide poolId
+      Pool pool = whirlpoolWallet.findPoolById("0.01btc"); // provide poolId
 
       // execute tx0
       try {

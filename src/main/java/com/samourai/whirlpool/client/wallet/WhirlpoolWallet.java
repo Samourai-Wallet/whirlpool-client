@@ -451,6 +451,14 @@ public class WhirlpoolWallet {
     return cacheData.getPoolsByPreference();
   }
 
+  public Pool findPoolById(String poolId) throws Exception {
+    return findPoolById(poolId, false);
+  }
+
+  public Pool findPoolById(String poolId, boolean clearCache) throws Exception {
+    return getPoolsResponse(clearCache).findPoolById(poolId);
+  }
+
   public Collection<Pool> findPoolsByPreferenceForPremix(long utxoValue) throws Exception {
     return findPoolsByPreferenceForPremix(utxoValue, false);
   }
