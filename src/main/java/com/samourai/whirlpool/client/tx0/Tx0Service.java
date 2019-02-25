@@ -9,7 +9,6 @@ import com.samourai.wallet.util.FeeUtil;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
-import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.fee.WhirlpoolFee;
 import java.util.ArrayList;
@@ -60,12 +59,8 @@ public class Tx0Service {
     long premixValue = pool.getDenomination() + minerFeePerMustmix;
 
     // make sure destinationValue is acceptable for pool
-    long balanceMin =
-        WhirlpoolProtocol.computeInputBalanceMin(
-            pool.getDenomination(), false, pool.getMinerFeeMin());
-    long balanceMax =
-        WhirlpoolProtocol.computeInputBalanceMax(
-            pool.getDenomination(), false, pool.getMinerFeeMax());
+    long balanceMin = pool.computeInputBalanceMin(false);
+    long balanceMax = pool.computeInputBalanceMax(false);
     premixValue = Math.min(premixValue, balanceMax);
     premixValue = Math.max(premixValue, balanceMin);
 

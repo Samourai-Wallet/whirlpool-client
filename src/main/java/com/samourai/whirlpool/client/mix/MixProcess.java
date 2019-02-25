@@ -120,9 +120,9 @@ public class MixProcess {
     checkFees(utxo.getBalance(), poolDenomination);
 
     // verify balance
-    long minerFeeMin = subscribePoolResponse.minerFeeMin;
-    long minerFeeMax = subscribePoolResponse.minerFeeMax;
-    checkUtxoBalance(minerFeeMin, minerFeeMax);
+    long mustMixBalanceMin = subscribePoolResponse.mustMixBalanceMin;
+    long mustMixBalanceMax = subscribePoolResponse.mustMixBalanceMax;
+    checkUtxoBalance(mustMixBalanceMin, mustMixBalanceMax);
 
     String signature = premixHandler.signMessage(poolId);
     RegisterInputRequest registerInputRequest =
@@ -285,11 +285,12 @@ public class MixProcess {
     }
   }
 
-  private void checkUtxoBalance(long minerFeeMin, long minerFeeMax) throws NotifiableException {
+  private void checkUtxoBalance(long mustMixBalanceMin, long mustMixBalanceMax)
+      throws NotifiableException {
     long inputBalanceMin =
-        WhirlpoolProtocol.computeInputBalanceMin(poolDenomination, liquidity, minerFeeMin);
+        WhirlpoolProtocol.computeInputBalanceMin(poolDenomination, mustMixBalanceMin, liquidity);
     long inputBalanceMax =
-        WhirlpoolProtocol.computeInputBalanceMax(poolDenomination, liquidity, minerFeeMax);
+        WhirlpoolProtocol.computeInputBalanceMax(poolDenomination, mustMixBalanceMax, liquidity);
 
     long utxoBalance = premixHandler.getUtxo().getBalance();
     if (utxoBalance < inputBalanceMin) {

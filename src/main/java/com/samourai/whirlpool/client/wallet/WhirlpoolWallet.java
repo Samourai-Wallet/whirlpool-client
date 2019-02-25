@@ -33,7 +33,6 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientListener;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
-import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -432,13 +431,7 @@ public class WhirlpoolWallet {
     // find eligible pools
     List<Pool> poolsAccepted = new ArrayList<Pool>();
     for (Pool pool : getPoolsByPriority()) {
-      long balanceMin =
-          WhirlpoolProtocol.computeInputBalanceMin(
-              pool.getDenomination(), false, pool.getMinerFeeMin());
-      long balanceMax =
-          WhirlpoolProtocol.computeInputBalanceMax(
-              pool.getDenomination(), false, pool.getMinerFeeMax());
-      if (utxoValue >= balanceMin && utxoValue <= balanceMax) {
+      if (pool.checkInputBalance(utxoValue, false)) {
         poolsAccepted.add(pool);
       }
     }

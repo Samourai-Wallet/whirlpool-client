@@ -1,12 +1,13 @@
 package com.samourai.whirlpool.client.whirlpool.beans;
 
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 
 public class Pool {
   private String poolId;
   private long denomination;
-  private long minerFeeMin;
-  private long minerFeeMax;
+  private long mustMixBalanceMin;
+  private long mustMixBalanceMax;
   private int minAnonymitySet;
   private int nbRegistered;
 
@@ -16,6 +17,20 @@ public class Pool {
   private int mixNbConfirmed;
 
   public Pool() {}
+
+  public boolean checkInputBalance(long inputBalance, boolean liquidity) {
+    long minBalance = computeInputBalanceMin(liquidity);
+    long maxBalance = computeInputBalanceMax(liquidity);
+    return inputBalance >= minBalance && inputBalance <= maxBalance;
+  }
+
+  public long computeInputBalanceMin(boolean liquidity) {
+    return WhirlpoolProtocol.computeInputBalanceMin(denomination, mustMixBalanceMin, liquidity);
+  }
+
+  public long computeInputBalanceMax(boolean liquidity) {
+    return WhirlpoolProtocol.computeInputBalanceMax(denomination, mustMixBalanceMax, liquidity);
+  }
 
   public String getPoolId() {
     return poolId;
@@ -33,20 +48,20 @@ public class Pool {
     this.denomination = denomination;
   }
 
-  public long getMinerFeeMin() {
-    return minerFeeMin;
+  public long getMustMixBalanceMin() {
+    return mustMixBalanceMin;
   }
 
-  public void setMinerFeeMin(long minerFeeMin) {
-    this.minerFeeMin = minerFeeMin;
+  public void setMustMixBalanceMin(long mustMixBalanceMin) {
+    this.mustMixBalanceMin = mustMixBalanceMin;
   }
 
-  public long getMinerFeeMax() {
-    return minerFeeMax;
+  public long getMustMixBalanceMax() {
+    return mustMixBalanceMax;
   }
 
-  public void setMinerFeeMax(long minerFeeMax) {
-    this.minerFeeMax = minerFeeMax;
+  public void setMustMixBalanceMax(long mustMixBalanceMax) {
+    this.mustMixBalanceMax = mustMixBalanceMax;
   }
 
   public int getMinAnonymitySet() {
