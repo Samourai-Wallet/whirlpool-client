@@ -192,7 +192,7 @@ public class Tx0Service {
         feeSatPerByte,
         maxOutputs,
         premixValue,
-        pools.getFeeValue(),
+        pool.getFeeValue(),
         pools.getFeePaymentCode(),
         pools.getFeePayload());
   }
@@ -430,13 +430,10 @@ public class Tx0Service {
   }
 
   public Collection<Pool> findPools(
-      int nbOutputsMin,
-      Collection<Pool> poolsByPreference,
-      long feeValue,
-      long utxoValue,
-      int feeSatPerByte) {
+      int nbOutputsMin, Collection<Pool> poolsByPreference, long utxoValue, int feeSatPerByte) {
     List<Pool> eligiblePools = new LinkedList<Pool>();
     for (Pool pool : poolsByPreference) {
+      long feeValue = pool.getFeeValue();
       long balanceMin = computeSpendFromBalanceMin(pool, feeValue, feeSatPerByte, nbOutputsMin);
       if (utxoValue >= balanceMin) {
         eligiblePools.add(pool);

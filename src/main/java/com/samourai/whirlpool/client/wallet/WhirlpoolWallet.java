@@ -140,10 +140,8 @@ public class WhirlpoolWallet {
 
     // find eligible pools
     Collection<Pool> poolsByPreference = getPoolsByPreference();
-    long feeValue = getPoolsResponse().getFeeValue();
     int feeSatPerByte = getFeeSatPerByte();
-    return tx0Service.findPools(
-        nbOutputsMin, poolsByPreference, feeValue, utxoValue, feeSatPerByte);
+    return tx0Service.findPools(nbOutputsMin, poolsByPreference, utxoValue, feeSatPerByte);
   }
 
   public WhirlpoolUtxo findTx0SpendFrom(int nbOutputsMin, Collection<Pool> poolsByPreference)
@@ -172,7 +170,6 @@ public class WhirlpoolWallet {
     if (poolsByPreference.isEmpty()) {
       throw new NotifiableException("No pool to spend tx0 from");
     }
-    long feeValue = getPoolsResponse().getFeeValue();
 
     WhirlpoolUtxo unconfirmedUtxo = null;
     for (WhirlpoolUtxo whirlpoolUtxo : depositUtxosByPriority) {
@@ -180,11 +177,7 @@ public class WhirlpoolWallet {
       if (eligiblePool == null) {
         Collection<Pool> eligiblePools =
             tx0Service.findPools(
-                nbOutputsMin,
-                poolsByPreference,
-                feeValue,
-                whirlpoolUtxo.getUtxo().value,
-                feeSatPerByte);
+                nbOutputsMin, poolsByPreference, whirlpoolUtxo.getUtxo().value, feeSatPerByte);
         if (!eligiblePools.isEmpty()) {
           eligiblePool = eligiblePools.iterator().next();
         }
@@ -217,6 +210,7 @@ public class WhirlpoolWallet {
     }
 
     // no eligible deposit UTXO found
+    long feeValue = poolsByPreference.iterator().next().getFeeValue();
     long requiredBalance =
         tx0Service.computeSpendFromBalanceMin(
             poolsByPreference.iterator().next(), feeValue, feeSatPerByte, nbOutputsMin);
@@ -322,7 +316,7 @@ public class WhirlpoolWallet {
     Pools pools = getPoolsResponse();
 
     // check balance min
-    long feeValue = pools.getFeeValue();
+    long feeValue = pool.getFeeValue();
     final long spendFromBalanceMin =
         tx0Service.computeSpendFromBalanceMin(pool, feeValue, feeSatPerByte, 1);
     if (spendFromValue < spendFromBalanceMin) {

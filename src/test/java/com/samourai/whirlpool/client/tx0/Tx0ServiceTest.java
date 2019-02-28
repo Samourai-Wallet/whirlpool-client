@@ -23,7 +23,7 @@ public class Tx0ServiceTest extends AbstractTest {
       "vpub5YS8pQgZKVbrSn9wtrmydDWmWMjHrxL2mBCZ81BDp7Z2QyCgTLZCrnBprufuoUJaQu1ZeiRvUkvdQTNqV6hS96WbbVZgweFxYR1RXYkBcKt";
   private static final long FEE_VALUE = 10000; // TODO
 
-  private Tx0Service tx0Service = new Tx0Service(params, FEE_XPUB, FEE_VALUE);
+  private Tx0Service tx0Service = new Tx0Service(params, FEE_XPUB);
 
   @Test
   public void tx0_5premix_withChange() throws Exception {
@@ -63,6 +63,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeSatPerByte,
             nbOutputsPreferred,
             premixValue,
+            FEE_VALUE,
             feePaymentCode,
             feePayload);
 
@@ -117,6 +118,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeSatPerByte,
             null,
             premixValue,
+            FEE_VALUE,
             feePaymentCode,
             feePayload);
 
@@ -172,6 +174,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeSatPerByte,
             nbOutputsPreferred,
             premixValue,
+            FEE_VALUE,
             feePaymentCode,
             feePayload);
 
@@ -227,6 +230,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feeSatPerByte,
             nbOutputsPreferred,
             premixValue,
+            FEE_VALUE,
             feePaymentCode,
             feePayload);
 

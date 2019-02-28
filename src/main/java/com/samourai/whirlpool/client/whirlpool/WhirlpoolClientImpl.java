@@ -74,6 +74,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
       Pool pool = new Pool();
       pool.setPoolId(poolInfo.poolId);
       pool.setDenomination(poolInfo.denomination);
+      pool.setFeeValue(poolInfo.feeValue);
       pool.setMustMixBalanceMin(poolInfo.mustMixBalanceMin);
       pool.setMustMixBalanceMax(poolInfo.mustMixBalanceMax);
       pool.setMinAnonymitySet(poolInfo.minAnonymitySet);
@@ -88,7 +89,6 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     Pools pools =
         new Pools(
             listPools,
-            poolsResponse.feeValue,
             poolsResponse.feePaymentCode,
             WhirlpoolProtocol.decodeBytes(poolsResponse.feePayload64));
     return pools;
