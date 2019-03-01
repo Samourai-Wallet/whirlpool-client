@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.wallet;
 import com.samourai.api.client.SamouraiApi;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClient;
+import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.pushTx.PushTxService;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
@@ -53,7 +54,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.poolIdsByPriority = null;
 
     // technical settings
-    this.samouraiApi = new SamouraiApi(httpClient); // single instance to SamouraiApi
+    boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
+    this.samouraiApi = new SamouraiApi(httpClient, isTestnet); // single instance to SamouraiApi
     this.pushTxService = samouraiApi; // use backend as default push service
     this.tx0Delay = 30;
     this.tx0MaxOutputs = null; // spend whole utxo when possible

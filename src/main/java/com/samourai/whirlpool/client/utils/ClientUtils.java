@@ -6,6 +6,7 @@ import com.samourai.api.client.beans.UnspentResponse;
 import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.http.client.HttpException;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
@@ -26,6 +27,10 @@ import org.slf4j.LoggerFactory;
 
 public class ClientUtils {
   private static final Logger log = LoggerFactory.getLogger(ClientUtils.class);
+
+  private static final int SLEEP_REFRESH_UTXOS_TESTNET = 20000;
+  private static final int SLEEP_REFRESH_UTXOS_MAINNET = 10000;
+
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   public static Integer findTxOutputIndex(
@@ -125,5 +130,17 @@ public class ClientUtils {
 
   public static String utxoToKey(String utxoHash, int utxoIndex) {
     return utxoHash + ':' + utxoIndex;
+  }
+
+  public static void sleepRefreshUtxos(NetworkParameters params) {
+    if (log.isDebugEnabled()) {
+      log.debug("Refreshing utxos...");
+    }
+    boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
+    int sleepDelay = isTestnet ? SLEEP_REFRESH_UTXOS_TESTNET : SLEEP_REFRESH_UTXOS_MAINNET;
+    try {
+      Thread.sleep(sleepDelay);
+    } catch (InterruptedException e) {
+    }
   }
 }

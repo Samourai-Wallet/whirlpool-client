@@ -20,6 +20,7 @@ import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.MixOrchestratorState;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
@@ -361,7 +362,7 @@ public class WhirlpoolWallet {
     config.getPushTxService().pushTx(tx0.getTx());
 
     // refresh utxos
-    config.getSamouraiApi().refreshUtxos();
+    ClientUtils.sleepRefreshUtxos(config.getNetworkParameters());
     clearCache(WhirlpoolAccount.DEPOSIT);
     clearCache(WhirlpoolAccount.PREMIX);
     return tx0;

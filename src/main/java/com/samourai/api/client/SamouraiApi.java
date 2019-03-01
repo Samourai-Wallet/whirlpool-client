@@ -17,7 +17,10 @@ import org.slf4j.LoggerFactory;
 public class SamouraiApi extends AbstractPushTxService {
   private Logger log = LoggerFactory.getLogger(SamouraiApi.class);
 
-  private static final String URL_BACKEND = "https://api.samouraiwallet.com/test";
+  // samourai backend urls
+  private static final String URL_BACKEND_TESTNET = "https://api.samouraiwallet.com/test";
+  private static final String URL_BACKEND_MAINNET = "https://api.samouraiwallet.com";
+
   private static final String URL_UNSPENT = "/v2/unspent?active=";
   private static final String URL_MULTIADDR = "/v2/multiaddr?active=";
   private static final String URL_INIT_BIP84 = "/v2/xpub";
@@ -25,16 +28,21 @@ public class SamouraiApi extends AbstractPushTxService {
   private static final String URL_PUSHTX = "/v2/pushtx/";
   private static final int MAX_FEE_PER_BYTE = 500;
   private static final int FAILOVER_FEE_PER_BYTE = 400;
-  private static final int SLEEP_REFRESH_UTXOS = 15000;
 
   private IHttpClient httpClient;
+  private String urlBackend;
 
-  public SamouraiApi(IHttpClient httpClient) {
+  public SamouraiApi(IHttpClient httpClient, boolean testnet) {
+    this(httpClient, testnet ? URL_BACKEND_TESTNET : URL_BACKEND_MAINNET);
+  }
+
+  public SamouraiApi(IHttpClient httpClient, String urlBackend) {
     this.httpClient = httpClient;
+    this.urlBackend = urlBackend;
   }
 
   public List<UnspentResponse.UnspentOutput> fetchUtxos(String zpub) throws Exception {
-    String url = URL_BACKEND + URL_UNSPENT + zpub;
+    String url = urlBackend + URL_UNSPENT + zpub;
     if (log.isDebugEnabled()) {
       log.debug("fetchUtxos: " + url);
     }
@@ -48,7 +56,7 @@ public class SamouraiApi extends AbstractPushTxService {
   }
 
   public List<MultiAddrResponse.Address> fetchAddresses(String zpub) throws Exception {
-    String url = URL_BACKEND + URL_MULTIADDR + zpub;
+    String url = urlBackend + URL_MULTIADDR + zpub;
     if (log.isDebugEnabled()) {
       log.debug("fetchAddress: " + url);
     }
@@ -80,7 +88,7 @@ public class SamouraiApi extends AbstractPushTxService {
   }
 
   public void initBip84(String zpub) throws Exception {
-    String url = URL_BACKEND + URL_INIT_BIP84;
+    String url = urlBackend + URL_INIT_BIP84;
     if (log.isDebugEnabled()) {
       log.debug("initBip84: zpub=" + zpub);
     }
@@ -100,7 +108,7 @@ public class SamouraiApi extends AbstractPushTxService {
   }
 
   private int fetchFees(boolean retry) throws Exception {
-    String url = URL_BACKEND + URL_FEES;
+    String url = urlBackend + URL_FEES;
     int fees2 = 0;
     try {
       Map feesResponse = httpClient.parseJson(url, Map.class);
@@ -117,13 +125,6 @@ public class SamouraiApi extends AbstractPushTxService {
     return Math.min(fees2, MAX_FEE_PER_BYTE);
   }
 
-  public void refreshUtxos() throws Exception {
-    if (log.isDebugEnabled()) {
-      log.debug("Refreshing utxos...");
-    }
-    Thread.sleep(SamouraiApi.SLEEP_REFRESH_UTXOS);
-  }
-
   @Override
   public void pushTx(String txHex) throws Exception {
     if (log.isDebugEnabled()) {
@@ -131,7 +132,7 @@ public class SamouraiApi extends AbstractPushTxService {
     } else {
       log.info("pushTx tx..." + txHex);
     }
-    String url = URL_BACKEND + URL_PUSHTX;
+    String url = urlBackend + URL_PUSHTX;
     Map<String, String> postBody = new HashMap<String, String>();
     postBody.put("tx", txHex);
     try {
