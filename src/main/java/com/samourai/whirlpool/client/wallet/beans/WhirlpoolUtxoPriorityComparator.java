@@ -7,7 +7,7 @@ public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo
   @Override
   public int compare(WhirlpoolUtxo o1, WhirlpoolUtxo o2) {
     // when same priority: last activity first
-    if (o1.getPriority() == o2.getPriority()) {
+    if (o1.getUtxoConfig().getPriority() == o2.getUtxoConfig().getPriority()) {
       if (o1.getLastActivity() != null && o2.getLastActivity() == null) {
         return -1;
       }
@@ -21,6 +21,6 @@ public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo
     }
 
     // reversed sort: highest priority first
-    return o2.getPriority() - o1.getPriority();
+    return o2.getUtxoConfig().getPriority() - o1.getUtxoConfig().getPriority();
   }
 }

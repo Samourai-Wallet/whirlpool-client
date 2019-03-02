@@ -35,7 +35,7 @@ public class AutoMixOrchestrator extends AbstractOrchestrator {
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
     try {
-      if (whirlpoolUtxo.getPool() != null
+      if (whirlpoolUtxo.getUtxoConfig().getPool() != null
           && WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())
           && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())) {
 

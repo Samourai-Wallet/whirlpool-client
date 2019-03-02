@@ -2,7 +2,6 @@ package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.whirlpool.client.exception.NotifiableException;
-import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 
 public class WhirlpoolUtxo {
   private static final int MIX_TARGET_DEFAULT = 1;
@@ -13,13 +12,11 @@ public class WhirlpoolUtxo {
   private WhirlpoolUtxoStatus status;
   private Integer progressPercent;
   private String progressLabel;
-  private Pool pool;
-  private int priority;
-  private int mixsTarget;
   private int mixsDone;
   private String message;
   private String error;
   private Long lastActivity;
+  private WhirlpoolUtxoConfig utxoConfig;
 
   public WhirlpoolUtxo(UnspentOutput utxo, WhirlpoolAccount account, WhirlpoolUtxoStatus status) {
     this.utxo = utxo;
@@ -27,13 +24,11 @@ public class WhirlpoolUtxo {
     this.status = status;
     this.progressPercent = null;
     this.progressLabel = null;
-    this.pool = null;
-    this.priority = PRIORITY_DEFAULT;
-    this.mixsTarget = MIX_TARGET_DEFAULT;
     this.mixsDone = 0;
     this.message = null;
     this.error = null;
     this.lastActivity = null;
+    this.utxoConfig = new WhirlpoolUtxoConfig();
   }
 
   public UnspentOutput getUtxo() {
@@ -60,30 +55,6 @@ public class WhirlpoolUtxo {
     this.progressPercent = progressPercent;
     this.progressLabel = progressLabel;
     setLastActivity();
-  }
-
-  public void setPool(Pool pool) {
-    this.pool = pool;
-  }
-
-  public Pool getPool() {
-    return pool;
-  }
-
-  public int getPriority() {
-    return priority;
-  }
-
-  public void setPriority(int priority) {
-    this.priority = priority;
-  }
-
-  public void setMixsTarget(int mixsTarget) {
-    this.mixsTarget = mixsTarget;
-  }
-
-  public int getMixsTarget() {
-    return mixsTarget;
   }
 
   public void incrementMixsDone() {
@@ -153,6 +124,10 @@ public class WhirlpoolUtxo {
     this.lastActivity = System.currentTimeMillis();
   }
 
+  public WhirlpoolUtxoConfig getUtxoConfig() {
+    return utxoConfig;
+  }
+
   @Override
   public String toString() {
     String progressStr = "";
@@ -168,7 +143,9 @@ public class WhirlpoolUtxo {
         + ", status="
         + status
         + (!progressStr.isEmpty() ? " (" + progressStr + ")" : "")
-        + (pool != null ? ", poolId=" + pool.getPoolId() : "")
+        + ", ["
+        + utxoConfig
+        + "]"
         + (hasMessage() ? ", message=" + message : "")
         + (hasError() ? ", error=" + error : "")
         + ", utxo="
