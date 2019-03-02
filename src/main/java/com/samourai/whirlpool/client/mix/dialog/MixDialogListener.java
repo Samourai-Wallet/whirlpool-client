@@ -12,6 +12,9 @@ public interface MixDialogListener {
 
   RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception;
 
+  RegisterInputRequest resumeConfirmedInput(
+      SubscribePoolResponse subscribePoolResponse, String resumeConfirmedMixId) throws Exception;
+
   ConfirmInputRequest confirmInput(
       ConfirmInputMixStatusNotification confirmInputMixStatusNotification) throws Exception;
 

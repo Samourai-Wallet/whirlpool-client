@@ -30,24 +30,36 @@ public class StompTransport {
     stompClient.connect(
         wsUrl,
         connectHeaders,
+
+        // onConnect
         new MessageHandler.Whole<IStompMessage>() {
           @Override
           public void onMessage(IStompMessage connectedHeaders) {
-            String stompUsername = null;
-            if (connectedHeaders != null) { // no way to get connectedHeaders on Android?
-              stompUsername = connectedHeaders.getStompHeader(HEADER_USERNAME);
+            if (!done) {
+              String stompUsername = null;
+              if (connectedHeaders != null) { // no way to get connectedHeaders on Android?
+                stompUsername = connectedHeaders.getStompHeader(HEADER_USERNAME);
+              }
+              if (log.isDebugEnabled()) {
+                log.debug("stompUsername=" + (stompUsername != null ? stompUsername : "null"));
+              }
+              listener.onTransportConnected(stompUsername);
+            } else {
+              log.warn("IStompClient.onConnect: message ignored (done=true)");
             }
-            if (log.isDebugEnabled()) {
-              log.debug("stompUsername=" + (stompUsername != null ? stompUsername : "null"));
-            }
-            listener.onTransportConnected(stompUsername);
           }
         },
+
+        // onDisconnect
         new MessageHandler.Whole<Throwable>() {
           @Override
           public void onMessage(Throwable exception) {
-            done = true;
-            listener.onTransportDisconnected(exception);
+            if (!done) {
+              disconnect();
+              listener.onTransportDisconnected(exception);
+            } else {
+              log.warn("IStompClient.onDisconnect: message ignored (done=true)");
+            }
           }
         });
 

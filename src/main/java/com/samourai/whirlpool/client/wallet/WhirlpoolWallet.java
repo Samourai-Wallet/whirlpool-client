@@ -486,12 +486,13 @@ public class WhirlpoolWallet {
     return getPoolsResponse(clearCache).findPoolById(poolId);
   }
 
-  public Collection<Pool> findPoolsByPreferenceForPremix(long utxoValue) throws Exception {
-    return findPoolsByPreferenceForPremix(utxoValue, false);
+  public Collection<Pool> findPoolsByPreferenceForPremix(long utxoValue, boolean liquidity)
+      throws Exception {
+    return findPoolsByPreferenceForPremix(utxoValue, liquidity, false);
   }
 
-  public Collection<Pool> findPoolsByPreferenceForPremix(long utxoValue, boolean clearCache)
-      throws Exception {
+  public Collection<Pool> findPoolsByPreferenceForPremix(
+      long utxoValue, boolean liquidity, boolean clearCache) throws Exception {
     // clear cache
     if (clearCache) {
       cacheData.clearPools();
@@ -500,7 +501,7 @@ public class WhirlpoolWallet {
     // find eligible pools
     List<Pool> poolsAccepted = new ArrayList<Pool>();
     for (Pool pool : getPoolsByPreference()) {
-      if (pool.checkInputBalance(utxoValue, false)) {
+      if (pool.checkInputBalance(utxoValue, liquidity)) {
         poolsAccepted.add(pool);
       }
     }
@@ -723,16 +724,11 @@ public class WhirlpoolWallet {
     // preserve utxo config
     WhirlpoolUtxoConfig utxoConfig = findUtxoConfig(whirlpoolUtxo.getUtxo());
     if (utxoConfig != null) {
-      // utxo config found
-      if (log.isDebugEnabled()) {
-        log.debug("New utxo detected: " + whirlpoolUtxo + ", utxoConfig=[" + utxoConfig + "]");
-      }
       // set utxo config
       whirlpoolUtxo.getUtxoConfig().set(utxoConfig);
-    } else {
-      if (log.isDebugEnabled()) {
-        log.debug("New utxo detected: " + whirlpoolUtxo + ", utxoConfig=null");
-      }
+    }
+    if (log.isDebugEnabled()) {
+      log.debug("New utxo detected: " + whirlpoolUtxo);
     }
 
     // auto-assign pool when possible
@@ -765,7 +761,8 @@ public class WhirlpoolWallet {
     // find eligible pools for mix
     else if (WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())
         || WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())) {
-      eligiblePools = findPoolsByPreferenceForPremix(whirlpoolUtxo.getUtxo().value);
+      boolean liquidity = WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount());
+      eligiblePools = findPoolsByPreferenceForPremix(whirlpoolUtxo.getUtxo().value, liquidity);
     }
 
     // auto-assign pool by preference when found

@@ -79,16 +79,26 @@ public class MixProcess {
     this.clientCryptoService = clientCryptoService;
   }
 
-  protected RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse)
-      throws Exception {
-    // we may registerInput several times if disconnected
-    if (
-    /*registeredInput ||*/ confirmedInput
-        || confirmedInputResponse
-        || registeredOutput
-        || revealedOutput
-        || signed) {
-      throwProtocolException();
+  protected RegisterInputRequest registerInput(
+      SubscribePoolResponse subscribePoolResponse, String resumeConfirmedMixId) throws Exception {
+
+    if (resumeConfirmedMixId != null) {
+      // resuming an already confirmed input
+      if (
+      /*registeredInput || confirmedInput
+      || confirmedInputResponse ||*/ registeredOutput || revealedOutput || signed) {
+        throwProtocolException();
+      }
+    } else {
+      // we may registerInput several times if disconnected
+      if (
+      /*registeredInput ||*/ confirmedInput
+          || confirmedInputResponse
+          || registeredOutput
+          || revealedOutput
+          || signed) {
+        throwProtocolException();
+      }
     }
 
     // check denomination
@@ -132,7 +142,8 @@ public class MixProcess {
             utxo.getIndex(),
             signature,
             this.liquidity,
-            config.isTestMode());
+            config.isTestMode(),
+            resumeConfirmedMixId);
 
     registeredInput = true;
     return registerInputRequest;

@@ -210,7 +210,7 @@ public class WhirlpoolWalletCacheData {
                     + "... "
                     + fetchedUtxos.size()
                     + " utxos found");
-            ClientUtils.logUtxos(fetchedUtxos);
+            // ClientUtils.logUtxos(fetchedUtxos);
           }
           final Map<String, UnspentOutput> freshUtxos = new HashMap<String, UnspentOutput>();
           for (UnspentOutput utxo : fetchedUtxos) {

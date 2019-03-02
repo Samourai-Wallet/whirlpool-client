@@ -156,8 +156,19 @@ public class MixClient {
       @Override
       public RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse)
           throws Exception {
-        RegisterInputRequest registerInputRequest = mixProcess.registerInput(subscribePoolResponse);
+        RegisterInputRequest registerInputRequest =
+            mixProcess.registerInput(subscribePoolResponse, null);
         listenerProgress(MixStep.REGISTERED_INPUT);
+        return registerInputRequest;
+      }
+
+      @Override
+      public RegisterInputRequest resumeConfirmedInput(
+          SubscribePoolResponse subscribePoolResponse, String resumeConfirmedMixId)
+          throws Exception {
+        RegisterInputRequest registerInputRequest =
+            mixProcess.registerInput(subscribePoolResponse, resumeConfirmedMixId);
+        listenerProgress(MixStep.CONFIRMING_INPUT);
         return registerInputRequest;
       }
 

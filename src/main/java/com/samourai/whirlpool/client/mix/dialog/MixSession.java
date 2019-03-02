@@ -24,6 +24,7 @@ public class MixSession {
   private WhirlpoolClientConfig config;
   private String poolId;
   private StompTransport transport;
+  private String logPrefix;
 
   // connect data
   private Long connectBeginTime;
@@ -41,12 +42,13 @@ public class MixSession {
     this.whirlpoolProtocol = whirlpoolProtocol;
     this.config = config;
     this.poolId = poolId;
-    this.transport = new StompTransport(config.getStompClient(), computeTransportListener());
+    this.transport = null;
+    this.logPrefix = null;
     resetDialog();
   }
 
   private void resetDialog() {
-    this.dialog = new MixDialog(listener, transport, config);
+    this.dialog = new MixDialog(listener, this, config);
   }
 
   public synchronized void connect() {
@@ -59,14 +61,20 @@ public class MixSession {
       log.debug("connecting to server: " + wsUrl);
     }
 
-    // connect
+    // connect with a new transport
     Map<String, String> connectHeaders = computeStompHeaders(null);
+    transport = new StompTransport(config.getStompClient(), computeTransportListener());
+    if (logPrefix != null) {
+      transport.setLogPrefix(logPrefix);
+    }
     transport.connect(wsUrl, connectHeaders);
   }
 
   public void setLogPrefix(String logPrefix) {
     dialog.setLogPrefix(logPrefix);
-    transport.setLogPrefix(logPrefix);
+    if (transport != null) {
+      transport.setLogPrefix(logPrefix);
+    }
     log = ClientUtils.prefixLogger(log, logPrefix);
   }
 
@@ -87,12 +95,22 @@ public class MixSession {
                 // 1) input not registered yet => should be a SubscribePoolResponse
                 subscribePoolResponse = (SubscribePoolResponse) payload;
 
-                // REGISTER_INPUT
-                try {
-                  registerInput(subscribePoolResponse);
-                } catch (Exception e) {
-                  log.error("Unable to register input", e);
-                  listener.exitOnProtocolError();
+                if (!dialog.gotConfirmInputResponse()) {
+                  // REGISTER_INPUT
+                  try {
+                    registerInput(subscribePoolResponse);
+                  } catch (Exception e) {
+                    log.error("Unable to register input", e);
+                    listener.exitOnProtocolError();
+                  }
+                } else {
+                  // special case when resuming already confirmed input after being disconnected
+                  try {
+                    resumeConfirmedInput(subscribePoolResponse, dialog.getMixId());
+                  } catch (Exception e) {
+                    log.error("Unable to resume confirmed input", e);
+                    listener.exitOnProtocolError();
+                  }
                 }
               } else {
                 log.error(
@@ -137,6 +155,13 @@ public class MixSession {
     transport.send(WhirlpoolEndpoint.WS_REGISTER_INPUT, registerInputRequest);
   }
 
+  private void resumeConfirmedInput(
+      SubscribePoolResponse subscribePoolResponse, String resumeConfirmedMixId) throws Exception {
+    RegisterInputRequest resumeConfirmedInputRequest =
+        listener.resumeConfirmedInput(subscribePoolResponse, resumeConfirmedMixId);
+    transport.send(WhirlpoolEndpoint.WS_REGISTER_INPUT, resumeConfirmedInputRequest);
+  }
+
   private MixMessage checkMixMessage(Object payload) {
     // should be MixMessage
     Class payloadClass = payload.getClass();
@@ -171,9 +196,19 @@ public class MixSession {
       log.debug("Disconnecting...");
     }
     connectBeginTime = null;
-    transport.disconnect();
+    if (transport != null) {
+      transport.disconnect();
+    }
     if (log.isDebugEnabled()) {
       log.debug("Disconnected.");
+    }
+  }
+
+  public void send(String destination, Object message) {
+    if (transport != null) {
+      transport.send(destination, message);
+    } else {
+      log.warn("send: ignoring (transport = null)");
     }
   }
 
@@ -216,6 +251,8 @@ public class MixSession {
 
       @Override
       public synchronized void onTransportDisconnected(Throwable exception) {
+        // transport cannot be used
+        transport = null;
 
         if (connectBeginTime != null) {
           // we were trying connect
