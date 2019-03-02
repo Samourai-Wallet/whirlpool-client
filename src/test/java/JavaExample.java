@@ -100,12 +100,12 @@ public class JavaExample {
           whirlpoolWallet.findPoolsByPreferenceForTx0(
               whirlpoolUtxo.getUtxo().value, nbOutputsMinForTx0);
 
-      // pool for tx0
-      Pool pool = eligiblePools.iterator().next();
+      // set pool for utxo
+      whirlpoolWallet.setPool(whirlpoolUtxo, "0.5btc");
 
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(whirlpoolUtxo, pool);
+        Tx0 tx0 = whirlpoolWallet.tx0(whirlpoolUtxo);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed

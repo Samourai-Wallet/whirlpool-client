@@ -229,16 +229,15 @@ public class WhirlpoolWallet {
         findTx0SpendFrom(
             nbOutputsMin,
             poolsByPreference); // throws UnconfirmedUtxoException, EmptyWalletException
-    return tx0(spendFrom, spendFrom.getPool());
+    return tx0(spendFrom);
   }
 
-  public Tx0 tx0(WhirlpoolUtxo whirlpoolUtxoSpendFrom, Pool pool) throws Exception {
+  public Tx0 tx0(WhirlpoolUtxo whirlpoolUtxoSpendFrom) throws Exception {
     int feeSatPerByte = getFeeSatPerByte();
-    return tx0(whirlpoolUtxoSpendFrom, pool, feeSatPerByte, config.getTx0MaxOutputs());
+    return tx0(whirlpoolUtxoSpendFrom, feeSatPerByte, config.getTx0MaxOutputs());
   }
 
-  public Tx0 tx0(
-      WhirlpoolUtxo whirlpoolUtxoSpendFrom, Pool pool, int feeSatPerByte, Integer maxOutputs)
+  public Tx0 tx0(WhirlpoolUtxo whirlpoolUtxoSpendFrom, int feeSatPerByte, Integer maxOutputs)
       throws Exception {
 
     // check status
@@ -249,6 +248,7 @@ public class WhirlpoolWallet {
     }
 
     // check pool
+    Pool pool = whirlpoolUtxoSpendFrom.getPool();
     if (pool == null) {
       whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, 0);
       whirlpoolUtxoSpendFrom.setError("Tx0 failed: no pool set");
@@ -403,6 +403,25 @@ public class WhirlpoolWallet {
 
     // reset utxos
     clearCache();
+  }
+
+  public void setPool(WhirlpoolUtxo whirlpoolUtxo, String poolId) throws Exception {
+    Pool pool = null;
+    if (poolId != null) {
+      pool = findPoolById(poolId);
+      if (pool == null) {
+        throw new NotifiableException("Pool not found: " + poolId);
+      }
+    }
+    whirlpoolUtxo.setPool(pool);
+  }
+
+  public void setMixsTarget(WhirlpoolUtxo whirlpoolUtxo, int mixsTarget)
+      throws NotifiableException {
+    if (mixsTarget < 0) {
+      throw new NotifiableException("Invalid mixsTarget: " + mixsTarget);
+    }
+    whirlpoolUtxo.setMixsTarget(mixsTarget);
   }
 
   public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
