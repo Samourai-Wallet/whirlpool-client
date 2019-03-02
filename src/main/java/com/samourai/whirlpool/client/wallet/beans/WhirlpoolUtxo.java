@@ -12,7 +12,6 @@ public class WhirlpoolUtxo {
   private WhirlpoolUtxoStatus status;
   private Integer progressPercent;
   private String progressLabel;
-  private int mixsDone;
   private String message;
   private String error;
   private Long lastActivity;
@@ -24,7 +23,6 @@ public class WhirlpoolUtxo {
     this.status = status;
     this.progressPercent = null;
     this.progressLabel = null;
-    this.mixsDone = 0;
     this.message = null;
     this.error = null;
     this.lastActivity = null;
@@ -55,14 +53,6 @@ public class WhirlpoolUtxo {
     this.progressPercent = progressPercent;
     this.progressLabel = progressLabel;
     setLastActivity();
-  }
-
-  public void incrementMixsDone() {
-    this.mixsDone++;
-  }
-
-  public int getMixsDone() {
-    return mixsDone;
   }
 
   public void setMessage(String message) {

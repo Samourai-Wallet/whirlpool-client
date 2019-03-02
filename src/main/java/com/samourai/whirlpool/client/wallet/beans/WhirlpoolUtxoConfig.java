@@ -9,6 +9,7 @@ public class WhirlpoolUtxoConfig {
   private Pool pool;
   private int mixsTarget;
   private int priority;
+  private int mixsDone;
 
   public WhirlpoolUtxoConfig() {
     this(null, MIXS_TARGET_DEFAULT, PRIORITY_DEFAULT);
@@ -18,6 +19,20 @@ public class WhirlpoolUtxoConfig {
     this.pool = pool;
     this.mixsTarget = mixsTarget;
     this.priority = priority;
+    this.mixsDone = 0;
+  }
+
+  public void set(WhirlpoolUtxoConfig copy) {
+    this.pool = copy.pool;
+    this.mixsTarget = copy.mixsTarget;
+    this.priority = copy.priority;
+    this.mixsDone = copy.mixsDone;
+  }
+
+  public WhirlpoolUtxoConfig copy() {
+    WhirlpoolUtxoConfig copy = new WhirlpoolUtxoConfig();
+    copy.set(this);
+    return copy;
   }
 
   public Pool getPool() {
@@ -44,9 +59,18 @@ public class WhirlpoolUtxoConfig {
     this.priority = priority;
   }
 
+  public int getMixsDone() {
+    return mixsDone;
+  }
+
+  public void incrementMixsDone() {
+    this.mixsDone++;
+  }
+
   @Override
   public String toString() {
-    return (pool != null ? "poolId=" + pool.getPoolId() : "")
+    return "poolId="
+        + (pool != null ? pool.getPoolId() : "null")
         + ", mixsTarget="
         + mixsTarget
         + ", priority="
