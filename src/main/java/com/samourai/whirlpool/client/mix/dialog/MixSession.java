@@ -48,7 +48,11 @@ public class MixSession {
   }
 
   private void resetDialog() {
+    if (this.dialog != null) {
+      this.dialog.stop();
+    }
     this.dialog = new MixDialog(listener, this, config);
+    listener.onResetMix();
   }
 
   public synchronized void connect() {
@@ -95,22 +99,12 @@ public class MixSession {
                 // 1) input not registered yet => should be a SubscribePoolResponse
                 subscribePoolResponse = (SubscribePoolResponse) payload;
 
-                if (!dialog.gotConfirmInputResponse()) {
-                  // REGISTER_INPUT
-                  try {
-                    registerInput(subscribePoolResponse);
-                  } catch (Exception e) {
-                    log.error("Unable to register input", e);
-                    listener.exitOnProtocolError();
-                  }
-                } else {
-                  // special case when resuming already confirmed input after being disconnected
-                  try {
-                    resumeConfirmedInput(subscribePoolResponse, dialog.getMixId());
-                  } catch (Exception e) {
-                    log.error("Unable to resume confirmed input", e);
-                    listener.exitOnProtocolError();
-                  }
+                // REGISTER_INPUT
+                try {
+                  registerInput(subscribePoolResponse);
+                } catch (Exception e) {
+                  log.error("Unable to register input", e);
+                  listener.exitOnProtocolError();
                 }
               } else {
                 log.error(
@@ -155,13 +149,6 @@ public class MixSession {
     transport.send(WhirlpoolEndpoint.WS_REGISTER_INPUT, registerInputRequest);
   }
 
-  private void resumeConfirmedInput(
-      SubscribePoolResponse subscribePoolResponse, String resumeConfirmedMixId) throws Exception {
-    RegisterInputRequest resumeConfirmedInputRequest =
-        listener.resumeConfirmedInput(subscribePoolResponse, resumeConfirmedMixId);
-    transport.send(WhirlpoolEndpoint.WS_REGISTER_INPUT, resumeConfirmedInputRequest);
-  }
-
   private MixMessage checkMixMessage(Object payload) {
     // should be MixMessage
     Class payloadClass = payload.getClass();
@@ -185,7 +172,6 @@ public class MixSession {
         log.debug("new mixId detected: " + mixMessage.mixId);
       }
       resetDialog();
-      listener.onResetMix();
     }
 
     return (MixMessage) payload;
@@ -275,14 +261,8 @@ public class MixSession {
           }
         } else {
           // we just got disconnected
-          if (dialog.gotConfirmInputResponse()) {
-            log.error(" ! connexion lost, reconnecting for resuming joined mix...");
-            // keep current dialog
-          } else {
-            log.error(" ! connexion lost, reconnecting for a new mix...");
-            dialog = null;
-            listener.onResetMix();
-          }
+          log.error(" ! connexion lost, reconnecting for a new mix...");
+          resetDialog();
         }
 
         // reconnect

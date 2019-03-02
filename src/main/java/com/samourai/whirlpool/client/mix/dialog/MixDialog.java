@@ -116,6 +116,10 @@ public class MixDialog {
     done = true;
   }
 
+  public void stop() {
+    this.done = true;
+  }
+
   private void onMixStatusNotificationChange(MixStatusNotification notification) throws Exception {
 
     // ignore duplicate CONFIRM_INPUT: we may try to confirm for several mixes before joining
