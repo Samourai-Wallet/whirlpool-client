@@ -10,16 +10,24 @@ public class NotifiableException extends Exception {
 
   private int status;
 
+  public NotifiableException(String message, Exception cause) {
+    this(message, cause, STATUS_DEFAULT);
+  }
+
   public NotifiableException(String message) {
-    this(message, STATUS_DEFAULT);
+    this(message, null, STATUS_DEFAULT);
   }
 
   public NotifiableException(HttpStatus status) {
-    this(status.getReasonPhrase(), status.getStatusCode());
+    this(status.getReasonPhrase(), null, status.getStatusCode());
   }
 
-  public NotifiableException(String message, int status) {
-    super(message);
+  public NotifiableException(HttpStatus status, Exception cause) {
+    this(status.getReasonPhrase(), cause, status.getStatusCode());
+  }
+
+  public NotifiableException(String message, Exception cause, int status) {
+    super(message, cause);
     this.status = status;
   }
 
@@ -32,6 +40,6 @@ public class NotifiableException extends Exception {
       return (NotifiableException) e;
     }
     log.warn("Exception obfuscated to user", e);
-    return new NotifiableException("Error");
+    return new NotifiableException("Technical error logged, check logs for details");
   }
 }
