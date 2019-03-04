@@ -292,7 +292,8 @@ public class WhirlpoolWalletCacheData {
                 if (!currentUtxos.containsKey(key)) {
                   // add missing
                   WhirlpoolUtxo whirlpoolUtxo =
-                      new WhirlpoolUtxo(utxo, account, WhirlpoolUtxoStatus.READY);
+                      new WhirlpoolUtxo(
+                          utxo, account, WhirlpoolUtxoStatus.READY, config.getMixsTarget());
                   if (!isFirstFetch) {
                     // set lastActivity when utxo is detected but ignore on first fetch
                     whirlpoolUtxo.setLastActivity();

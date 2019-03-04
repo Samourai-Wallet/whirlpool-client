@@ -17,7 +17,8 @@ public class WhirlpoolUtxo {
   private Long lastActivity;
   private WhirlpoolUtxoConfig utxoConfig;
 
-  public WhirlpoolUtxo(UnspentOutput utxo, WhirlpoolAccount account, WhirlpoolUtxoStatus status) {
+  public WhirlpoolUtxo(
+      UnspentOutput utxo, WhirlpoolAccount account, WhirlpoolUtxoStatus status, int mixsTarget) {
     this.utxo = utxo;
     this.account = account;
     this.status = status;
@@ -26,7 +27,7 @@ public class WhirlpoolUtxo {
     this.message = null;
     this.error = null;
     this.lastActivity = null;
-    this.utxoConfig = new WhirlpoolUtxoConfig();
+    this.utxoConfig = new WhirlpoolUtxoConfig(mixsTarget);
   }
 
   public UnspentOutput getUtxo() {

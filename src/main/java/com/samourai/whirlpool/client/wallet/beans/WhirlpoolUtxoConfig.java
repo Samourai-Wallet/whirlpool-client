@@ -3,7 +3,6 @@ package com.samourai.whirlpool.client.wallet.beans;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 
 public class WhirlpoolUtxoConfig {
-  private static final int MIXS_TARGET_DEFAULT = 1;
   private static final int PRIORITY_DEFAULT = 5;
 
   private Pool pool;
@@ -11,8 +10,8 @@ public class WhirlpoolUtxoConfig {
   private int priority;
   private int mixsDone;
 
-  public WhirlpoolUtxoConfig() {
-    this(null, MIXS_TARGET_DEFAULT, PRIORITY_DEFAULT);
+  public WhirlpoolUtxoConfig(int mixsTarget) {
+    this(null, mixsTarget, PRIORITY_DEFAULT);
   }
 
   public WhirlpoolUtxoConfig(Pool pool, int mixsTarget, int priority) {
@@ -30,7 +29,7 @@ public class WhirlpoolUtxoConfig {
   }
 
   public WhirlpoolUtxoConfig copy() {
-    WhirlpoolUtxoConfig copy = new WhirlpoolUtxoConfig();
+    WhirlpoolUtxoConfig copy = new WhirlpoolUtxoConfig(this.mixsTarget);
     copy.set(this);
     return copy;
   }

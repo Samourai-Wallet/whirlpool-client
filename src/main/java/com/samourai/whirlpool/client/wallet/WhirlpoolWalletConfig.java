@@ -23,6 +23,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int tx0Delay;
   private Integer tx0MaxOutputs;
   private int refreshUtxoDelay;
+  private int mixsTarget;
 
   public WhirlpoolWalletConfig(
       IHttpClient httpClient, IStompClient stompClient, WhirlpoolServer whirlpoolServer) {
@@ -60,6 +61,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.tx0Delay = 30;
     this.tx0MaxOutputs = null; // spend whole utxo when possible
     this.refreshUtxoDelay = 60; // 1 minute
+    this.mixsTarget = 1;
   }
 
   public String getFeeXpub() {
@@ -140,5 +142,13 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setRefreshUtxoDelay(int refreshUtxoDelay) {
     this.refreshUtxoDelay = refreshUtxoDelay;
+  }
+
+  public int getMixsTarget() {
+    return mixsTarget;
+  }
+
+  public void setMixsTarget(int mixsTarget) {
+    this.mixsTarget = mixsTarget;
   }
 }
