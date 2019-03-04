@@ -181,11 +181,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
         if (whirlpoolUtxo.getUtxo().confirmations >= WhirlpoolWallet.MIX_MIN_CONFIRMATIONS) {
           // found
           return whirlpoolUtxo;
-        } else {
-          whirlpoolUtxo.setMessage("Queued: unconfirmed");
         }
-      } else {
-        whirlpoolUtxo.setMessage("Queued: another utxo from same tx0 is mixing");
       }
     }
     return null;

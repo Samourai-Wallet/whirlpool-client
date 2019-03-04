@@ -6,6 +6,16 @@ import java8.lang.Longs;
 public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo> {
   @Override
   public int compare(WhirlpoolUtxo o1, WhirlpoolUtxo o2) {
+    // premix before postmix
+    if (WhirlpoolAccount.PREMIX.equals(o1.getAccount())
+        && WhirlpoolAccount.POSTMIX.equals(o2.getAccount())) {
+      return -1;
+    }
+    if (WhirlpoolAccount.POSTMIX.equals(o1.getAccount())
+        && WhirlpoolAccount.PREMIX.equals(o2.getAccount())) {
+      return 1;
+    }
+
     // when same priority: last activity first
     if (o1.getUtxoConfig().getPriority() == o2.getUtxoConfig().getPriority()) {
       if (o1.getLastActivity() != null && o2.getLastActivity() == null) {
