@@ -53,7 +53,7 @@ public class Tx0Service {
     long txFeesEstimate =
         feeUtil.estimatedFeeSegwit(
             0, 0, pool.getMixAnonymitySet(), pool.getMixAnonymitySet(), 0, feeSatPerByte);
-    long minerFeePerMustmix = txFeesEstimate / pool.getMixAnonymitySet();
+    long minerFeePerMustmix = txFeesEstimate / 3; // TODO quick fix for insuffucient fee when mixing POSTMIX pool.getMixAnonymitySet();
     long premixValue = pool.getDenomination() + minerFeePerMustmix;
 
     // make sure destinationValue is acceptable for pool
