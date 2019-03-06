@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.orchestrator;
 
+import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
@@ -45,6 +46,19 @@ public class MixOrchestrator extends AbstractOrchestrator {
   protected void resetOrchestrator() {
     super.resetOrchestrator();
     this.mixing = new HashMap<String, Mixing>();
+  }
+
+  @Override
+  public synchronized void stop() {
+    super.stop();
+    stopMixingClients();
+  }
+
+  private synchronized void stopMixingClients() {
+    for (Mixing mixing : mixing.values()) {
+      mixing.getWhirlpoolClient().exit();
+    }
+    mixing.clear();
   }
 
   @Override
@@ -219,18 +233,18 @@ public class MixOrchestrator extends AbstractOrchestrator {
       return;
     }
 
-    final String key = whirlpoolUtxo.getUtxo().toKey();
-    if (mixing.containsKey(key)) {
-      // utxo already mixing, cannot stop
-      throw new NotifiableException("Cannot stop mixing utxo: currently mixing");
-    }
-
     // stop mixing
-    mixing.remove(key);
+    final String key = whirlpoolUtxo.getUtxo().toKey();
+    Mixing myMixing = mixing.get(key);
+    if (myMixing != null) {
+      // already mixing
+      myMixing.getWhirlpoolClient().exit();
+    }
+    removeMixing(key);
     whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.READY);
   }
 
-  private void mix(final WhirlpoolUtxo whirlpoolUtxo) throws Exception {
+  private synchronized void mix(final WhirlpoolUtxo whirlpoolUtxo) throws Exception {
     final String key = whirlpoolUtxo.getUtxo().toKey();
     WhirlpoolClientListener utxoListener =
         new WhirlpoolClientListener() {
@@ -242,7 +256,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
           @Override
           public void fail(int currentMix, int nbMixs) {
-            mixing.remove(key);
+            removeMixing(key);
 
             // idle => notify orchestrator
             notifyOrchestrator();
@@ -261,7 +275,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
           public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
             whirlpoolWallet.clearCache(whirlpoolUtxo.getAccount());
             whirlpoolWallet.clearCache(WhirlpoolAccount.POSTMIX);
-            mixing.remove(key);
+            removeMixing(key);
 
             // idle => notify orchestrator
             notifyOrchestrator();
@@ -269,9 +283,12 @@ public class MixOrchestrator extends AbstractOrchestrator {
         };
 
     // start mix
-    WhirlpoolClientListener listener = whirlpoolWallet.mix(whirlpoolUtxo, utxoListener);
+    WhirlpoolClient whirlpoolClient = whirlpoolWallet.mix(whirlpoolUtxo, utxoListener);
+    mixing.put(key, new Mixing(whirlpoolUtxo, utxoListener, whirlpoolClient));
+  }
 
-    mixing.put(key, new Mixing(whirlpoolUtxo, listener));
+  private synchronized void removeMixing(String key) {
+    mixing.remove(key);
   }
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
@@ -306,10 +323,13 @@ public class MixOrchestrator extends AbstractOrchestrator {
   private static class Mixing {
     private WhirlpoolUtxo utxo;
     private WhirlpoolClientListener listener;
+    private WhirlpoolClient whirlpoolClient;
 
-    public Mixing(WhirlpoolUtxo utxo, WhirlpoolClientListener listener) {
+    public Mixing(
+        WhirlpoolUtxo utxo, WhirlpoolClientListener listener, WhirlpoolClient whirlpoolClient) {
       this.utxo = utxo;
       this.listener = listener;
+      this.whirlpoolClient = whirlpoolClient;
     }
 
     public WhirlpoolUtxo getUtxo() {
@@ -318,6 +338,10 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
     public WhirlpoolClientListener getListener() {
       return listener;
+    }
+
+    public WhirlpoolClient getWhirlpoolClient() {
+      return whirlpoolClient;
     }
   }
 }

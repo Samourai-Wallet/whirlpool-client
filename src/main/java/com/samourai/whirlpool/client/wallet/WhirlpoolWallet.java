@@ -536,11 +536,11 @@ public class WhirlpoolWallet {
     }
   }
 
-  public WhirlpoolClientListener mix(WhirlpoolUtxo whirlpoolUtxo) throws UnconfirmedUtxoException {
+  public WhirlpoolClient mix(WhirlpoolUtxo whirlpoolUtxo) throws UnconfirmedUtxoException {
     return mix(whirlpoolUtxo, null);
   }
 
-  public WhirlpoolClientListener mix(
+  public WhirlpoolClient mix(
       final WhirlpoolUtxo whirlpoolUtxo, WhirlpoolClientListener notifyListener)
       throws UnconfirmedUtxoException {
 
@@ -607,17 +607,13 @@ public class WhirlpoolWallet {
         };
 
     int nbMixs = 1;
-    try {
-      // start mixing (whirlpoolClient will start a new thread)
-      MixParams mixParams = computeMixParams(whirlpoolUtxo);
-      config.newClient().whirlpool(mixParams, nbMixs, listener);
-    } catch (Exception e) {
-      whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_FAILED);
-      whirlpoolUtxo.setError(e);
-      log.error(" • ERROR connecting client: " + e.getMessage(), e);
-      listener.fail(1, nbMixs);
-    }
-    return listener;
+
+    // start mixing (whirlpoolClient will start a new thread)
+    MixParams mixParams = computeMixParams(whirlpoolUtxo);
+    final WhirlpoolClient mixClient = config.newClient();
+    mixClient.whirlpool(mixParams, nbMixs, listener);
+
+    return mixClient;
   }
 
   private IPremixHandler computePremixHandler(WhirlpoolUtxo whirlpoolUtxo) {
