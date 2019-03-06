@@ -78,6 +78,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
       pool.setMustMixBalanceMin(poolInfo.mustMixBalanceMin);
       pool.setMustMixBalanceMax(poolInfo.mustMixBalanceMax);
       pool.setMinAnonymitySet(poolInfo.minAnonymitySet);
+      pool.setMinMustMix(poolInfo.minMustMix);
       pool.setNbRegistered(poolInfo.nbRegistered);
 
       pool.setMixAnonymitySet(poolInfo.mixAnonymitySet);

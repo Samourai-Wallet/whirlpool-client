@@ -53,8 +53,7 @@ public class Tx0Service {
     long txFeesEstimate =
         feeUtil.estimatedFeeSegwit(
             0, 0, pool.getMixAnonymitySet(), pool.getMixAnonymitySet(), 0, feeSatPerByte);
-    long minerFeePerMustmix =
-        txFeesEstimate / 3; // TODO quick fix for insuffucient fee when mixing POSTMIX
+    long minerFeePerMustmix = txFeesEstimate / pool.getMinMustMix();
     // pool.getMixAnonymitySet();
     long premixValue = pool.getDenomination() + minerFeePerMustmix;
 
@@ -143,10 +142,10 @@ public class Tx0Service {
     return changeValue;
   }
 
-  public long computeSpendFromBalanceMin(
-      Pool pool, long feeValue, int feeSatPerByte, int nbPremix) {
+  public long computeSpendFromBalanceMin(Pool pool, int feeSatPerByte, int nbPremix) {
     long premixValue = computePremixValue(pool, feeSatPerByte);
     long tx0MinerFee = computeTx0MinerFee(nbPremix, feeSatPerByte, null);
+    long feeValue = pool.getFeeValue();
     long spendValue = computeTx0SpendValue(premixValue, nbPremix, feeValue, tx0MinerFee);
     return spendValue;
   }
@@ -435,12 +434,29 @@ public class Tx0Service {
       int nbOutputsMin, Collection<Pool> poolsByPreference, long utxoValue, int feeSatPerByte) {
     List<Pool> eligiblePools = new LinkedList<Pool>();
     for (Pool pool : poolsByPreference) {
-      long feeValue = pool.getFeeValue();
-      long balanceMin = computeSpendFromBalanceMin(pool, feeValue, feeSatPerByte, nbOutputsMin);
-      if (utxoValue >= balanceMin) {
+      boolean eligible = isTx0Possible(utxoValue, pool, feeSatPerByte, nbOutputsMin);
+      if (eligible) {
         eligiblePools.add(pool);
       }
     }
     return eligiblePools;
+  }
+
+  public boolean isTx0Possible(long utxoValue, Pool pool, int feeSatPerByte, int nbOutputsMin) {
+    long balanceMin = computeSpendFromBalanceMin(pool, feeSatPerByte, nbOutputsMin);
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "isTx0Possible["
+              + pool.getPoolId()
+              + "] spendFromBalanceMin="
+              + balanceMin
+              + " for nbOutputsMin="
+              + nbOutputsMin
+              + ", utxoValue="
+              + utxoValue
+              + ", feeSatPerByte="
+              + feeSatPerByte);
+    }
+    return (utxoValue >= balanceMin);
   }
 }

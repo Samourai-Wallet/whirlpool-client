@@ -55,8 +55,11 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   private synchronized void stopMixingClients() {
-    for (Mixing mixing : mixing.values()) {
-      mixing.getWhirlpoolClient().exit();
+    for (Mixing oneMixing : mixing.values()) {
+      if (log.isDebugEnabled()) {
+        log.debug("Stopping mixing client: " + oneMixing.getUtxo());
+      }
+      oneMixing.getWhirlpoolClient().exit();
     }
     mixing.clear();
   }

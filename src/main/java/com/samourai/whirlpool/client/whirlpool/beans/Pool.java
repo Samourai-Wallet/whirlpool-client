@@ -10,6 +10,7 @@ public class Pool {
   private long mustMixBalanceMin;
   private long mustMixBalanceMax;
   private int minAnonymitySet;
+  private int minMustMix;
   private int nbRegistered;
 
   private int mixAnonymitySet;
@@ -79,6 +80,14 @@ public class Pool {
 
   public void setMinAnonymitySet(int minAnonymitySet) {
     this.minAnonymitySet = minAnonymitySet;
+  }
+
+  public int getMinMustMix() {
+    return minMustMix;
+  }
+
+  public void setMinMustMix(int minMustMix) {
+    this.minMustMix = minMustMix;
   }
 
   public int getNbRegistered() {
