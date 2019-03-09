@@ -13,11 +13,10 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java8.util.function.Function;
 import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
@@ -32,7 +31,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
   private int maxClients;
   private int clientDelay;
 
-  private Map<String, Mixing> mixing;
+  private ConcurrentHashMap<String, Mixing> mixing;
 
   public MixOrchestrator(
       int loopDelay, WhirlpoolWallet whirlpoolWallet, int maxClients, int clientDelay) {
@@ -45,7 +44,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
   @Override
   protected void resetOrchestrator() {
     super.resetOrchestrator();
-    this.mixing = new HashMap<String, Mixing>();
+    this.mixing = new ConcurrentHashMap<String, Mixing>();
   }
 
   @Override
@@ -106,7 +105,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     }
   }
 
-  public boolean findQueuedAndMix() throws Exception {
+  public synchronized boolean findQueuedAndMix() throws Exception {
     // start mixing up to nbIdle utxos
     Collection<WhirlpoolUtxo> whirlpoolUtxos = findToMixByPriority(1);
     if (whirlpoolUtxos.isEmpty()) {
@@ -243,7 +242,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
       // already mixing
       myMixing.getWhirlpoolClient().exit();
     }
-    removeMixing(key);
+    mixing.remove(key);
     whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.READY);
   }
 
@@ -259,7 +258,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
           @Override
           public void fail(int currentMix, int nbMixs) {
-            removeMixing(key);
+            mixing.remove(key);
 
             // idle => notify orchestrator
             notifyOrchestrator();
@@ -278,7 +277,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
           public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
             whirlpoolWallet.clearCache(whirlpoolUtxo.getAccount());
             whirlpoolWallet.clearCache(WhirlpoolAccount.POSTMIX);
-            removeMixing(key);
+            mixing.remove(key);
 
             // idle => notify orchestrator
             notifyOrchestrator();
@@ -288,10 +287,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
     // start mix
     WhirlpoolClient whirlpoolClient = whirlpoolWallet.mix(whirlpoolUtxo, utxoListener);
     mixing.put(key, new Mixing(whirlpoolUtxo, utxoListener, whirlpoolClient));
-  }
-
-  private synchronized void removeMixing(String key) {
-    mixing.remove(key);
   }
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
