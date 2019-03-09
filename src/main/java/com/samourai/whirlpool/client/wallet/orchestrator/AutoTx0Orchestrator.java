@@ -72,7 +72,8 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
     if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())
-        && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())) {
+        && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())
+        && whirlpoolUtxo.getUtxoConfig().getPoolId() != null) {
 
       if (whirlpoolUtxo.getUtxo().confirmations >= WhirlpoolWallet.TX0_MIN_CONFIRMATIONS) {
         log.info(" o AutoTx0: new DEPOSIT utxo detected, checking for tx0: " + whirlpoolUtxo);

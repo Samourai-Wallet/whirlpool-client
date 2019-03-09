@@ -7,11 +7,11 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AutoMixOrchestrator extends AbstractOrchestrator {
-  private final Logger log = LoggerFactory.getLogger(AutoMixOrchestrator.class);
+public class PersistOrchestrator extends AbstractOrchestrator {
+  private final Logger log = LoggerFactory.getLogger(PersistOrchestrator.class);
   private WhirlpoolWallet whirlpoolWallet;
 
-  public AutoMixOrchestrator(int loopDelay, WhirlpoolWallet whirlpoolWallet) {
+  public PersistOrchestrator(int loopDelay, WhirlpoolWallet whirlpoolWallet) {
     super(loopDelay);
     this.whirlpoolWallet = whirlpoolWallet;
   }
@@ -19,16 +19,15 @@ public class AutoMixOrchestrator extends AbstractOrchestrator {
   @Override
   protected void runOrchestrator() {
     try {
-      resumePremix();
+      persist();
     } catch (Exception e) {
       log.error("", e);
     }
   }
 
-  protected void resumePremix() throws Exception {
-    if (log.isDebugEnabled()) {
-      log.debug("Checking for PREMIX utxos ready to mix...");
-    }
+  protected void persist() throws Exception {
+    whirlpoolWallet.getWalletPersistHandler().save();
+
     // rescan premix
     whirlpoolWallet.getUtxosPremix(false);
   }

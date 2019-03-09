@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 
 public class WhirlpoolUtxo {
   private static final int MIX_TARGET_DEFAULT = 1;
@@ -10,24 +11,29 @@ public class WhirlpoolUtxo {
   private UnspentOutput utxo;
   private WhirlpoolAccount account;
   private WhirlpoolUtxoStatus status;
+  private WhirlpoolWallet wallet;
+
   private Integer progressPercent;
   private String progressLabel;
   private String message;
   private String error;
   private Long lastActivity;
-  private WhirlpoolUtxoConfig utxoConfig;
 
   public WhirlpoolUtxo(
-      UnspentOutput utxo, WhirlpoolAccount account, WhirlpoolUtxoStatus status, int mixsTarget) {
+      UnspentOutput utxo,
+      WhirlpoolAccount account,
+      WhirlpoolUtxoStatus status,
+      WhirlpoolWallet wallet) {
     this.utxo = utxo;
     this.account = account;
     this.status = status;
+    this.wallet = wallet;
+
     this.progressPercent = null;
     this.progressLabel = null;
     this.message = null;
     this.error = null;
     this.lastActivity = null;
-    this.utxoConfig = new WhirlpoolUtxoConfig(mixsTarget);
   }
 
   public UnspentOutput getUtxo() {
@@ -116,7 +122,7 @@ public class WhirlpoolUtxo {
   }
 
   public WhirlpoolUtxoConfig getUtxoConfig() {
-    return utxoConfig;
+    return wallet.getUtxoConfig(getUtxo());
   }
 
   @Override
@@ -134,9 +140,6 @@ public class WhirlpoolUtxo {
         + ", status="
         + status
         + (!progressStr.isEmpty() ? " (" + progressStr + ")" : "")
-        + ", ["
-        + utxoConfig
-        + "]"
         + (hasMessage() ? ", message=" + message : "")
         + (hasError() ? ", error=" + error : "")
         + ", utxo="

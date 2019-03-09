@@ -209,7 +209,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
         && !WhirlpoolUtxoStatus.READY.equals(utxoStatus)) {
       throw new NotifiableException("cannot add to mix queue: utxoStatus=" + utxoStatus);
     }
-    if (whirlpoolUtxo.getUtxoConfig().getPool() == null) {
+    if (whirlpoolUtxo.getUtxoConfig().getPoolId() == null) {
       throw new NotifiableException("cannot add to mix queue: no pool set");
     }
     final String key = whirlpoolUtxo.getUtxo().toKey();
@@ -298,7 +298,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
         && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())
         && whirlpoolUtxo.getUtxoConfig().getMixsDone()
             < whirlpoolUtxo.getUtxoConfig().getMixsTarget()
-        && whirlpoolUtxo.getUtxoConfig().getPool() != null) {
+        && whirlpoolUtxo.getUtxoConfig().getPoolId() != null) {
 
       log.info(" o Mix: new POSTMIX utxo detected, adding to mixQueue: " + whirlpoolUtxo);
       try {

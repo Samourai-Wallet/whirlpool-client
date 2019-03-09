@@ -1,9 +1,10 @@
 package com.samourai.wallet.client.indexHandler;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,7 +13,7 @@ public class FileIndexHandler {
 
   private File file;
   private ObjectMapper mapper = new ObjectMapper();
-  private Map<String, Integer> indexes = new HashMap<String, Integer>();
+  private Map<String, Integer> indexes = new ConcurrentHashMap<String, Integer>();
 
   public FileIndexHandler(File file) {
     this.file = file;
@@ -26,18 +27,10 @@ public class FileIndexHandler {
     return indexes.get(key);
   }
 
-  public int get(String key) {
-    return get(key, IIndexHandler.DEFAULT_VALUE);
-  }
-
   public synchronized int getAndIncrement(String key, int defaultValue) {
     int value = get(key, defaultValue);
     set(key, value + 1);
     return value;
-  }
-
-  public synchronized int getAndIncrement(String key) {
-    return getAndIncrement(key, IIndexHandler.DEFAULT_VALUE);
   }
 
   public void set(String key, int value) {
@@ -49,13 +42,12 @@ public class FileIndexHandler {
     return new ItemFileIndexHandler(this, key, defaultValue);
   }
 
-  public ItemFileIndexHandler getIndexHandler(String key) {
-    return getIndexHandler(key, IIndexHandler.DEFAULT_VALUE);
-  }
-
   private void load() {
     try {
-      indexes = mapper.readValue(file, Map.class);
+      indexes.clear();
+      Map<String, Integer> readValue =
+          mapper.readValue(file, new TypeReference<Map<String, Integer>>() {});
+      indexes.putAll(readValue);
     } catch (Exception e) {
       log.error("Unable to read " + file.getAbsolutePath() + ", resetting indexes");
     }

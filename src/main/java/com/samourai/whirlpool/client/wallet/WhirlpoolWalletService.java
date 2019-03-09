@@ -8,12 +8,20 @@ import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletAccount;
+import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WhirlpoolWalletService {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWalletService.class);
+
+  private static final String INDEX_DEPOSIT = "deposit";
+  private static final String INDEX_DEPOSIT_CHANGE = "deposit_change";
+  private static final String INDEX_PREMIX = "premix";
+  private static final String INDEX_PREMIX_CHANGE = "premix_change";
+  private static final String INDEX_POSTMIX = "postmix";
+  private static final String INDEX_POSTMIX_CHANGE = "postmix_change";
 
   private WhirlpoolWalletConfig config;
 
@@ -49,40 +57,19 @@ public class WhirlpoolWalletService {
   }
 
   public WhirlpoolWallet openWallet(
-      HD_Wallet bip84w,
-      IIndexHandler depositIndexHandler,
-      IIndexHandler depositChangeIndexHandler,
-      IIndexHandler premixIndexHandler,
-      IIndexHandler premixChangeIndexHandler,
-      IIndexHandler postmixIndexHandler,
-      IIndexHandler postmixChangeIndexHandler,
-      IIndexHandler feeIndexHandler)
-      throws Exception {
-    return openWallet(
-        bip84w,
-        depositIndexHandler,
-        depositChangeIndexHandler,
-        premixIndexHandler,
-        premixChangeIndexHandler,
-        postmixIndexHandler,
-        postmixChangeIndexHandler,
-        feeIndexHandler,
-        false);
-  }
-
-  public WhirlpoolWallet openWallet(
-      HD_Wallet bip84w,
-      IIndexHandler depositIndexHandler,
-      IIndexHandler depositChangeIndexHandler,
-      IIndexHandler premixIndexHandler,
-      IIndexHandler premixChangeIndexHandler,
-      IIndexHandler postmixIndexHandler,
-      IIndexHandler postmixChangeIndexHandler,
-      IIndexHandler feeIndexHandler,
-      boolean initBip84)
-      throws Exception {
-
+      HD_Wallet bip84w, WhirlpoolWalletPersistHandler walletPersistHandler) throws Exception {
     SamouraiApi samouraiApi = config.getSamouraiApi();
+
+    IIndexHandler depositIndexHandler = walletPersistHandler.getIndexHandler(INDEX_DEPOSIT);
+    IIndexHandler depositChangeIndexHandler =
+        walletPersistHandler.getIndexHandler(INDEX_DEPOSIT_CHANGE);
+    IIndexHandler premixIndexHandler = walletPersistHandler.getIndexHandler(INDEX_PREMIX);
+    IIndexHandler premixChangeIndexHandler =
+        walletPersistHandler.getIndexHandler(INDEX_PREMIX_CHANGE);
+    IIndexHandler postmixIndexHandler = walletPersistHandler.getIndexHandler(INDEX_POSTMIX);
+    IIndexHandler postmixChangeIndexHandler =
+        walletPersistHandler.getIndexHandler(INDEX_POSTMIX_CHANGE);
+    boolean init = !walletPersistHandler.isInitialized();
 
     // deposit, premix & postmix wallets
     Bip84ApiWallet depositWallet =
@@ -92,7 +79,7 @@ public class WhirlpoolWalletService {
             depositIndexHandler,
             depositChangeIndexHandler,
             samouraiApi,
-            initBip84);
+            init);
     Bip84ApiWallet premixWallet =
         new Bip84ApiWallet(
             bip84w,
@@ -100,7 +87,7 @@ public class WhirlpoolWalletService {
             premixIndexHandler,
             premixChangeIndexHandler,
             samouraiApi,
-            initBip84);
+            init);
     Bip84ApiWallet postmixWallet =
         new Bip84ApiWallet(
             bip84w,
@@ -108,12 +95,16 @@ public class WhirlpoolWalletService {
             postmixIndexHandler,
             postmixChangeIndexHandler,
             samouraiApi,
-            initBip84);
-    return openWallet(feeIndexHandler, depositWallet, premixWallet, postmixWallet);
+            init);
+
+    if (init) {
+      walletPersistHandler.setInitialized(true);
+    }
+    return openWallet(walletPersistHandler, depositWallet, premixWallet, postmixWallet);
   }
 
   public WhirlpoolWallet openWallet(
-      IIndexHandler feeIndexHandler,
+      WhirlpoolWalletPersistHandler walletPersistHandler,
       Bip84ApiWallet depositWallet,
       Bip84ApiWallet premixWallet,
       Bip84ApiWallet postmixWallet) {
@@ -123,7 +114,7 @@ public class WhirlpoolWalletService {
             tx0Service,
             bech32Util,
             whirlpoolClient,
-            feeIndexHandler,
+            walletPersistHandler,
             depositWallet,
             premixWallet,
             postmixWallet);

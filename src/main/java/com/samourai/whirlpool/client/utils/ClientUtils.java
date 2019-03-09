@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
 import org.bitcoinj.core.TransactionOutput;
 import org.bitcoinj.core.TransactionWitness;
@@ -142,5 +143,13 @@ public class ClientUtils {
       Thread.sleep(sleepDelay);
     } catch (InterruptedException e) {
     }
+  }
+
+  public static String sha256Hash(String str) {
+    return sha256Hash(str.getBytes());
+  }
+
+  public static String sha256Hash(byte[] bytes) {
+    return Sha256Hash.wrap(Sha256Hash.hash(bytes)).toString();
   }
 }
