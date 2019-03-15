@@ -25,6 +25,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int refreshUtxoDelay;
   private int mixsTarget;
   private int persistDelay;
+  private int persistCleanDelay;
 
   public WhirlpoolWalletConfig(
       IHttpClient httpClient, IStompClient stompClient, WhirlpoolServer whirlpoolServer) {
@@ -61,9 +62,10 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.pushTxService = samouraiApi; // use backend as default push service
     this.tx0Delay = 30;
     this.tx0MaxOutputs = null; // spend whole utxo when possible
-    this.refreshUtxoDelay = 60; // 1 minute
+    this.refreshUtxoDelay = 60; // 1min
     this.mixsTarget = 1;
-    this.persistDelay = 5; // 5s
+    this.persistDelay = 2; // 2s
+    this.persistCleanDelay = 300; // 5min
   }
 
   public String getFeeXpub() {
@@ -160,5 +162,13 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setPersistDelay(int persistDelay) {
     this.persistDelay = persistDelay;
+  }
+
+  public int getPersistCleanDelay() {
+    return persistCleanDelay;
+  }
+
+  public void setPersistCleanDelay(int persistCleanDelay) {
+    this.persistCleanDelay = persistCleanDelay;
   }
 }

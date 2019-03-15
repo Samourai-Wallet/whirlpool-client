@@ -108,7 +108,9 @@ public class WhirlpoolWallet {
     this.premixWallet = premixWallet;
     this.postmixWallet = postmixWallet;
 
-    this.persistOrchestrator = new PersistOrchestrator(config.getPersistDelay() * 1000, this);
+    this.persistOrchestrator =
+        new PersistOrchestrator(
+            config.getPersistDelay() * 1000, this, config.getPersistCleanDelay() * 1000);
     int loopDelay = config.getRefreshUtxoDelay() * 1000;
     this.mixOrchestrator =
         new MixOrchestrator(loopDelay, this, config.getMaxClients(), config.getClientDelay());
@@ -744,10 +746,7 @@ public class WhirlpoolWallet {
 
     // search by txid
     utxoConfig = walletPersistHandler.getUtxoConfig(utxo.tx_hash);
-    if (utxoConfig != null) {
-      return utxoConfig;
-    }
-    return null;
+    return utxoConfig;
   }
 
   public WhirlpoolUtxoConfig getUtxoConfig(UnspentOutput utxo) {

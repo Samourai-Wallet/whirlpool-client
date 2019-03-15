@@ -1,7 +1,9 @@
 package com.samourai.whirlpool.client.wallet.persist;
 
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
+import java.util.Collection;
 
 public interface WhirlpoolWalletPersistHandler {
 
@@ -25,5 +27,7 @@ public interface WhirlpoolWalletPersistHandler {
 
   void setUtxoConfig(String utxoHash, WhirlpoolUtxoConfig value);
 
-  void save();
+  void cleanUtxoConfig(Collection<WhirlpoolUtxo> knownUtxos);
+
+  void save() throws Exception;
 }

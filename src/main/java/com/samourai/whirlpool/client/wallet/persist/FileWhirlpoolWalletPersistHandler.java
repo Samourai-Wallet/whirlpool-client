@@ -1,10 +1,15 @@
 package com.samourai.whirlpool.client.wallet.persist;
 
+import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.indexHandler.FileIndexHandler;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 import java.io.File;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +75,17 @@ public class FileWhirlpoolWalletPersistHandler implements WhirlpoolWalletPersist
   }
 
   @Override
-  public void save() {
+  public void cleanUtxoConfig(Collection<WhirlpoolUtxo> knownUtxos) {
+    Set<String> knownUtxoKeys = new HashSet<String>();
+    for (WhirlpoolUtxo whirlpoolUtxo : knownUtxos) {
+      UnspentOutput utxo = whirlpoolUtxo.getUtxo();
+      knownUtxoKeys.add(computeUtxoConfigKey(utxo.tx_hash, utxo.tx_output_n));
+    }
+    fileUtxoConfigHandler.clean(knownUtxoKeys);
+  }
+
+  @Override
+  public void save() throws Exception {
     fileUtxoConfigHandler.save();
   }
 
@@ -80,5 +95,9 @@ public class FileWhirlpoolWalletPersistHandler implements WhirlpoolWalletPersist
 
   private String computeUtxoConfigKey(String utxoHash) {
     return ClientUtils.sha256Hash(utxoHash);
+  }
+
+  protected FileWhirlpoolUtxoConfigHandler getUtxoConfigHandler() {
+    return fileUtxoConfigHandler;
   }
 }

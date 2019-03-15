@@ -17,20 +17,20 @@ public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo
     }
 
     // when same priority: last activity first
-    if (o1.getUtxoConfig().getPriority() == o2.getUtxoConfig().getPriority()) {
-      if (o1.getLastActivity() != null && o2.getLastActivity() == null) {
-        return -1;
-      }
-      if (o2.getLastActivity() != null && o1.getLastActivity() == null) {
-        return 1;
-      }
-      if (o1.getLastActivity() == null && o2.getLastActivity() == null) {
-        return 0;
-      }
-      return Longs.compare(o2.getLastActivity(), o1.getLastActivity());
+    // if (o1.getUtxoConfig().getPriority() == o2.getUtxoConfig().getPriority()) {
+    if (o1.getLastActivity() != null && o2.getLastActivity() == null) {
+      return -1;
     }
+    if (o2.getLastActivity() != null && o1.getLastActivity() == null) {
+      return 1;
+    }
+    if (o1.getLastActivity() == null && o2.getLastActivity() == null) {
+      return 0;
+    }
+    return Longs.compare(o2.getLastActivity(), o1.getLastActivity());
+    // }
 
     // reversed sort: highest priority first
-    return o2.getUtxoConfig().getPriority() - o1.getUtxoConfig().getPriority();
+    // return o2.getUtxoConfig().getPriority() - o1.getUtxoConfig().getPriority();
   }
 }

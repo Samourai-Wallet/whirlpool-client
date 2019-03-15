@@ -1,7 +1,5 @@
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClient;
-import com.samourai.wallet.client.indexHandler.IIndexHandler;
-import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
@@ -10,7 +8,9 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletState;
+import com.samourai.whirlpool.client.wallet.persist.FileWhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 import org.bitcoinj.core.TransactionOutPoint;
@@ -51,25 +51,10 @@ public class JavaExample {
     // configure wallet
     HD_Wallet bip84w = null; // provide your wallet here
 
-    // configure wallet indexs
-    IIndexHandler depositIndexHandler = new MemoryIndexHandler();
-    IIndexHandler depositChangeIndexHandler = new MemoryIndexHandler();
-    IIndexHandler premixIndexHandler = new MemoryIndexHandler();
-    IIndexHandler premixChangeIndexHandler = new MemoryIndexHandler();
-    IIndexHandler postmixIndexHandler = new MemoryIndexHandler();
-    IIndexHandler postmixChangeIndexHandler = new MemoryIndexHandler();
-    IIndexHandler feeIndexHandler = new MemoryIndexHandler();
-
     WhirlpoolWallet whirlpoolWallet =
         whirlpoolWalletService.openWallet(
             bip84w,
-            depositIndexHandler,
-            depositChangeIndexHandler,
-            premixIndexHandler,
-            premixChangeIndexHandler,
-            postmixIndexHandler,
-            postmixChangeIndexHandler,
-            feeIndexHandler);
+            new FileWhirlpoolWalletPersistHandler(new File("/tmp/state"), new File("/tmp/utxos")));
 
     // start wallet
     whirlpoolWallet.start();

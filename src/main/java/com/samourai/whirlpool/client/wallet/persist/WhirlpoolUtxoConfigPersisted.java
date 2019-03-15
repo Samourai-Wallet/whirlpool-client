@@ -6,24 +6,25 @@ public class WhirlpoolUtxoConfigPersisted {
   private String poolId;
   private int mixsTarget;
   private int mixsDone;
-  private long lastSeen;
+
+  public WhirlpoolUtxoConfigPersisted() {
+    this(null, 0, 0);
+  }
 
   public WhirlpoolUtxoConfigPersisted(WhirlpoolUtxoConfig utxoConfig) {
     this.poolId = utxoConfig.getPoolId();
     this.mixsTarget = utxoConfig.getMixsTarget();
     this.mixsDone = utxoConfig.getMixsDone();
-    this.lastSeen = utxoConfig.getLastSeen();
   }
 
-  public WhirlpoolUtxoConfigPersisted(String poolId, int mixsTarget, int mixsDone, long lastSeen) {
+  public WhirlpoolUtxoConfigPersisted(String poolId, int mixsTarget, int mixsDone) {
     this.poolId = poolId;
     this.mixsTarget = mixsTarget;
     this.mixsDone = mixsDone;
-    this.lastSeen = lastSeen;
   }
 
   public WhirlpoolUtxoConfig toUtxoConfig() {
-    return new WhirlpoolUtxoConfig(poolId, mixsTarget, mixsDone, 0, lastSeen);
+    return new WhirlpoolUtxoConfig(poolId, mixsTarget, mixsDone, 0);
   }
 
   public String getPoolId() {
@@ -36,9 +37,5 @@ public class WhirlpoolUtxoConfigPersisted {
 
   public int getMixsDone() {
     return mixsDone;
-  }
-
-  public long getLastSeen() {
-    return lastSeen;
   }
 }
