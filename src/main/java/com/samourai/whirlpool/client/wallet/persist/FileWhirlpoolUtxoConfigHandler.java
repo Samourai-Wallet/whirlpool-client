@@ -48,9 +48,6 @@ public class FileWhirlpoolUtxoConfigHandler {
 
   protected boolean save() throws Exception {
     if (!hasModifications()) {
-      if (log.isDebugEnabled()) {
-        log.debug("nothing to write");
-      }
       return false;
     }
 
@@ -83,31 +80,38 @@ public class FileWhirlpoolUtxoConfigHandler {
   protected void load() {
     try {
       utxoConfigs.clear();
-      Map<String, WhirlpoolUtxoConfigPersisted> readValue =
-          mapper.readValue(file, new TypeReference<Map<String, WhirlpoolUtxoConfigPersisted>>() {});
-      if (log.isDebugEnabled()) {
-        log.debug("load: " + readValue.size() + " utxos loaded");
+      if (file.exists()) {
+        Map<String, WhirlpoolUtxoConfigPersisted> readValue =
+            mapper.readValue(
+                file, new TypeReference<Map<String, WhirlpoolUtxoConfigPersisted>>() {});
+        if (log.isDebugEnabled()) {
+          log.debug("load: " + readValue.size() + " utxos loaded");
+        }
+        // convert to WhirlpoolUtxoConfig
+        Map<String, WhirlpoolUtxoConfig> whirlpoolUtxoConfigs =
+            StreamSupport.stream(readValue.entrySet())
+                .collect(
+                    Collectors.toMap(
+                        new Function<Entry<String, WhirlpoolUtxoConfigPersisted>, String>() {
+                          @Override
+                          public String apply(Entry<String, WhirlpoolUtxoConfigPersisted> entry) {
+                            return entry.getKey();
+                          }
+                        },
+                        new Function<
+                            Entry<String, WhirlpoolUtxoConfigPersisted>, WhirlpoolUtxoConfig>() {
+                          @Override
+                          public WhirlpoolUtxoConfig apply(
+                              Entry<String, WhirlpoolUtxoConfigPersisted> entry) {
+                            return entry.getValue().toUtxoConfig();
+                          }
+                        }));
+        utxoConfigs.putAll(whirlpoolUtxoConfigs);
+      } else {
+        if (log.isDebugEnabled()) {
+          log.debug("load: skipping (file doesn't exist)");
+        }
       }
-      // convert to WhirlpoolUtxoConfig
-      Map<String, WhirlpoolUtxoConfig> whirlpoolUtxoConfigs =
-          StreamSupport.stream(readValue.entrySet())
-              .collect(
-                  Collectors.toMap(
-                      new Function<Entry<String, WhirlpoolUtxoConfigPersisted>, String>() {
-                        @Override
-                        public String apply(Entry<String, WhirlpoolUtxoConfigPersisted> entry) {
-                          return entry.getKey();
-                        }
-                      },
-                      new Function<
-                          Entry<String, WhirlpoolUtxoConfigPersisted>, WhirlpoolUtxoConfig>() {
-                        @Override
-                        public WhirlpoolUtxoConfig apply(
-                            Entry<String, WhirlpoolUtxoConfigPersisted> entry) {
-                          return entry.getValue().toUtxoConfig();
-                        }
-                      }));
-      utxoConfigs.putAll(whirlpoolUtxoConfigs);
       lastSet = 0;
       lastWrite = 0;
     } catch (Exception e) {
