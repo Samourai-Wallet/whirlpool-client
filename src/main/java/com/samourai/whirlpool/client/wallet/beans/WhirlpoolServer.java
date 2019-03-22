@@ -1,32 +1,42 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.TestNet3Params;
+import org.slf4j.LoggerFactory;
 
 public enum WhirlpoolServer {
   TEST(
       "pool.whirl.mx:8081",
       TestNet3Params.get(),
       true,
-      "vpub5YS8pQgZKVbrSn9wtrmydDWmWMjHrxL2mBCZ81BDp7Z2QyCgTLZCrnBprufuoUJaQu1ZeiRvUkvdQTNqV6hS96WbbVZgweFxYR1RXYkBcKt"),
-  MAIN("TODO", MainNetParams.get(), true, "TODO"), // TODO
+      "q5ikHzegh1fVs0YekhV6IbeM1YVi6mW9txoHpqPVGDQ+XcYlusvZfTRDQjt3LVOgTNXrlbs4pjlDqHVk38L2/1rGRVposOVFopX2rpm0zIfcXLdb8ymahhqCzje6Lb6HUpx3nQRQd6uL3eG3+XFo;3ejRfQL51G+l4iFE2UMYU+Ti7PIWmAjE015Qy/SYcnxMJYoX14maJwxyAH8HGgmSHayo8u90/HoxxjcUrbeQijWTDzs5xdQfx/yk2MzfuuONCPkqpR/y1SO0mVXYe+TgJfkx5V0CRvnThIr1mjoc"),
+  MAIN(
+      "pool.whirl.mx:8080",
+      MainNetParams.get(),
+      true,
+      "XRK4tP3cUnmvH5fGaQFO2Kb2uIGvoERCyWpqdERjZiPtAVhl8fHgA+fpRQ04d7WJ/xM+uOpnuKWfmPxys4pYtjmYbJec2GKNdTV738S+A5IVW7A+z7OehiNvMi3TTEGRViYzQLY70Z7DDfEXUNo6;J2LN1suuYwreU/S/BDAvu+TPwLbakTQoniQQQxUEJVWpQxQmiZmCSdGKJ3hoOvHNkStmz4cyyfCp6bRL58cg7A/UD8Kpkgz4QEwrhZX1Yeh9CMBp94bsyhA/Z0OWKzvoPl9rN/Jet6e6aLlNI7dp"),
   LOCAL_TEST(
       "127.0.0.1:8080",
       TestNet3Params.get(),
       false,
-      "vpub5YS8pQgZKVbrSn9wtrmydDWmWMjHrxL2mBCZ81BDp7Z2QyCgTLZCrnBprufuoUJaQu1ZeiRvUkvdQTNqV6hS96WbbVZgweFxYR1RXYkBcKt");
+      "q5ikHzegh1fVs0YekhV6IbeM1YVi6mW9txoHpqPVGDQ+XcYlusvZfTRDQjt3LVOgTNXrlbs4pjlDqHVk38L2/1rGRVposOVFopX2rpm0zIfcXLdb8ymahhqCzje6Lb6HUpx3nQRQd6uL3eG3+XFo;3ejRfQL51G+l4iFE2UMYU+Ti7PIWmAjE015Qy/SYcnxMJYoX14maJwxyAH8HGgmSHayo8u90/HoxxjcUrbeQijWTDzs5xdQfx/yk2MzfuuONCPkqpR/y1SO0mVXYe+TgJfkx5V0CRvnThIr1mjoc");
 
   private String serverUrl;
   private NetworkParameters params;
   private boolean ssl;
-  private String feeXpub;
+  private String feeData;
 
-  WhirlpoolServer(String serverUrl, NetworkParameters params, boolean ssl, String feeXpub) {
+  WhirlpoolServer(String serverUrl, NetworkParameters params, boolean ssl, String feeData) {
     this.serverUrl = serverUrl;
     this.params = params;
     this.ssl = ssl;
-    this.feeXpub = feeXpub;
+    try {
+      this.feeData = ClientUtils.decodeFeeData(feeData);
+    } catch (Exception e) {
+      LoggerFactory.getLogger(WhirlpoolServer.class).error("", e);
+    }
   }
 
   public String getServerUrl() {
@@ -41,7 +51,7 @@ public enum WhirlpoolServer {
     return ssl;
   }
 
-  public String getFeeXpub() {
-    return feeXpub;
+  public String getFeeData() {
+    return feeData;
   }
 }

@@ -35,7 +35,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
         whirlpoolServer.getServerUrl(),
         whirlpoolServer.getParams(),
         whirlpoolServer.isSsl(),
-        whirlpoolServer.getFeeXpub());
+        whirlpoolServer.getFeeData());
   }
 
   public WhirlpoolWalletConfig(

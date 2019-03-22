@@ -7,6 +7,7 @@ import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.http.client.HttpException;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.FormatsUtilGeneric;
+import com.samourai.wallet.util.XORUtil;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
@@ -151,5 +152,10 @@ public class ClientUtils {
 
   public static String sha256Hash(byte[] bytes) {
     return Sha256Hash.wrap(Sha256Hash.hash(bytes)).toString();
+  }
+
+  public static String decodeFeeData(String feeData) throws Exception {
+    String[] segments = feeData.split(";");
+    return XORUtil.getInstance().decodeAsString(segments[0], segments[1]);
   }
 }
