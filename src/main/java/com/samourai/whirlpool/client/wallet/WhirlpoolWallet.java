@@ -744,14 +744,13 @@ public class WhirlpoolWallet {
       return utxoConfig;
     }
 
-    // search by txid
-    utxoConfig = walletPersistHandler.getUtxoConfig(utxo.tx_hash);
     return utxoConfig;
   }
 
   public WhirlpoolUtxoConfig getUtxoConfig(UnspentOutput utxo) {
-    // search
-    WhirlpoolUtxoConfig utxoConfig = findUtxoConfig(utxo);
+    // search by utxo
+    WhirlpoolUtxoConfig utxoConfig =
+        walletPersistHandler.getUtxoConfig(utxo.tx_hash, utxo.tx_output_n);
     if (utxoConfig != null) {
       return utxoConfig;
     }
@@ -767,9 +766,16 @@ public class WhirlpoolWallet {
   }
 
   protected void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
-    // preserve utxo config
     if (log.isDebugEnabled()) {
       log.debug("New utxo detected: " + whirlpoolUtxo);
+    }
+
+    // preserve utxo config
+    UnspentOutput utxo = whirlpoolUtxo.getUtxo();
+    WhirlpoolUtxoConfig utxoConfig = walletPersistHandler.getUtxoConfig(utxo.tx_hash);
+    if (utxoConfig != null) {
+      utxoConfig = new WhirlpoolUtxoConfig(utxoConfig);
+      setUtxoConfig(utxoConfig, utxo.tx_hash, utxo.tx_output_n);
     }
 
     // auto-assign pool when possible

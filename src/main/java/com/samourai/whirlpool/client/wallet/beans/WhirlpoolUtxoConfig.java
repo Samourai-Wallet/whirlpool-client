@@ -10,6 +10,10 @@ public class WhirlpoolUtxoConfig {
     this(null, mixsTarget, 0, 0);
   }
 
+  public WhirlpoolUtxoConfig(WhirlpoolUtxoConfig copy) {
+    this(copy.poolId, copy.mixsTarget, copy.mixsDone, System.currentTimeMillis());
+  }
+
   public WhirlpoolUtxoConfig(String poolId, int mixsTarget, int mixsDone, long lastModified) {
     this.poolId = poolId;
     this.mixsTarget = mixsTarget;
@@ -17,17 +21,8 @@ public class WhirlpoolUtxoConfig {
     this.lastModified = lastModified;
   }
 
-  private void set(WhirlpoolUtxoConfig copy, long lastModified) {
-    this.poolId = copy.poolId;
-    this.mixsTarget = copy.mixsTarget;
-    this.mixsDone = copy.mixsDone;
-    this.lastModified = lastModified;
-  }
-
   public WhirlpoolUtxoConfig copy() {
-    WhirlpoolUtxoConfig copy = new WhirlpoolUtxoConfig(this.mixsTarget);
-    long now = System.currentTimeMillis();
-    copy.set(this, now);
+    WhirlpoolUtxoConfig copy = new WhirlpoolUtxoConfig(this);
     return copy;
   }
 
