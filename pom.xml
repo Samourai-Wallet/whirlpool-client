@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.Samourai-Wallet</groupId>
     <artifactId>whirlpool-client</artifactId>
-    <version>develop-SNAPSHOT</version>
+    <version>0.0.3</version>
     <name>whirlpool-client</name>
     <properties>
         <maven.compiler.source>1.6</maven.compiler.source>
@@ -20,7 +20,7 @@
         <dependency>
             <groupId>com.github.Samourai-Wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>develop-SNAPSHOT</version>
+            <version>0.0.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -77,6 +77,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.22.1</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -121,6 +122,6 @@
     </repositories>
     <scm>
         <connection>scm:git:https://github.com/Samourai-Wallet/whirlpool-client.git</connection>
-        <tag>HEAD</tag>
+        <tag>0.0.3</tag>
     </scm>
 </project>
