@@ -19,7 +19,7 @@ public class EmptyWalletException extends Exception {
         + ClientUtils.satToBtc(balanceRequired)
         + "btc to continue.\nPlease make a deposit to "
         + depositAddress
-        + ".\nCaused by:"
+        + ".\nCaused by: "
         + getMessage();
   }
 }

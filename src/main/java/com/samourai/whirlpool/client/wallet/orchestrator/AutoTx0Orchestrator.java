@@ -35,6 +35,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
             log.debug("AutoTx0: looking for Tx0...");
           }
           whirlpoolWallet.tx0(); // throws UnconfirmedUtxoException, EmptyWalletException
+          setLastRun();
           log.info(" • AutoTx0: SUCCESS");
 
           // continue for next Tx0...
@@ -58,6 +59,10 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
           // make sure that mixOrchestrator has no more to mix
           MixOrchestratorState mixState = whirlpoolWallet.getState().getMixState();
           if (mixState.getNbMixing() == 0 && mixState.getNbQueued() == 0) {
+            // wait tx0Delay before retry
+            setLastRun();
+
+            // empty wallet management
             whirlpoolWallet.onEmptyWalletException(e);
           }
 

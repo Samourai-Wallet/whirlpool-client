@@ -106,7 +106,7 @@ public abstract class AbstractOrchestrator {
     }
   }
 
-  protected long computeWaitForLastRunDelay(int delay) {
+  private long computeWaitForLastRunDelay(int delay) {
     long elapsedTimeSinceLastRun = System.currentTimeMillis() - lastRun;
     long timeToWait = (delay * 1000) - elapsedTimeSinceLastRun;
     return timeToWait;

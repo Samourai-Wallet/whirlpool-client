@@ -842,6 +842,14 @@ public class WhirlpoolWallet {
   public void onEmptyWalletException(EmptyWalletException e) {
     String depositAddress = getDepositAddress(false);
     String message = e.getMessageDeposit(depositAddress);
+    notifyError(message);
+  }
+
+  public void onNotifiableException(NotifiableException e) {
+    notifyError(e.getMessage());
+  }
+
+  public void notifyError(String message) {
     log.error(message);
   }
 }
