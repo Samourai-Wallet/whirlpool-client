@@ -41,11 +41,7 @@ public class Bip84ApiWallet extends Bip84Wallet {
       if (indexHandler.get() == 0) {
         indexHandler.set(address.account_index);
         if (log.isDebugEnabled()) {
-          log.debug("account_index=" + indexHandler.get() + " (from API)");
-        }
-      } else {
-        if (log.isDebugEnabled()) {
-          log.debug("account_index=" + indexHandler.get() + " (from local)");
+          log.debug("wallet #" + accountIndex + ": loading account_index from API");
         }
       }
 
@@ -53,12 +49,18 @@ public class Bip84ApiWallet extends Bip84Wallet {
       if (indexChangeHandler.get() == 0) {
         indexChangeHandler.set(address.change_index);
         if (log.isDebugEnabled()) {
-          log.debug("change_index=" + indexChangeHandler.get() + " (from API)");
+          log.debug("wallet #" + accountIndex + ": loading change_index from API");
         }
-      } else {
-        if (log.isDebugEnabled()) {
-          log.debug("change_index=" + indexChangeHandler.get() + " (from local)");
-        }
+      }
+
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "wallet #"
+                + accountIndex
+                + ": account_index="
+                + indexHandler.get()
+                + ", change_index="
+                + indexChangeHandler.get());
       }
     }
   }
