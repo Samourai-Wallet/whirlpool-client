@@ -16,7 +16,6 @@ import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.mix.handler.PremixHandler;
 import com.samourai.whirlpool.client.mix.handler.UtxoWithBalance;
-import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
@@ -36,6 +35,7 @@ import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandle
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientListener;
+import com.samourai.whirlpool.client.whirlpool.listener.UtxoWhirlpoolClientListener;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import java.util.ArrayList;
@@ -447,9 +447,10 @@ public class WhirlpoolWallet {
       if (pool == null) {
         throw new NotifiableException("Pool not found: " + poolId);
       }
+      poolId = pool.getPoolId();
     }
     // set pool
-    whirlpoolUtxo.getUtxoConfig().setPoolId(pool.getPoolId());
+    whirlpoolUtxo.getUtxoConfig().setPoolId(poolId);
   }
 
   public void setMixsTarget(WhirlpoolUtxo whirlpoolUtxo, int mixsTarget)
@@ -587,45 +588,12 @@ public class WhirlpoolWallet {
       log.info(" • Connecting client to pool: " + whirlpoolUtxo.getUtxoConfig().getPoolId());
     }
 
+    WhirlpoolClientListener loggingListener = new LoggingWhirlpoolClientListener(notifyListener);
     WhirlpoolClientListener listener =
-        new LoggingWhirlpoolClientListener(notifyListener) {
-          @Override
-          protected void logInfo(String message) {
-            super.logInfo(message);
-            whirlpoolUtxo.setMessage(message);
-          }
-
-          @Override
-          protected void logError(String message) {
-            super.logError(message);
-            whirlpoolUtxo.setError(message);
-          }
-
-          @Override
-          public void progress(
-              int currentMix,
-              int nbMixs,
-              MixStep step,
-              String stepInfo,
-              int stepNumber,
-              int nbSteps) {
-            super.progress(currentMix, nbMixs, step, stepInfo, stepNumber, nbSteps);
-            int progressPercent = Math.round(stepNumber * 100 / nbSteps);
-            whirlpoolUtxo.setProgress(progressPercent, step.name());
-          }
-
-          @Override
-          public void fail(int currentMix, int nbMixs) {
-            super.fail(currentMix, nbMixs);
-            whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_FAILED);
-            whirlpoolUtxo.setError("Mix " + currentMix + "/" + nbMixs + " failed");
-          }
-
+        new UtxoWhirlpoolClientListener(loggingListener, whirlpoolUtxo) {
           @Override
           public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
             super.mixSuccess(currentMix, nbMixs, mixSuccess);
-            whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS, 100);
-            whirlpoolUtxo.getUtxoConfig().incrementMixsDone();
 
             // preserve utxo config
             Utxo receiveUtxo = mixSuccess.getReceiveUtxo();
@@ -635,7 +603,6 @@ public class WhirlpoolWallet {
                 (int) receiveUtxo.getIndex());
           }
         };
-
     int nbMixs = 1;
 
     // start mixing (whirlpoolClient will start a new thread)

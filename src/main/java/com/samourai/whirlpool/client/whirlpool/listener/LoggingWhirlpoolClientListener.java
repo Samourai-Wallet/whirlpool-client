@@ -6,16 +6,15 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
+public class LoggingWhirlpoolClientListener extends AbstractWhirlpoolClientListener {
   private Logger log = LoggerFactory.getLogger(LoggingWhirlpoolClientListener.class);
-  private WhirlpoolClientListener notifyListener;
 
   public LoggingWhirlpoolClientListener(WhirlpoolClientListener notifyListener) {
-    this.notifyListener = notifyListener;
+    super(notifyListener);
   }
 
   public LoggingWhirlpoolClientListener() {
-    this(null);
+    super();
   }
 
   public void setLogPrefix(String logPrefix) {
@@ -28,31 +27,22 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
 
   @Override
   public void success(int nbMixs, MixSuccess mixSuccess) {
+    super.success(nbMixs, mixSuccess);
     logInfo("⣿ WHIRLPOOL SUCCESS ⣿");
-
-    if (notifyListener != null) {
-      notifyListener.success(nbMixs, mixSuccess);
-    }
   }
 
   @Override
   public void fail(int currentMix, int nbMixs) {
+    super.fail(currentMix, nbMixs);
     logError(format(currentMix, nbMixs, "⣿ WHIRLPOOL FAILED ⣿ Check logs for errors."));
-
-    if (notifyListener != null) {
-      notifyListener.fail(currentMix, nbMixs);
-    }
   }
 
   @Override
   public void progress(
       int currentMix, int nbMixs, MixStep step, String stepInfo, int stepNumber, int nbSteps) {
+    super.progress(currentMix, nbMixs, step, stepInfo, stepNumber, nbSteps);
     String asciiProgress = renderProgress(stepNumber, nbSteps);
     logInfo(format(currentMix, nbMixs, asciiProgress + " " + step + " : " + stepInfo));
-
-    if (notifyListener != null) {
-      notifyListener.progress(currentMix, nbMixs, step, stepInfo, stepNumber, nbSteps);
-    }
   }
 
   private String renderProgress(int stepNumber, int nbSteps) {
@@ -66,20 +56,15 @@ public class LoggingWhirlpoolClientListener implements WhirlpoolClientListener {
 
   @Override
   public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
+    super.mixSuccess(currentMix, nbMixs, mixSuccess);
     logInfo(
         format(
             currentMix,
             nbMixs,
             "SUCCESS - Funds sent to "
                 + mixSuccess.getReceiveAddress()
-                + ", utxo "
-                + mixSuccess.getReceiveUtxo().getHash()
-                + ":"
-                + mixSuccess.getReceiveUtxo().getIndex()));
-
-    if (notifyListener != null) {
-      notifyListener.mixSuccess(currentMix, nbMixs, mixSuccess);
-    }
+                + ", txid:"
+                + mixSuccess.getReceiveUtxo().getHash()));
   }
 
   protected void logInfo(String message) {

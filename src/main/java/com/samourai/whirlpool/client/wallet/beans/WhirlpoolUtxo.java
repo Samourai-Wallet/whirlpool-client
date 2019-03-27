@@ -98,7 +98,9 @@ public class WhirlpoolUtxo {
     this.progressPercent = progressPercent;
     this.progressLabel = progressLabel;
     this.error = null;
-    setLastActivity();
+    if (!WhirlpoolUtxoStatus.MIX_QUEUE.equals(status)) {
+      setLastActivity();
+    }
   }
 
   public void setStatus(WhirlpoolUtxoStatus status) {
