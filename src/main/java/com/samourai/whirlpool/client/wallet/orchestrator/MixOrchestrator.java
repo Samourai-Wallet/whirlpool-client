@@ -178,7 +178,10 @@ public class MixOrchestrator extends AbstractOrchestrator {
               new Predicate<WhirlpoolUtxo>() {
                 @Override
                 public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                  return WhirlpoolUtxoStatus.MIX_QUEUE.equals(whirlpoolUtxo.getStatus());
+                  // queued
+                  return WhirlpoolUtxoStatus.MIX_QUEUE.equals(whirlpoolUtxo.getStatus())
+                      // pool set
+                      && whirlpoolUtxo.getUtxoConfig().getPoolId() != null;
                 }
               });
     } catch (Exception e) {
@@ -193,7 +196,9 @@ public class MixOrchestrator extends AbstractOrchestrator {
             .collect(Collectors.<WhirlpoolUtxo>toList());
 
     for (WhirlpoolUtxo whirlpoolUtxo : toMixByPriority) {
+      // not excluded
       if (!excludedHashs.contains(whirlpoolUtxo.getUtxo().tx_hash)) {
+        // confirmed
         if (whirlpoolUtxo.getUtxo().confirmations >= WhirlpoolWallet.MIX_MIN_CONFIRMATIONS) {
           // found
           return whirlpoolUtxo;

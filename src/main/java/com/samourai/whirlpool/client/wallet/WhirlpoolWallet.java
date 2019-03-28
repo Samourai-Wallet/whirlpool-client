@@ -577,6 +577,22 @@ public class WhirlpoolWallet {
       throw new UnconfirmedUtxoException(whirlpoolUtxo.getUtxo());
     }
 
+    // check pool
+    String poolId = whirlpoolUtxo.getUtxoConfig().getPoolId();
+    if (poolId == null) {
+      log.error("Cannot mix: no pool set: "+whirlpoolUtxo+" ; "+whirlpoolUtxo.getUtxoConfig());
+      throw new NotifiableException("Cannot mix: no pool set");
+    }
+    Pool pool = null;
+    try {
+      pool = findPoolById(poolId);
+    } catch (Exception e) {
+      log.error("", e);
+    }
+    if (pool == null) {
+      throw new NotifiableException("Pool not found: " + poolId);
+    }
+
     whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_STARTED, 1);
     if (log.isDebugEnabled()) {
       log.info(
@@ -606,7 +622,7 @@ public class WhirlpoolWallet {
     int nbMixs = 1;
 
     // start mixing (whirlpoolClient will start a new thread)
-    MixParams mixParams = computeMixParams(whirlpoolUtxo);
+    MixParams mixParams = computeMixParams(whirlpoolUtxo, pool);
     final WhirlpoolClient mixClient = config.newClient();
     mixClient.whirlpool(mixParams, nbMixs, listener);
 
@@ -631,16 +647,10 @@ public class WhirlpoolWallet {
     return new Bip84PostmixHandler(getWalletPostmix());
   }
 
-  private MixParams computeMixParams(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
+  private MixParams computeMixParams(WhirlpoolUtxo whirlpoolUtxo, Pool pool) {
     IPremixHandler premixHandler = computePremixHandler(whirlpoolUtxo);
     IPostmixHandler postmixHandler = computePostmixHandler();
-    String poolId = whirlpoolUtxo.getUtxoConfig().getPoolId();
-    try {
-      Pool pool = findPoolById(poolId);
-      return new MixParams(poolId, pool.getDenomination(), premixHandler, postmixHandler);
-    } catch (Exception e) {
-      throw new NotifiableException("Pool not found: " + poolId);
-    }
+    return new MixParams(pool.getPoolId(), pool.getDenomination(), premixHandler, postmixHandler);
   }
 
   public Collection<WhirlpoolUtxo> getUtxosDeposit() throws Exception {
@@ -795,6 +805,12 @@ public class WhirlpoolWallet {
   protected void onUtxoUpdated(WhirlpoolUtxo whirlpoolUtxo, UnspentOutput oldUtxo) {
     int oldConfirmations = oldUtxo.confirmations;
     int freshConfirmations = whirlpoolUtxo.getUtxo().confirmations;
+
+    if (oldConfirmations == 0 && freshConfirmations > 0) {
+      if (log.isDebugEnabled()) {
+        log.debug("New utxo CONFIRMED: " + whirlpoolUtxo);
+      }
+    }
 
     // notify autoTx0Orchestrator on TX0_MIN_CONFIRMATIONS
     if (autoTx0Orchestrator.isPresent()
