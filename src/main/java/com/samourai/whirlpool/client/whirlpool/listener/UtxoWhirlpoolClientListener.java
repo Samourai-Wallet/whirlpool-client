@@ -44,12 +44,7 @@ public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener
   @Override
   public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
     super.mixSuccess(currentMix, nbMixs, mixSuccess);
-    whirlpoolUtxo.setMessage(
-        "Funds sent to "
-            + mixSuccess.getReceiveAddress()
-            + ", txid:"
-            + mixSuccess.getReceiveUtxo().getHash());
-
+    whirlpoolUtxo.setMessage("txid:" + mixSuccess.getReceiveUtxo().getHash());
     whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS, 100);
     whirlpoolUtxo.getUtxoConfig().incrementMixsDone();
   }

@@ -580,7 +580,8 @@ public class WhirlpoolWallet {
     // check pool
     String poolId = whirlpoolUtxo.getUtxoConfig().getPoolId();
     if (poolId == null) {
-      log.error("Cannot mix: no pool set: "+whirlpoolUtxo+" ; "+whirlpoolUtxo.getUtxoConfig());
+      log.error(
+          "Cannot mix: no pool set: " + whirlpoolUtxo + " ; " + whirlpoolUtxo.getUtxoConfig());
       throw new NotifiableException("Cannot mix: no pool set");
     }
     Pool pool = null;
