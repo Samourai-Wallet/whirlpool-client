@@ -33,34 +33,58 @@ public class Bip84ApiWallet extends Bip84Wallet {
       initBip84();
     }
 
-    if (indexHandler.get() == 0 || indexChangeHandler.get() == 0) {
-      // fetch index from API
-      MultiAddrResponse.Address address = fetchAddress();
+    // fetch index from API
+    MultiAddrResponse.Address address = fetchAddress();
 
-      // account_index
-      if (indexHandler.get() == 0) {
-        indexHandler.set(address.account_index);
-        if (log.isDebugEnabled()) {
-          log.debug("wallet #" + accountIndex + ": loading account_index from API");
-        }
-      }
-
-      // change_index
-      if (indexChangeHandler.get() == 0) {
-        indexChangeHandler.set(address.change_index);
-        if (log.isDebugEnabled()) {
-          log.debug("wallet #" + accountIndex + ": loading change_index from API");
-        }
-      }
-
+    // account_index
+    if (indexHandler.get() < address.account_index) {
       if (log.isDebugEnabled()) {
         log.debug(
             "wallet #"
                 + accountIndex
-                + ": account_index="
+                + "/account_index: apiIndex="
+                + address.account_index
+                + ", localIndex="
                 + indexHandler.get()
-                + ", change_index="
-                + indexChangeHandler.get());
+                + " => using apiIndex");
+      }
+      indexHandler.set(address.account_index);
+    } else {
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "wallet #"
+                + accountIndex
+                + ": apiIndex="
+                + address.account_index
+                + ", localIndex="
+                + indexHandler.get()
+                + " => using localIndex");
+      }
+    }
+
+    // change_index
+    if (indexChangeHandler.get() < address.change_index) {
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "wallet #"
+                + accountIndex
+                + "/change_index: apiIndex="
+                + address.change_index
+                + ", localIndex="
+                + indexChangeHandler.get()
+                + " => using apiIndex");
+      }
+      indexChangeHandler.set(address.change_index);
+    } else {
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "wallet #"
+                + accountIndex
+                + "/change_index: apiIndex="
+                + address.change_index
+                + ", localIndex="
+                + indexChangeHandler.get()
+                + " => using localIndex");
       }
     }
   }
