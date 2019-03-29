@@ -835,10 +835,6 @@ public class WhirlpoolWallet {
     notifyError(message);
   }
 
-  public void onNotifiableException(NotifiableException e) {
-    notifyError(e.getMessage());
-  }
-
   public void notifyError(String message) {
     log.error(message);
   }
