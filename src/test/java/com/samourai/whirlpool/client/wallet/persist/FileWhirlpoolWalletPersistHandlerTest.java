@@ -130,7 +130,9 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
             new MemoryIndexHandler(1),
             new MemoryIndexHandler(1),
             samouraiApi,
-            false);
+            false,
+            1,
+            1);
     Bip84ApiWallet premixWallet =
         new Bip84ApiWallet(
             bip84w,
@@ -138,7 +140,9 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
             new MemoryIndexHandler(1),
             new MemoryIndexHandler(1),
             samouraiApi,
-            false);
+            false,
+            1,
+            1);
     Bip84ApiWallet postmixWallet =
         new Bip84ApiWallet(
             bip84w,
@@ -146,7 +150,9 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
             new MemoryIndexHandler(1),
             new MemoryIndexHandler(1),
             samouraiApi,
-            false);
+            false,
+            1,
+            1);
     return new WhirlpoolWalletService(
             new WhirlpoolWalletConfig(null, null, WhirlpoolServer.LOCAL_TEST))
         .openWallet(persistHandler, depositWallet, premixWallet, postmixWallet);

@@ -26,6 +26,19 @@ public class Bip84ApiWallet extends Bip84Wallet {
       SamouraiApi samouraiApi,
       boolean init)
       throws Exception {
+    this(bip84w, accountIndex, indexHandler, indexChangeHandler, samouraiApi, init, null, null);
+  }
+
+  public Bip84ApiWallet(
+      HD_Wallet bip84w,
+      int accountIndex,
+      IIndexHandler indexHandler,
+      IIndexHandler indexChangeHandler,
+      SamouraiApi samouraiApi,
+      boolean init,
+      Integer accountIndexApi,
+      Integer changeIndexApi)
+      throws Exception {
     super(bip84w, accountIndex, indexHandler, indexChangeHandler);
     this.samouraiApi = samouraiApi;
 
@@ -33,29 +46,33 @@ public class Bip84ApiWallet extends Bip84Wallet {
       initBip84();
     }
 
-    // fetch index from API
-    MultiAddrResponse.Address address = fetchAddress();
+    if (accountIndexApi == null || changeIndexApi == null) {
+      // fetch index from API
+      MultiAddrResponse.Address address = fetchAddress();
+      accountIndexApi = address.account_index;
+      changeIndexApi = address.change_index;
+    }
 
     // account_index
-    if (indexHandler.get() < address.account_index) {
+    if (indexHandler.get() < accountIndexApi) {
       if (log.isDebugEnabled()) {
         log.debug(
             "wallet #"
                 + accountIndex
                 + "/account_index: apiIndex="
-                + address.account_index
+                + accountIndexApi
                 + ", localIndex="
                 + indexHandler.get()
                 + " => using apiIndex");
       }
-      indexHandler.set(address.account_index);
+      indexHandler.set(accountIndexApi);
     } else {
       if (log.isDebugEnabled()) {
         log.debug(
             "wallet #"
                 + accountIndex
                 + ": apiIndex="
-                + address.account_index
+                + accountIndexApi
                 + ", localIndex="
                 + indexHandler.get()
                 + " => using localIndex");
@@ -63,25 +80,25 @@ public class Bip84ApiWallet extends Bip84Wallet {
     }
 
     // change_index
-    if (indexChangeHandler.get() < address.change_index) {
+    if (indexChangeHandler.get() < changeIndexApi) {
       if (log.isDebugEnabled()) {
         log.debug(
             "wallet #"
                 + accountIndex
                 + "/change_index: apiIndex="
-                + address.change_index
+                + changeIndexApi
                 + ", localIndex="
                 + indexChangeHandler.get()
                 + " => using apiIndex");
       }
-      indexChangeHandler.set(address.change_index);
+      indexChangeHandler.set(changeIndexApi);
     } else {
       if (log.isDebugEnabled()) {
         log.debug(
             "wallet #"
                 + accountIndex
                 + "/change_index: apiIndex="
-                + address.change_index
+                + changeIndexApi
                 + ", localIndex="
                 + indexChangeHandler.get()
                 + " => using localIndex");
