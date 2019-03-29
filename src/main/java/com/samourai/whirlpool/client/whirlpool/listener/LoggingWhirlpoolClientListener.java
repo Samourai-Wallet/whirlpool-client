@@ -63,7 +63,7 @@ public class LoggingWhirlpoolClientListener extends AbstractWhirlpoolClientListe
             nbMixs,
             "SUCCESS - Funds sent to "
                 + mixSuccess.getReceiveAddress()
-                + ", txid:"
+                + ", txid: "
                 + mixSuccess.getReceiveUtxo().getHash()));
   }
 
