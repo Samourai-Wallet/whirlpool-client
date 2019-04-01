@@ -744,9 +744,6 @@ public class WhirlpoolWallet {
   }
 
   protected void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
-    if (log.isDebugEnabled()) {
-      log.debug("New utxo detected: " + whirlpoolUtxo);
-    }
 
     // preserve utxo config
     UnspentOutput utxo = whirlpoolUtxo.getUtxo();
@@ -754,6 +751,13 @@ public class WhirlpoolWallet {
     if (utxoConfig != null) {
       utxoConfig = new WhirlpoolUtxoConfig(utxoConfig);
       setUtxoConfig(utxoConfig, utxo.tx_hash, utxo.tx_output_n);
+      if (log.isDebugEnabled()) {
+        log.debug("New utxo detected: " + whirlpoolUtxo + " ; " + utxoConfig);
+      }
+    } else {
+      if (log.isDebugEnabled()) {
+        log.debug("New utxo detected: " + whirlpoolUtxo + " (no utxoConfig)");
+      }
     }
 
     // auto-assign pool when possible
@@ -793,7 +797,11 @@ public class WhirlpoolWallet {
     // auto-assign pool by preference when found
     if (eligiblePools != null) {
       if (!eligiblePools.isEmpty()) {
-        whirlpoolUtxo.getUtxoConfig().setPoolId(eligiblePools.iterator().next().getPoolId());
+        String poolId = eligiblePools.iterator().next().getPoolId();
+        if (log.isDebugEnabled()) {
+          log.debug("autoAssignPool: " + whirlpoolUtxo + " -> " + poolId);
+        }
+        whirlpoolUtxo.getUtxoConfig().setPoolId(poolId);
       } else {
         log.warn("No pool for this utxo balance: " + whirlpoolUtxo.toString());
         whirlpoolUtxo.setError("No pool for this utxo balance");
