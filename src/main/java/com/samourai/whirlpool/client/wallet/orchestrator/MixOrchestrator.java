@@ -117,7 +117,11 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
     WhirlpoolUtxo whirlpoolUtxo = whirlpoolUtxos.iterator().next();
     if (log.isDebugEnabled()) {
-      log.debug("Found queued utxo to mix => mix now");
+      log.debug(
+          "Found queued utxo to mix => mix now: "
+              + whirlpoolUtxo
+              + " ; "
+              + whirlpoolUtxo.getUtxoConfig());
     }
 
     // start mix

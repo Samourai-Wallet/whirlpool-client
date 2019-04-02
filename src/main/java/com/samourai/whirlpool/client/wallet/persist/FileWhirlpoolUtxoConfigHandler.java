@@ -80,7 +80,7 @@ public class FileWhirlpoolUtxoConfigHandler {
   protected void load() {
     try {
       utxoConfigs.clear();
-      if (file.exists()) {
+      if (file.exists() && file.length() > 0) {
         Map<String, WhirlpoolUtxoConfigPersisted> readValue =
             mapper.readValue(
                 file, new TypeReference<Map<String, WhirlpoolUtxoConfigPersisted>>() {});
@@ -109,7 +109,7 @@ public class FileWhirlpoolUtxoConfigHandler {
         utxoConfigs.putAll(whirlpoolUtxoConfigs);
       } else {
         if (log.isDebugEnabled()) {
-          log.debug("load: skipping (file doesn't exist)");
+          log.debug("load: skipping (file empty)");
         }
       }
       lastSet = 0;

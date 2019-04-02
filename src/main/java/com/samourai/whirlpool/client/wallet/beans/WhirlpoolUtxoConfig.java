@@ -63,6 +63,11 @@ public class WhirlpoolUtxoConfig {
 
   @Override
   public String toString() {
-    return "poolId=" + (poolId != null ? poolId : "null") + ", mixsTarget=" + mixsTarget;
+    return "poolId="
+        + (poolId != null ? poolId : "null")
+        + ", mixsTarget="
+        + mixsTarget
+        + ", mixsDone="
+        + mixsDone;
   }
 }
