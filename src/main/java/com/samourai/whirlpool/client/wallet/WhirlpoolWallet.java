@@ -714,21 +714,16 @@ public class WhirlpoolWallet {
     walletPersistHandler.setUtxoConfig(utxoHash, utxoIndex, utxoConfig);
   }
 
-  private WhirlpoolUtxoConfig findUtxoConfig(UnspentOutput utxo) {
+  private WhirlpoolUtxoConfig getUtxoConfigOrNull(UnspentOutput utxo) {
     // search by utxo
     WhirlpoolUtxoConfig utxoConfig =
         walletPersistHandler.getUtxoConfig(utxo.tx_hash, utxo.tx_output_n);
-    if (utxoConfig != null) {
-      return utxoConfig;
-    }
-
-    return utxoConfig;
+    return utxoConfig; // null if not found
   }
 
   public WhirlpoolUtxoConfig getUtxoConfig(UnspentOutput utxo) {
     // search by utxo
-    WhirlpoolUtxoConfig utxoConfig =
-        walletPersistHandler.getUtxoConfig(utxo.tx_hash, utxo.tx_output_n);
+    WhirlpoolUtxoConfig utxoConfig = getUtxoConfigOrNull(utxo);
     if (utxoConfig != null) {
       return utxoConfig;
     }
@@ -747,7 +742,12 @@ public class WhirlpoolWallet {
 
     // preserve utxo config
     UnspentOutput utxo = whirlpoolUtxo.getUtxo();
-    WhirlpoolUtxoConfig utxoConfig = walletPersistHandler.getUtxoConfig(utxo.tx_hash);
+    // find by utxo (new POSTMIX from mix or CLI restart)
+    WhirlpoolUtxoConfig utxoConfig = getUtxoConfigOrNull(utxo);
+    if (utxoConfig == null) {
+      // find by tx hash (new PREMIX from TX0)
+      utxoConfig = walletPersistHandler.getUtxoConfig(utxo.tx_hash);
+    }
     if (utxoConfig != null) {
       utxoConfig = new WhirlpoolUtxoConfig(utxoConfig);
       setUtxoConfig(utxoConfig, utxo.tx_hash, utxo.tx_output_n);
