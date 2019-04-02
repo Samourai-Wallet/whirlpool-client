@@ -106,7 +106,7 @@ public class ClientUtils {
   }
 
   public static void logUtxos(Collection<UnspentOutput> utxos) {
-    String lineFormat = "| %10s | %10s | %70s | %50s | %16s |\n";
+    String lineFormat = "| %10s | %8s | %68s | %45s | %14s |\n";
     StringBuilder sb = new StringBuilder();
     sb.append(String.format(lineFormat, "BALANCE", "CONFIRMS", "UTXO", "ADDRESS", "PATH"));
     sb.append(String.format(lineFormat, "(btc)", "", "", "", ""));

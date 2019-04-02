@@ -600,7 +600,9 @@ public class WhirlpoolWallet {
           " • Connecting client to pool: "
               + whirlpoolUtxo.getUtxoConfig().getPoolId()
               + ", utxo="
-              + whirlpoolUtxo);
+              + whirlpoolUtxo
+              + " ; "
+              + whirlpoolUtxo.getUtxoConfig());
     } else {
       log.info(" • Connecting client to pool: " + whirlpoolUtxo.getUtxoConfig().getPoolId());
     }
@@ -817,7 +819,7 @@ public class WhirlpoolWallet {
 
     if (oldConfirmations == 0 && freshConfirmations > 0) {
       if (log.isDebugEnabled()) {
-        log.debug("New utxo CONFIRMED: " + whirlpoolUtxo);
+        log.debug("New utxo CONFIRMED: " + whirlpoolUtxo + " ; " + whirlpoolUtxo.getUtxoConfig());
       }
     }
 
