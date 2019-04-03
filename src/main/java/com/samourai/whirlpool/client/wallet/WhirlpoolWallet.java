@@ -16,7 +16,6 @@ import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.mix.handler.PremixHandler;
 import com.samourai.whirlpool.client.mix.handler.UtxoWithBalance;
-import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -37,7 +36,6 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientListener;
 import com.samourai.whirlpool.client.whirlpool.listener.UtxoWhirlpoolClientListener;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
-import com.samourai.whirlpool.protocol.beans.Utxo;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -609,20 +607,7 @@ public class WhirlpoolWallet {
 
     WhirlpoolClientListener loggingListener = new LoggingWhirlpoolClientListener(notifyListener);
     WhirlpoolClientListener listener =
-        new UtxoWhirlpoolClientListener(loggingListener, whirlpoolUtxo) {
-
-          @Override
-          public void success(MixSuccess mixSuccess) {
-            super.success(mixSuccess);
-
-            // preserve utxo config
-            Utxo receiveUtxo = mixSuccess.getReceiveUtxo();
-            setUtxoConfig(
-                whirlpoolUtxo.getUtxoConfig().copy(),
-                receiveUtxo.getHash(),
-                (int) receiveUtxo.getIndex());
-          }
-        };
+        new UtxoWhirlpoolClientListener(loggingListener, whirlpoolUtxo, this);
 
     // start mixing (whirlpoolClient will start a new thread)
     MixParams mixParams = computeMixParams(whirlpoolUtxo, pool);
@@ -712,7 +697,7 @@ public class WhirlpoolWallet {
     walletPersistHandler.setUtxoConfig(txid, utxoConfig);
   }
 
-  private void setUtxoConfig(WhirlpoolUtxoConfig utxoConfig, String utxoHash, int utxoIndex) {
+  public void setUtxoConfig(WhirlpoolUtxoConfig utxoConfig, String utxoHash, int utxoIndex) {
     walletPersistHandler.setUtxoConfig(utxoHash, utxoIndex, utxoConfig);
   }
 
@@ -746,19 +731,24 @@ public class WhirlpoolWallet {
     UnspentOutput utxo = whirlpoolUtxo.getUtxo();
     // find by utxo (new POSTMIX from mix or CLI restart)
     WhirlpoolUtxoConfig utxoConfig = getUtxoConfigOrNull(utxo);
-    if (utxoConfig == null) {
-      // find by tx hash (new PREMIX from TX0)
-      utxoConfig = walletPersistHandler.getUtxoConfig(utxo.tx_hash);
-    }
     if (utxoConfig != null) {
-      utxoConfig = new WhirlpoolUtxoConfig(utxoConfig);
-      setUtxoConfig(utxoConfig, utxo.tx_hash, utxo.tx_output_n);
+      // utxoConfig found (from previous mix)
       if (log.isDebugEnabled()) {
-        log.debug("New utxo detected: " + whirlpoolUtxo + " ; " + utxoConfig);
+        log.debug("New utxo detected: " + whirlpoolUtxo + " ; (existing utxoConfig) " + utxoConfig);
       }
     } else {
-      if (log.isDebugEnabled()) {
-        log.debug("New utxo detected: " + whirlpoolUtxo + " (no utxoConfig)");
+      // find by tx hash (new PREMIX from TX0)
+      utxoConfig = walletPersistHandler.getUtxoConfig(utxo.tx_hash);
+      if (utxoConfig != null) {
+        utxoConfig = new WhirlpoolUtxoConfig(utxoConfig);
+        setUtxoConfig(utxoConfig, utxo.tx_hash, utxo.tx_output_n);
+        if (log.isDebugEnabled()) {
+          log.debug("New utxo detected: " + whirlpoolUtxo + " ; (from TX0) " + utxoConfig);
+        }
+      } else {
+        if (log.isDebugEnabled()) {
+          log.debug("New utxo detected: " + whirlpoolUtxo + " (no utxoConfig)");
+        }
       }
     }
 

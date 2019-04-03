@@ -2,21 +2,26 @@ package com.samourai.whirlpool.client.whirlpool.listener;
 
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
+import com.samourai.whirlpool.protocol.beans.Utxo;
 
 public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener {
   private WhirlpoolUtxo whirlpoolUtxo;
+  private WhirlpoolWallet whirlpoolWallet;
 
   public UtxoWhirlpoolClientListener(
-      WhirlpoolClientListener notifyListener, WhirlpoolUtxo whirlpoolUtxo) {
+      WhirlpoolClientListener notifyListener,
+      WhirlpoolUtxo whirlpoolUtxo,
+      WhirlpoolWallet whirlpoolWallet) {
     super(notifyListener);
     this.whirlpoolUtxo = whirlpoolUtxo;
+    this.whirlpoolWallet = whirlpoolWallet;
   }
 
-  public UtxoWhirlpoolClientListener(WhirlpoolUtxo whirlpoolUtxo) {
-    super();
-    this.whirlpoolUtxo = whirlpoolUtxo;
+  public UtxoWhirlpoolClientListener(WhirlpoolUtxo whirlpoolUtxo, WhirlpoolWallet whirlpoolWallet) {
+    this(null, whirlpoolUtxo, whirlpoolWallet);
   }
 
   @Override
@@ -25,6 +30,11 @@ public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener
     whirlpoolUtxo.setMessage("txid: " + mixSuccess.getReceiveUtxo().getHash());
     whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS, 100);
     whirlpoolUtxo.getUtxoConfig().incrementMixsDone();
+
+    // preserve utxo config
+    Utxo receiveUtxo = mixSuccess.getReceiveUtxo();
+    whirlpoolWallet.setUtxoConfig(
+        whirlpoolUtxo.getUtxoConfig().copy(), receiveUtxo.getHash(), (int) receiveUtxo.getIndex());
   }
 
   @Override
