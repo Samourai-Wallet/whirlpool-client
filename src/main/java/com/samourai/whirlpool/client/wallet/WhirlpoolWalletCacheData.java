@@ -12,6 +12,7 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
+import com.zeroleak.throwingsupplier.LastValueFallbackSupplier;
 import com.zeroleak.throwingsupplier.Throwing;
 import com.zeroleak.throwingsupplier.ThrowingSupplier;
 import java.util.ArrayList;
@@ -105,7 +106,7 @@ public class WhirlpoolWalletCacheData {
   }
 
   private ThrowingSupplier<Pools, Exception> initPools() {
-    return new ThrowingSupplier<Pools, Exception>() {
+    return new LastValueFallbackSupplier<Pools, Exception>() {
       @Override
       public Pools getOrThrow() throws Exception {
         if (log.isDebugEnabled()) {
@@ -121,7 +122,7 @@ public class WhirlpoolWalletCacheData {
   }
 
   private ThrowingSupplier<Collection<Pool>, Exception> initPoolsByPreference() {
-    return new ThrowingSupplier<Collection<Pool>, Exception>() {
+    return new LastValueFallbackSupplier<Collection<Pool>, Exception>() {
       @Override
       public Collection<Pool> getOrThrow() throws Exception {
         if (log.isDebugEnabled()) {
@@ -197,7 +198,7 @@ public class WhirlpoolWalletCacheData {
 
   private ThrowingSupplier<Map<String, WhirlpoolUtxo>, Exception> initUtxos(
       final WhirlpoolAccount whirlpoolAccount) {
-    return new ThrowingSupplier<Map<String, WhirlpoolUtxo>, Exception>() {
+    return new LastValueFallbackSupplier<Map<String, WhirlpoolUtxo>, Exception>() {
       @Override
       public Map<String, WhirlpoolUtxo> getOrThrow() throws Exception {
         try {
