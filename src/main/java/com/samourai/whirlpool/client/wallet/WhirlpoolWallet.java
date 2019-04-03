@@ -708,7 +708,9 @@ public class WhirlpoolWallet {
     return utxoConfig; // null if not found
   }
 
-  public WhirlpoolUtxoConfig getUtxoConfig(UnspentOutput utxo) {
+  public WhirlpoolUtxoConfig getUtxoConfig(WhirlpoolUtxo whirlpoolUtxo) {
+    UnspentOutput utxo = whirlpoolUtxo.getUtxo();
+
     // search by utxo
     WhirlpoolUtxoConfig utxoConfig = getUtxoConfigOrNull(utxo);
     if (utxoConfig != null) {
@@ -717,6 +719,10 @@ public class WhirlpoolWallet {
 
     // default value
     utxoConfig = new WhirlpoolUtxoConfig(config.getMixsTarget());
+    if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())) {
+      // POSTMIX was already mixed once (at least)
+      utxoConfig.incrementMixsDone();
+    }
     setUtxoConfig(utxoConfig, utxo.tx_hash, utxo.tx_output_n);
     return utxoConfig;
   }

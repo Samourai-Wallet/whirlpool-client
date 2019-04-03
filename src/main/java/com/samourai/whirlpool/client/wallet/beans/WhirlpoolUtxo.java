@@ -124,7 +124,7 @@ public class WhirlpoolUtxo {
   }
 
   public WhirlpoolUtxoConfig getUtxoConfig() {
-    return wallet.getUtxoConfig(getUtxo());
+    return wallet.getUtxoConfig(this);
   }
 
   @Override
