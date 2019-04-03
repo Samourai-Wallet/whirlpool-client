@@ -10,6 +10,10 @@ public interface MixDialogListener {
 
   void onConnected();
 
+  void onConnectionFailWillRetry(int retryDelay);
+
+  void onConnectionLostWillRetry();
+
   RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse) throws Exception;
 
   ConfirmInputRequest confirmInput(

@@ -45,7 +45,7 @@ public class StompTransport {
               }
               listener.onTransportConnected(stompUsername);
             } else {
-              log.warn("IStompClient.onConnect: message ignored (done=true)");
+              log.info("IStompClient.onConnect: message ignored (done=true)");
             }
           }
         },
@@ -58,7 +58,7 @@ public class StompTransport {
               disconnect();
               listener.onTransportDisconnected(exception);
             } else {
-              log.warn("IStompClient.onDisconnect: message ignored (done=true)");
+              log.info("IStompClient.onDisconnect: message ignored (done=true)");
             }
           }
         });
@@ -118,6 +118,9 @@ public class StompTransport {
   }
 
   public void disconnect() {
+    if (log.isDebugEnabled()) {
+      log.debug("disconnect");
+    }
     this.done = true;
     try {
       stompClient.disconnect();

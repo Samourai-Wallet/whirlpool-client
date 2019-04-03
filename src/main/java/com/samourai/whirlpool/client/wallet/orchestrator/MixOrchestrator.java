@@ -111,7 +111,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     Collection<WhirlpoolUtxo> whirlpoolUtxos = findToMixByPriority(1);
     if (whirlpoolUtxos.isEmpty()) {
       if (log.isDebugEnabled()) {
-        log.debug("No queued utxo mixable now.");
+        log.debug("No additional queued utxo mixable now.");
       }
       return false;
     }

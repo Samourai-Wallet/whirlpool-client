@@ -130,6 +130,16 @@ public class MixClient {
       }
 
       @Override
+      public void onConnectionFailWillRetry(int retryDelay) {
+        listenerProgress(MixStep.CONNECTING);
+      }
+
+      @Override
+      public void onConnectionLostWillRetry() {
+        listenerProgress(MixStep.CONNECTING);
+      }
+
+      @Override
       public void onFail() {
         failAndExit();
       }
