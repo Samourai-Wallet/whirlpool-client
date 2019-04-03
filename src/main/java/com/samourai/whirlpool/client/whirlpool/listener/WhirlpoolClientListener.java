@@ -4,12 +4,9 @@ import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 
 public interface WhirlpoolClientListener {
-  void success(int nbMixs, MixSuccess mixSuccess);
+  void success(MixSuccess mixSuccess);
 
-  void fail(int currentMix, int nbMixs);
+  void fail();
 
-  void progress(
-      int currentMix, int nbMixs, MixStep step, String stepInfo, int stepNumber, int nbSteps);
-
-  void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess);
+  void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps);
 }

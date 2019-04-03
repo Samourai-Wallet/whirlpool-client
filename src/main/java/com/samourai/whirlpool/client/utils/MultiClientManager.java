@@ -20,17 +20,12 @@ public class MultiClientManager {
   }
 
   public synchronized MultiClientListener register(WhirlpoolClient whirlpoolClient) {
-    return register(whirlpoolClient, 0);
-  }
-
-  public synchronized MultiClientListener register(
-      WhirlpoolClient whirlpoolClient, int missedMixs) {
     int i = clients.size() + 1;
     if (log.isDebugEnabled()) {
       log.debug("Register client#" + i);
     }
     ((WhirlpoolClientImpl) whirlpoolClient).setLogPrefix("cli#" + i);
-    MultiClientListener listener = new MultiClientListener(this, missedMixs);
+    MultiClientListener listener = new MultiClientListener(this);
     listener.setLogPrefix("cli#" + i);
     this.clients.add(whirlpoolClient);
     this.listeners.add(listener);
@@ -46,16 +41,16 @@ public class MultiClientManager {
   }
 
   /** @return true when success, false when failed */
-  public synchronized boolean waitDone(int currentMix, int nbSuccessExpected) {
+  public synchronized boolean waitDone(int nbSuccessExpected) {
     do {
-      if (isDone(currentMix, nbSuccessExpected)) {
-        return (getNbSuccess(currentMix) != null);
+      if (isDone(nbSuccessExpected)) {
+        return (getNbSuccess() != null);
       }
 
       // will be notified by listeners to wakeup
       try {
         if (log.isDebugEnabled()) {
-          Integer nbSuccess = getNbSuccess(currentMix);
+          Integer nbSuccess = getNbSuccess();
           log.debug("waitDone... (nbSuccess=" + nbSuccess + "/" + nbSuccessExpected + ")");
         }
         wait();
@@ -66,21 +61,21 @@ public class MultiClientManager {
 
   /** @return true when success, false when failed */
   public synchronized boolean waitDone() {
-    return waitDone(1, clients.size());
+    return waitDone(clients.size());
   }
 
   public boolean isDone() {
-    return isDone(1, clients.size());
+    return isDone(clients.size());
   }
 
-  public boolean isDone(int currentMix, int nbSuccessExpected) {
-    Integer nbSuccess = getNbSuccess(currentMix);
+  public boolean isDone(int nbSuccessExpected) {
+    Integer nbSuccess = getNbSuccess();
     return (nbSuccess == null || nbSuccess >= nbSuccessExpected);
   }
 
-  protected void debugClients(int currentMix) {
+  protected void debugClients() {
     if (log.isDebugEnabled()) {
-      log.debug("%%% debugging clients states for mix #" + currentMix + "... %%%");
+      log.debug("%%% debugging clients states... %%%");
       int i = 0;
       for (WhirlpoolClient whirlpoolClient : clients) {
         if (whirlpoolClient != null) {
@@ -89,9 +84,9 @@ public class MultiClientManager {
               "Client#"
                   + i
                   + ": mixStatus="
-                  + listener.getMixStatus(currentMix)
+                  + listener.getMixStatus()
                   + ", mixStep="
-                  + listener.getMixStep(currentMix));
+                  + listener.getMixStep());
         } else {
           log.debug("Client#" + i + ": NULL");
         }
@@ -105,7 +100,7 @@ public class MultiClientManager {
   }
 
   /** @return number of success clients, or null=1 client failed */
-  public Integer getNbSuccess(int currentMix) {
+  public Integer getNbSuccess() {
     if (clients.isEmpty()) {
       return 0;
     }
@@ -115,22 +110,20 @@ public class MultiClientManager {
       MultiClientListener listener = listeners.get(i);
       if (listener == null) {
         // client not initialized => not done
-        log.debug("Client#" + i + "[" + currentMix + "]: null");
+        log.debug("Client#" + i + ": null");
       } else {
         log.debug(
             "Client#"
                 + i
-                + "["
-                + currentMix
-                + "]: mixStatus="
-                + listener.getMixStatus(currentMix)
+                + ": mixStatus="
+                + listener.getMixStatus()
                 + ", mixStep="
-                + listener.getMixStep(currentMix));
-        if (MixStatus.FAIL.equals(listener.getMixStatus(currentMix))) {
+                + listener.getMixStep());
+        if (MixStatus.FAIL.equals(listener.getMixStatus())) {
           // client failed
           return null;
         }
-        if (MixStatus.SUCCESS.equals(listener.getMixStatus(currentMix))) {
+        if (MixStatus.SUCCESS.equals(listener.getMixStatus())) {
           // client success
           nbSuccess++;
         }

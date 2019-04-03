@@ -8,6 +8,7 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.MixOrchestratorState;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoPriorityComparator;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
@@ -260,30 +261,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     WhirlpoolClientListener utxoListener =
         new WhirlpoolClientListener() {
           @Override
-          public void success(int nbMixs, MixSuccess mixSuccess) {
-            whirlpoolWallet.clearCache(whirlpoolUtxo.getAccount());
-            whirlpoolWallet.clearCache(WhirlpoolAccount.POSTMIX);
-          }
-
-          @Override
-          public void fail(int currentMix, int nbMixs) {
-            mixing.remove(key);
-
-            // idle => notify orchestrator
-            notifyOrchestrator();
-          }
-
-          @Override
-          public void progress(
-              int currentMix,
-              int nbMixs,
-              MixStep step,
-              String stepInfo,
-              int stepNumber,
-              int nbSteps) {}
-
-          @Override
-          public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
+          public void success(MixSuccess mixSuccess) {
             whirlpoolWallet.clearCache(whirlpoolUtxo.getAccount());
             whirlpoolWallet.clearCache(WhirlpoolAccount.POSTMIX);
             mixing.remove(key);
@@ -291,6 +269,17 @@ public class MixOrchestrator extends AbstractOrchestrator {
             // idle => notify orchestrator
             notifyOrchestrator();
           }
+
+          @Override
+          public void fail() {
+            mixing.remove(key);
+
+            // idle => notify orchestrator
+            notifyOrchestrator();
+          }
+
+          @Override
+          public void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps) {}
         };
 
     // start mix
@@ -303,17 +292,17 @@ public class MixOrchestrator extends AbstractOrchestrator {
       log.debug("onUtxoDetected: " + whirlpoolUtxo);
     }
     // enqueue unfinished POSTMIX utxos
+    WhirlpoolUtxoConfig utxoConfig = whirlpoolUtxo.getUtxoConfig();
     if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())
         && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())
-        && whirlpoolUtxo.getUtxoConfig().getMixsDone()
-            < whirlpoolUtxo.getUtxoConfig().getMixsTarget()
-        && whirlpoolUtxo.getUtxoConfig().getPoolId() != null) {
+        && utxoConfig.getMixsDone() < utxoConfig.getMixsTarget()
+        && utxoConfig.getPoolId() != null) {
 
       log.info(
           " o Mix: new POSTMIX utxo detected, adding to mixQueue: "
               + whirlpoolUtxo
               + " ; "
-              + whirlpoolUtxo.getUtxoConfig());
+              + utxoConfig);
       try {
         whirlpoolWallet.mixQueue(whirlpoolUtxo);
       } catch (Exception e) {

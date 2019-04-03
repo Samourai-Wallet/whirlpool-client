@@ -25,12 +25,10 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
 
   private WhirlpoolClientConfig config;
 
-  private int mixs;
-  private int doneMixs;
   private boolean done;
   private String logPrefix;
 
-  private List<MixClient> mixClients;
+  private MixClient mixClient;
   private Thread mixThread;
   private WhirlpoolClientListener listener;
 
@@ -96,11 +94,8 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
   }
 
   @Override
-  public void whirlpool(final MixParams mixParams, int mixs, WhirlpoolClientListener listener) {
-    this.mixs = mixs;
+  public void whirlpool(final MixParams mixParams, WhirlpoolClientListener listener) {
     this.listener = listener;
-    this.doneMixs = 0;
-    this.mixClients = new ArrayList<MixClient>();
 
     this.mixThread =
         new Thread(
@@ -119,49 +114,34 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     this.mixThread.start();
   }
 
-  private MixClient runClient(MixParams mixParams) {
+  private void runClient(MixParams mixParams) {
     MixClientListener mixListener = computeMixListener();
 
-    MixClient mixClient = new MixClient(config);
+    mixClient = new MixClient(config);
     if (logPrefix != null) {
-      int mix = this.mixClients.size();
-      mixClient.setLogPrefix(logPrefix + ":" + (mix + 1));
+      mixClient.setLogPrefix(logPrefix);
     }
     mixClient.whirlpool(mixParams, mixListener);
-    this.mixClients.add(mixClient);
-    return mixClient;
-  }
-
-  private MixClient getLastWhirlpoolClient() {
-    return mixClients.get(mixClients.size() - 1);
   }
 
   private MixClientListener computeMixListener() {
     return new MixClientListener() {
       @Override
       public void success(MixSuccess mixSuccess, MixParams nextMixParams) {
-        listener.mixSuccess(doneMixs + 1, mixs, mixSuccess);
-
-        doneMixs++;
-        if (doneMixs == mixs) {
-          // all mixs done
-          listener.success(mixs, mixSuccess);
-          endMixThread();
-        } else {
-          // go to next mix
-          runClient(nextMixParams);
-        }
+        // done
+        listener.success(mixSuccess);
+        endMixThread();
       }
 
       @Override
       public void fail() {
-        listener.fail(doneMixs + 1, mixs);
+        listener.fail();
         endMixThread();
       }
 
       @Override
       public void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps) {
-        listener.progress(doneMixs + 1, mixs, step, stepInfo, stepNumber, nbSteps);
+        listener.progress(step, stepInfo, stepNumber, nbSteps);
       }
     };
   }
@@ -175,7 +155,6 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
 
   @Override
   public void exit() {
-    MixClient mixClient = getLastWhirlpoolClient();
     if (mixClient != null) {
       mixClient.exit();
     }
@@ -185,7 +164,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     this.logPrefix = logPrefix;
   }
 
-  public MixClient getMixClient(int mix) {
-    return mixClients.get(mix - 1);
+  public MixClient getMixClient() {
+    return mixClient;
   }
 }

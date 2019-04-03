@@ -19,10 +19,9 @@ public interface WhirlpoolClient {
    * Connect to a pool and mix.
    *
    * @param mixParams mix parameters
-   * @param mixs number of mix to achieve
    * @param listener listener to get notified of mix progress
    */
-  void whirlpool(MixParams mixParams, int mixs, WhirlpoolClientListener listener);
+  void whirlpool(MixParams mixParams, WhirlpoolClientListener listener);
 
   /** Abort mix. */
   void exit();

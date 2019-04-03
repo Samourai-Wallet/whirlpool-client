@@ -21,28 +21,29 @@ public class LoggingWhirlpoolClientListener extends AbstractWhirlpoolClientListe
     log = ClientUtils.prefixLogger(log, logPrefix);
   }
 
-  private String format(int currentMix, int nbMixs, String log) {
-    return " - [MIX " + currentMix + "/" + nbMixs + "] " + log;
+  private String format(String log) {
+    return " - [MIX] " + log;
   }
 
   @Override
-  public void success(int nbMixs, MixSuccess mixSuccess) {
-    super.success(nbMixs, mixSuccess);
+  public void success(MixSuccess mixSuccess) {
+    super.success(mixSuccess);
     logInfo("⣿ WHIRLPOOL SUCCESS ⣿");
+
+    logInfo(format("⣿ WHIRLPOOL SUCCESS ⣿ txid: " + mixSuccess.getReceiveUtxo().getHash()));
   }
 
   @Override
-  public void fail(int currentMix, int nbMixs) {
-    super.fail(currentMix, nbMixs);
-    logError(format(currentMix, nbMixs, "⣿ WHIRLPOOL FAILED ⣿ Check logs for errors."));
+  public void fail() {
+    super.fail();
+    logError(format("⣿ WHIRLPOOL FAILED ⣿ Check logs for errors."));
   }
 
   @Override
-  public void progress(
-      int currentMix, int nbMixs, MixStep step, String stepInfo, int stepNumber, int nbSteps) {
-    super.progress(currentMix, nbMixs, step, stepInfo, stepNumber, nbSteps);
+  public void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps) {
+    super.progress(step, stepInfo, stepNumber, nbSteps);
     String asciiProgress = renderProgress(stepNumber, nbSteps);
-    logInfo(format(currentMix, nbMixs, asciiProgress + " " + step + " : " + stepInfo));
+    logInfo(format(asciiProgress + " " + step + " : " + stepInfo));
   }
 
   private String renderProgress(int stepNumber, int nbSteps) {
@@ -52,19 +53,6 @@ public class LoggingWhirlpoolClientListener extends AbstractWhirlpoolClientListe
     }
     progress.append(" (" + stepNumber + "/" + nbSteps + ")");
     return progress.toString();
-  }
-
-  @Override
-  public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
-    super.mixSuccess(currentMix, nbMixs, mixSuccess);
-    logInfo(
-        format(
-            currentMix,
-            nbMixs,
-            "SUCCESS - Funds sent to "
-                + mixSuccess.getReceiveAddress()
-                + ", txid: "
-                + mixSuccess.getReceiveUtxo().getHash()));
   }
 
   protected void logInfo(String message) {

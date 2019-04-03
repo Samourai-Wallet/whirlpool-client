@@ -610,9 +610,10 @@ public class WhirlpoolWallet {
     WhirlpoolClientListener loggingListener = new LoggingWhirlpoolClientListener(notifyListener);
     WhirlpoolClientListener listener =
         new UtxoWhirlpoolClientListener(loggingListener, whirlpoolUtxo) {
+
           @Override
-          public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
-            super.mixSuccess(currentMix, nbMixs, mixSuccess);
+          public void success(MixSuccess mixSuccess) {
+            super.success(mixSuccess);
 
             // preserve utxo config
             Utxo receiveUtxo = mixSuccess.getReceiveUtxo();
@@ -622,12 +623,11 @@ public class WhirlpoolWallet {
                 (int) receiveUtxo.getIndex());
           }
         };
-    int nbMixs = 1;
 
     // start mixing (whirlpoolClient will start a new thread)
     MixParams mixParams = computeMixParams(whirlpoolUtxo, pool);
     final WhirlpoolClient mixClient = config.newClient();
-    mixClient.whirlpool(mixParams, nbMixs, listener);
+    mixClient.whirlpool(mixParams, listener);
 
     return mixClient;
   }

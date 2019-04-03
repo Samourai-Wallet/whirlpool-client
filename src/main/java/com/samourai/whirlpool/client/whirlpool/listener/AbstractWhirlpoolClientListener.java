@@ -15,31 +15,23 @@ public abstract class AbstractWhirlpoolClientListener implements WhirlpoolClient
   }
 
   @Override
-  public void success(int nbMixs, MixSuccess mixSuccess) {
+  public void success(MixSuccess mixSuccess) {
     if (notifyListener != null) {
-      notifyListener.success(nbMixs, mixSuccess);
+      notifyListener.success(mixSuccess);
     }
   }
 
   @Override
-  public void fail(int currentMix, int nbMixs) {
+  public void fail() {
     if (notifyListener != null) {
-      notifyListener.fail(currentMix, nbMixs);
+      notifyListener.fail();
     }
   }
 
   @Override
-  public void progress(
-      int currentMix, int nbMixs, MixStep step, String stepInfo, int stepNumber, int nbSteps) {
+  public void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps) {
     if (notifyListener != null) {
-      notifyListener.progress(currentMix, nbMixs, step, stepInfo, stepNumber, nbSteps);
-    }
-  }
-
-  @Override
-  public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
-    if (notifyListener != null) {
-      notifyListener.mixSuccess(currentMix, nbMixs, mixSuccess);
+      notifyListener.progress(step, stepInfo, stepNumber, nbSteps);
     }
   }
 }

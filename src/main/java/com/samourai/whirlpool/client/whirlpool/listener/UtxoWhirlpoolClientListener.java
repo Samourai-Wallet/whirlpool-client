@@ -20,32 +20,26 @@ public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener
   }
 
   @Override
-  public void success(int nbMixs, MixSuccess mixSuccess) {
-    super.success(nbMixs, mixSuccess);
+  public void success(MixSuccess mixSuccess) {
+    super.success(mixSuccess);
+    whirlpoolUtxo.setMessage("txid: " + mixSuccess.getReceiveUtxo().getHash());
+    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS, 100);
+    whirlpoolUtxo.getUtxoConfig().incrementMixsDone();
   }
 
   @Override
-  public void fail(int currentMix, int nbMixs) {
-    super.fail(currentMix, nbMixs);
+  public void fail() {
+    super.fail();
     whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_FAILED);
     whirlpoolUtxo.setError("Mix failed");
   }
 
   @Override
-  public void progress(
-      int currentMix, int nbMixs, MixStep step, String stepInfo, int stepNumber, int nbSteps) {
-    super.progress(currentMix, nbMixs, step, stepInfo, stepNumber, nbSteps);
+  public void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps) {
+    super.progress(step, stepInfo, stepNumber, nbSteps);
     whirlpoolUtxo.setMessage(stepInfo);
 
     int progressPercent = Math.round(stepNumber * 100 / nbSteps);
     whirlpoolUtxo.setProgress(progressPercent, step.name());
-  }
-
-  @Override
-  public void mixSuccess(int currentMix, int nbMixs, MixSuccess mixSuccess) {
-    super.mixSuccess(currentMix, nbMixs, mixSuccess);
-    whirlpoolUtxo.setMessage("txid: " + mixSuccess.getReceiveUtxo().getHash());
-    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS, 100);
-    whirlpoolUtxo.getUtxoConfig().incrementMixsDone();
   }
 }
