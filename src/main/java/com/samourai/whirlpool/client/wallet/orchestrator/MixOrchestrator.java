@@ -315,9 +315,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
         };
 
     // start mix
-    if (log.isDebugEnabled()) {
-      log.debug("...startmix...");
-    }
     WhirlpoolClient whirlpoolClient = whirlpoolWallet.mix(whirlpoolUtxo, utxoListener);
     Mixing mixing = new Mixing(whirlpoolUtxo, utxoListener, whirlpoolClient);
     addMixing(mixing);
