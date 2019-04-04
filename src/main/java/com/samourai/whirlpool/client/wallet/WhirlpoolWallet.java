@@ -844,4 +844,8 @@ public class WhirlpoolWallet {
   public void notifyError(String message) {
     log.error(message);
   }
+
+  public boolean hasMoreMixableOrUnconfirmed() {
+    return mixOrchestrator.hasMoreMixableOrUnconfirmed();
+  }
 }

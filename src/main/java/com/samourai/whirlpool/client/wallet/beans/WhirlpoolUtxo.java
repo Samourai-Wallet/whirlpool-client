@@ -5,12 +5,10 @@ import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 
 public class WhirlpoolUtxo {
-  private static final int MIX_TARGET_DEFAULT = 1;
-  private static final int PRIORITY_DEFAULT = 5;
-
   private UnspentOutput utxo;
   private WhirlpoolAccount account;
   private WhirlpoolUtxoStatus status;
+  private MixableStatus mixableStatus;
   private WhirlpoolWallet wallet;
 
   private Integer progressPercent;
@@ -27,6 +25,7 @@ public class WhirlpoolUtxo {
     this.utxo = utxo;
     this.account = account;
     this.status = status;
+    this.mixableStatus = null;
     this.wallet = wallet;
 
     this.progressPercent = null;
@@ -111,6 +110,14 @@ public class WhirlpoolUtxo {
     setStatus(status, progressPercent, null);
   }
 
+  public MixableStatus getMixableStatus() {
+    return mixableStatus;
+  }
+
+  public void setMixableStatus(MixableStatus mixableStatus) {
+    this.mixableStatus = mixableStatus;
+  }
+
   public void setUtxo(UnspentOutput utxo) {
     this.utxo = utxo;
   }
@@ -142,6 +149,8 @@ public class WhirlpoolUtxo {
         + ", status="
         + status
         + (!progressStr.isEmpty() ? " (" + progressStr + ")" : "")
+        + ", mixableStatus="
+        + (mixableStatus != null ? mixableStatus : "null")
         + (hasMessage() ? ", message=" + message : "")
         + (hasError() ? ", error=" + error : "")
         + ", utxo="
