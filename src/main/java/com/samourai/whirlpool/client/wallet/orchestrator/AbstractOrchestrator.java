@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractOrchestrator {
   private Logger log;
   private final int LOOP_DELAY;
+  private final int START_DELAY;
 
   private boolean started;
   protected Thread myThread;
@@ -13,8 +14,13 @@ public abstract class AbstractOrchestrator {
   private long lastRun;
 
   public AbstractOrchestrator(int loopDelay) {
+    this(loopDelay, 0);
+  }
+
+  public AbstractOrchestrator(int loopDelay, int startDelay) {
     this.log = LoggerFactory.getLogger(getClass().getName());
     this.LOOP_DELAY = loopDelay;
+    this.START_DELAY = startDelay;
     resetOrchestrator();
   }
 
@@ -37,6 +43,9 @@ public abstract class AbstractOrchestrator {
             new Runnable() {
               @Override
               public void run() {
+                if (START_DELAY > 0) {
+                  doSleep(START_DELAY);
+                }
                 while (started) {
                   runOrchestrator();
 

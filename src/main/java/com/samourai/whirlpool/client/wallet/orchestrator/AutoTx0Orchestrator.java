@@ -13,14 +13,21 @@ import org.slf4j.LoggerFactory;
 
 public class AutoTx0Orchestrator extends AbstractOrchestrator {
   private static final Logger log = LoggerFactory.getLogger(AutoTx0Orchestrator.class);
+  // start delay to make sure UTXOS are refreshed when starting
+  private static final int START_DELAY = 15000;
 
   private WhirlpoolWallet whirlpoolWallet;
   private int tx0Delay;
 
   public AutoTx0Orchestrator(int loopDelay, WhirlpoolWallet whirlpoolWallet, int tx0Delay) {
-    super(loopDelay);
+    super(loopDelay, START_DELAY);
     this.whirlpoolWallet = whirlpoolWallet;
     this.tx0Delay = tx0Delay;
+  }
+
+  @Override
+  protected void resetOrchestrator() {
+    super.resetOrchestrator();
   }
 
   @Override
