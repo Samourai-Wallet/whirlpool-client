@@ -676,6 +676,9 @@ public class WhirlpoolWallet {
 
   public Collection<WhirlpoolUtxo> getUtxos(boolean clearCache, WhirlpoolAccount... accounts)
       throws Exception {
+    if (accounts.length == 0) {
+      accounts = WhirlpoolAccount.values();
+    }
     return cacheData.getUtxos(clearCache, accounts);
   }
 

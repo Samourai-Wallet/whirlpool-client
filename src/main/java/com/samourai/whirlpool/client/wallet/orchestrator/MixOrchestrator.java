@@ -19,7 +19,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java8.util.function.Consumer;
 import java8.util.function.Function;
 import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
@@ -234,16 +233,17 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   private void refreshMixableStatus() {
+    if (log.isDebugEnabled()) {
+      log.debug("refreshMixableStatus");
+    }
     try {
-      StreamSupport.stream(whirlpoolWallet.getUtxos(false))
-          .forEach(
-              new Consumer<WhirlpoolUtxo>() {
-                @Override
-                public void accept(WhirlpoolUtxo whirlpoolUtxo) {
-                  MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
-                  whirlpoolUtxo.setMixableStatus(mixableStatus);
-                }
-              });
+      for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolWallet.getUtxos(false)) {
+        MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
+        whirlpoolUtxo.setMixableStatus(mixableStatus);
+        if (log.isDebugEnabled()) {
+          log.debug(whirlpoolUtxo.getUtxo().tx_hash + ": " + mixableStatus);
+        }
+      }
     } catch (Exception e) {
       log.error("", e);
     }
@@ -293,7 +293,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   private synchronized void mix(final WhirlpoolUtxo whirlpoolUtxo) throws Exception {
-    final String key = whirlpoolUtxo.getUtxo().toKey();
     WhirlpoolClientListener utxoListener =
         new WhirlpoolClientListener() {
           @Override
@@ -319,6 +318,9 @@ public class MixOrchestrator extends AbstractOrchestrator {
         };
 
     // start mix
+    if (log.isDebugEnabled()) {
+      log.debug("...startmix...");
+    }
     WhirlpoolClient whirlpoolClient = whirlpoolWallet.mix(whirlpoolUtxo, utxoListener);
     Mixing mixing = new Mixing(whirlpoolUtxo, utxoListener, whirlpoolClient);
     addMixing(mixing);
@@ -332,6 +334,9 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   private void addMixing(Mixing mixingToAdd) {
+    if (log.isDebugEnabled()) {
+      log.debug("addMixing: " + mixingToAdd.getUtxo());
+    }
     WhirlpoolUtxo whirlpoolUtxo = mixingToAdd.getUtxo();
     String key = whirlpoolUtxo.getUtxo().toKey();
     mixing.put(key, mixingToAdd);
