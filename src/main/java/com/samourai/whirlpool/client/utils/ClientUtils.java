@@ -9,6 +9,7 @@ import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.wallet.util.XORUtil;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import java.security.KeyFactory;
@@ -16,8 +17,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Iterator;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.Transaction;
@@ -118,12 +118,46 @@ public class ClientUtils {
     log.info("\n" + sb.toString());
   }
 
-  public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> whirlpoolUtxos) {
-    List<UnspentOutput> utxos = new LinkedList<UnspentOutput>();
-    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
-      utxos.add(whirlpoolUtxo.getUtxo());
+  public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos) {
+    String lineFormat = "| %10s | %8s | %68s | %45s | %14s | %12s | %12s | %6s |\n";
+    StringBuilder sb = new StringBuilder();
+    sb.append(
+        String.format(
+            lineFormat,
+            "BALANCE",
+            "CONFIRMS",
+            "UTXO",
+            "ADDRESS",
+            "PATH",
+            "STATUS",
+            "MIXABLE",
+            "POOL",
+            "MIXS"));
+    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", "", "", "", ""));
+    Iterator var3 = utxos.iterator();
+
+    while (var3.hasNext()) {
+      WhirlpoolUtxo whirlpoolUtxo = (WhirlpoolUtxo) var3.next();
+      WhirlpoolUtxoConfig utxoConfig = whirlpoolUtxo.getUtxoConfig();
+      UnspentOutput o = whirlpoolUtxo.getUtxo();
+      String utxo = o.tx_hash + ":" + o.tx_output_n;
+      String mixableStatusName =
+          whirlpoolUtxo.getMixableStatus() != null ? whirlpoolUtxo.getMixableStatus().name() : "-";
+      sb.append(
+          String.format(
+              lineFormat,
+              ClientUtils.satToBtc(o.value),
+              o.confirmations,
+              utxo,
+              o.addr,
+              o.getPath(),
+              whirlpoolUtxo.getStatus().name(),
+              mixableStatusName,
+              utxoConfig.getPoolId() != null ? utxoConfig.getPoolId() : "-",
+              utxoConfig.getMixsDone() + "/" + utxoConfig.getMixsTarget()));
     }
-    logUtxos(utxos);
+
+    log.info("\n" + sb.toString());
   }
 
   public static double satToBtc(long sat) {

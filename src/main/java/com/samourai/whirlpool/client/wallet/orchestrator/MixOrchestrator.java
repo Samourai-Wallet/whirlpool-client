@@ -233,7 +233,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
     // exclude hashs of utxos currently mixing
     if (excludedHashs.contains(whirlpoolUtxo.getUtxo().tx_hash)) {
-      return MixableStatus.HASH_ALREADY_MIXING;
+      return MixableStatus.HASH_MIXING;
     }
 
     // ok

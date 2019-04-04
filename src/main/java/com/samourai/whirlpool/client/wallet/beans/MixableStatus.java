@@ -4,6 +4,6 @@ public enum MixableStatus {
   MIXABLE,
 
   UNCONFIRMED,
-  HASH_ALREADY_MIXING,
+  HASH_MIXING,
   NO_POOL;
 }
