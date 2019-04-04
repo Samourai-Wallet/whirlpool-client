@@ -240,9 +240,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
       for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolWallet.getUtxos(false)) {
         MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
         whirlpoolUtxo.setMixableStatus(mixableStatus);
-        if (log.isDebugEnabled()) {
-          log.debug(whirlpoolUtxo.getUtxo().tx_hash + ": " + mixableStatus);
-        }
       }
     } catch (Exception e) {
       log.error("", e);
