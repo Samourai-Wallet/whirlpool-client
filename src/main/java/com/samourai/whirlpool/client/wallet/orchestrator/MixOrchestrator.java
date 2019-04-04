@@ -36,6 +36,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
   private int clientDelay;
 
   private ConcurrentHashMap<String, Mixing> mixing;
+  private Set<String> mixingHashs;
 
   public MixOrchestrator(
       int loopDelay, WhirlpoolWallet whirlpoolWallet, int maxClients, int clientDelay) {
@@ -49,6 +50,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
   protected void resetOrchestrator() {
     super.resetOrchestrator();
     this.mixing = new ConcurrentHashMap<String, Mixing>();
+    this.mixingHashs = new HashSet<String>();
   }
 
   @Override
@@ -65,6 +67,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
       oneMixing.getWhirlpoolClient().exit();
     }
     mixing.clear();
+    mixingHashs.clear();
   }
 
   @Override
@@ -183,9 +186,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   private WhirlpoolUtxo getQueueByMixableStatus(MixableStatus... filterMixableStatuses) {
-    // exclude hashs of utxos currently mixing
-    Set<String> excludedHashs = computeMixableExcludedHashs();
-
     // find queued
     Collection<WhirlpoolUtxo> toMixByPriority =
         getQueue()
@@ -194,7 +194,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
     for (WhirlpoolUtxo whirlpoolUtxo : toMixByPriority) {
       // recompute mixableStatus
-      MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo, excludedHashs);
+      MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
       whirlpoolUtxo.setMixableStatus(mixableStatus);
 
       // check mixableStatus
@@ -205,22 +205,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     return null;
   }
 
-  private Set<String> computeMixableExcludedHashs() {
-    // exclude hashs of utxos currently mixing
-    Set<String> excludedHashs = new HashSet<String>();
-    for (Mixing m : mixing.values()) {
-      excludedHashs.add(m.getUtxo().getUtxo().tx_hash);
-    }
-    return excludedHashs;
-  }
-
   private MixableStatus computeMixableStatus(WhirlpoolUtxo whirlpoolUtxo) {
-    Set<String> excludedHashs = computeMixableExcludedHashs();
-    return computeMixableStatus(whirlpoolUtxo, excludedHashs);
-  }
-
-  private MixableStatus computeMixableStatus(
-      WhirlpoolUtxo whirlpoolUtxo, Set<String> excludedHashs) {
 
     // check pool
     if (whirlpoolUtxo.getUtxoConfig().getPoolId() == null) {
@@ -238,7 +223,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
       if (!mixing.contains(key)) {
 
         // exclude hashs of utxos currently mixing
-        if (excludedHashs.contains(whirlpoolUtxo.getUtxo().tx_hash)) {
+        if (mixingHashs.contains(whirlpoolUtxo.getUtxo().tx_hash)) {
           return MixableStatus.HASH_MIXING;
         }
       }
@@ -248,18 +233,20 @@ public class MixOrchestrator extends AbstractOrchestrator {
     return MixableStatus.MIXABLE;
   }
 
-  private void refreshMixableStatus() throws Exception {
-    final Set<String> excludedHashs = computeMixableExcludedHashs();
-
-    StreamSupport.stream(whirlpoolWallet.getUtxos(false))
-        .forEach(
-            new Consumer<WhirlpoolUtxo>() {
-              @Override
-              public void accept(WhirlpoolUtxo whirlpoolUtxo) {
-                MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo, excludedHashs);
-                whirlpoolUtxo.setMixableStatus(mixableStatus);
-              }
-            });
+  private void refreshMixableStatus() {
+    try {
+      StreamSupport.stream(whirlpoolWallet.getUtxos(false))
+          .forEach(
+              new Consumer<WhirlpoolUtxo>() {
+                @Override
+                public void accept(WhirlpoolUtxo whirlpoolUtxo) {
+                  MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
+                  whirlpoolUtxo.setMixableStatus(mixableStatus);
+                }
+              });
+    } catch (Exception e) {
+      log.error("", e);
+    }
   }
 
   public void mixQueue(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
@@ -301,7 +288,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
       // already mixing
       myMixing.getWhirlpoolClient().exit();
     }
-    mixing.remove(key);
+    removeMixing(whirlpoolUtxo);
     whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.READY);
   }
 
@@ -313,7 +300,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
           public void success(MixSuccess mixSuccess) {
             whirlpoolWallet.clearCache(whirlpoolUtxo.getAccount());
             whirlpoolWallet.clearCache(WhirlpoolAccount.POSTMIX);
-            mixing.remove(key);
+            removeMixing(whirlpoolUtxo);
 
             // idle => notify orchestrator
             notifyOrchestrator();
@@ -321,7 +308,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
           @Override
           public void fail() {
-            mixing.remove(key);
+            removeMixing(whirlpoolUtxo);
 
             // idle => notify orchestrator
             notifyOrchestrator();
@@ -333,7 +320,23 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
     // start mix
     WhirlpoolClient whirlpoolClient = whirlpoolWallet.mix(whirlpoolUtxo, utxoListener);
-    mixing.put(key, new Mixing(whirlpoolUtxo, utxoListener, whirlpoolClient));
+    Mixing mixing = new Mixing(whirlpoolUtxo, utxoListener, whirlpoolClient);
+    addMixing(mixing);
+  }
+
+  private void removeMixing(WhirlpoolUtxo whirlpoolUtxo) {
+    String key = whirlpoolUtxo.getUtxo().toKey();
+    mixing.remove(key);
+    mixingHashs.remove(whirlpoolUtxo.getUtxo().tx_hash);
+    refreshMixableStatus();
+  }
+
+  private void addMixing(Mixing mixingToAdd) {
+    WhirlpoolUtxo whirlpoolUtxo = mixingToAdd.getUtxo();
+    String key = whirlpoolUtxo.getUtxo().toKey();
+    mixing.put(key, mixingToAdd);
+    mixingHashs.add(whirlpoolUtxo.getUtxo().tx_hash);
+    refreshMixableStatus();
   }
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
