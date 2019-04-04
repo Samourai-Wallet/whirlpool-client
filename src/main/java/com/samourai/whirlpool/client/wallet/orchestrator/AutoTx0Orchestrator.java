@@ -58,7 +58,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
 
           // make sure that mixOrchestrator has no more to mix
           MixOrchestratorState mixState = whirlpoolWallet.getState().getMixState();
-          if (mixState.getNbMixing() == 0 && !whirlpoolWallet.hasMoreMixableOrUnconfirmed()) {
+          if (mixState.getNbIdle() > 0 && !whirlpoolWallet.hasMoreMixableOrUnconfirmed()) {
             // wait tx0Delay before retry
             setLastRun();
 

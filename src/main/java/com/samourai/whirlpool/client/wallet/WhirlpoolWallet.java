@@ -69,7 +69,7 @@ public class WhirlpoolWallet {
   private WhirlpoolWalletCacheData cacheData;
 
   private PersistOrchestrator persistOrchestrator;
-  private MixOrchestrator mixOrchestrator;
+  protected MixOrchestrator mixOrchestrator;
   private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
   private Optional<AutoMixOrchestrator> autoMixOrchestrator;
 
