@@ -221,6 +221,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
   private MixableStatus computeMixableStatus(
       WhirlpoolUtxo whirlpoolUtxo, Set<String> excludedHashs) {
+
     // check pool
     if (whirlpoolUtxo.getUtxoConfig().getPoolId() == null) {
       return MixableStatus.NO_POOL;
@@ -231,9 +232,16 @@ public class MixOrchestrator extends AbstractOrchestrator {
       return MixableStatus.UNCONFIRMED;
     }
 
-    // exclude hashs of utxos currently mixing
-    if (excludedHashs.contains(whirlpoolUtxo.getUtxo().tx_hash)) {
-      return MixableStatus.HASH_MIXING;
+    if (!WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())) {
+      // already mixing?
+      final String key = whirlpoolUtxo.getUtxo().toKey();
+      if (!mixing.contains(key)) {
+
+        // exclude hashs of utxos currently mixing
+        if (excludedHashs.contains(whirlpoolUtxo.getUtxo().tx_hash)) {
+          return MixableStatus.HASH_MIXING;
+        }
+      }
     }
 
     // ok
@@ -243,8 +251,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
   private void refreshMixableStatus() throws Exception {
     final Set<String> excludedHashs = computeMixableExcludedHashs();
 
-    StreamSupport.stream(
-            whirlpoolWallet.getUtxos(false, WhirlpoolAccount.PREMIX, WhirlpoolAccount.POSTMIX))
+    StreamSupport.stream(whirlpoolWallet.getUtxos(false))
         .forEach(
             new Consumer<WhirlpoolUtxo>() {
               @Override
@@ -330,12 +337,9 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
-
-    if (!WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())) {
-      // set mixableStatus
-      MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
-      whirlpoolUtxo.setMixableStatus(mixableStatus);
-    }
+    // set mixableStatus
+    MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
+    whirlpoolUtxo.setMixableStatus(mixableStatus);
 
     WhirlpoolUtxoConfig utxoConfig = whirlpoolUtxo.getUtxoConfig();
 
