@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.Samourai-Wallet</groupId>
     <artifactId>whirlpool-client</artifactId>
-    <version>0.0.8</version>
+    <version>develop-SNAPSHOT</version>
     <name>whirlpool-client</name>
     <properties>
         <maven.compiler.source>1.6</maven.compiler.source>
@@ -122,6 +122,6 @@
     </repositories>
     <scm>
         <connection>scm:git:https://github.com/Samourai-Wallet/whirlpool-client.git</connection>
-        <tag>0.0.8</tag>
+        <tag>HEAD</tag>
     </scm>
 </project>
