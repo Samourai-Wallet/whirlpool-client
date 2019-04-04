@@ -375,6 +375,9 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   public void onUtxoConfirmed(WhirlpoolUtxo whirlpoolUtxo) {
+    // refresh mixableStatus for unconfirmed utxos
+    refreshMixableStatus();
+
     // wakeup on confirmed PREMIX/POSTMIX
     if (WhirlpoolUtxoStatus.MIX_QUEUE.equals(whirlpoolUtxo.getStatus())
         && whirlpoolUtxo.getUtxo().confirmations >= WhirlpoolWallet.MIX_MIN_CONFIRMATIONS) {
