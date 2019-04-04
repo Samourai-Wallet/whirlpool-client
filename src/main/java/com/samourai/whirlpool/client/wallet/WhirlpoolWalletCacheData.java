@@ -17,10 +17,10 @@ import com.zeroleak.throwingsupplier.Throwing;
 import com.zeroleak.throwingsupplier.ThrowingSupplier;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java8.util.function.Consumer;
 import java8.util.stream.Collectors;
@@ -66,8 +66,9 @@ public class WhirlpoolWalletCacheData {
 
     // utxos
     this.utxos =
-        new HashMap<WhirlpoolAccount, Supplier<Throwing<Map<String, WhirlpoolUtxo>, Exception>>>();
-    this.previousUtxos = new HashMap<WhirlpoolAccount, Map<String, WhirlpoolUtxo>>();
+        new ConcurrentHashMap<
+            WhirlpoolAccount, Supplier<Throwing<Map<String, WhirlpoolUtxo>, Exception>>>();
+    this.previousUtxos = new ConcurrentHashMap<WhirlpoolAccount, Map<String, WhirlpoolUtxo>>();
     for (WhirlpoolAccount whirlpoolAccount : WhirlpoolAccount.values()) {
       clearUtxos(whirlpoolAccount);
     }
@@ -213,7 +214,8 @@ public class WhirlpoolWalletCacheData {
                     + " utxos found");
             // ClientUtils.logUtxos(fetchedUtxos);
           }
-          final Map<String, UnspentOutput> freshUtxos = new HashMap<String, UnspentOutput>();
+          final Map<String, UnspentOutput> freshUtxos =
+              new ConcurrentHashMap<String, UnspentOutput>();
           for (UnspentOutput utxo : fetchedUtxos) {
             freshUtxos.put(utxo.toKey(), utxo);
           }
@@ -221,7 +223,7 @@ public class WhirlpoolWalletCacheData {
           // replace utxos
           boolean isFirstFetch = false;
           if (previousUtxos.get(whirlpoolAccount) == null) {
-            previousUtxos.put(whirlpoolAccount, new HashMap<String, WhirlpoolUtxo>());
+            previousUtxos.put(whirlpoolAccount, new ConcurrentHashMap<String, WhirlpoolUtxo>());
             isFirstFetch = true;
           }
           Map<String, WhirlpoolUtxo> oldUtxos = previousUtxos.get(whirlpoolAccount);
@@ -234,7 +236,7 @@ public class WhirlpoolWalletCacheData {
         } catch (Exception e) {
           // exception
           log.error("Failed to fetch utxos for " + whirlpoolAccount, e);
-          return new HashMap();
+          return new ConcurrentHashMap();
         }
       }
     };
@@ -256,7 +258,7 @@ public class WhirlpoolWalletCacheData {
       final Map<String, WhirlpoolUtxo> currentUtxos,
       final Map<String, UnspentOutput> freshUtxos,
       final boolean isFirstFetch) {
-    final Map<String, WhirlpoolUtxo> result = new HashMap<String, WhirlpoolUtxo>();
+    final Map<String, WhirlpoolUtxo> result = new ConcurrentHashMap<String, WhirlpoolUtxo>();
 
     // add existing utxos
     StreamSupport.stream(currentUtxos.values())
