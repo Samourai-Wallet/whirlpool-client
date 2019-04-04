@@ -52,18 +52,35 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
           // no tx0 can be made now, wait for spendFrom to confirm...
           break;
         } catch (EmptyWalletException e) {
-          if (log.isDebugEnabled()) {
-            log.debug("AutoTx0: no Tx0 candidate yet.");
-          }
-
           // make sure that mixOrchestrator has no more to mix
           MixOrchestratorState mixState = whirlpoolWallet.getState().getMixState();
           if (mixState.getNbIdle() > 0 && !whirlpoolWallet.hasMoreMixableOrUnconfirmed()) {
+            // wallet is empty
+            log.warn(" • AutoTx0: no Tx0 candidate and we have no more to mix.");
+            if (log.isDebugEnabled()) {
+              log.debug(
+                  "nbIdle="
+                      + mixState.getNbIdle()
+                      + ", hasMoreMixableOrUnconfirmed="
+                      + whirlpoolWallet.hasMoreMixableOrUnconfirmed()
+                      + " => empty wallet management");
+            }
+
             // wait tx0Delay before retry
             setLastRun();
 
             // empty wallet management
             whirlpoolWallet.onEmptyWalletException(e);
+          } else {
+            // no tx0 possible yet but we may have more to mix
+            if (log.isDebugEnabled()) {
+              log.debug(
+                  " • AutoTx0: no Tx0 candidate yet, but we may have more to mix. nbIdle="
+                      + mixState.getNbIdle()
+                      + ", hasMoreMixableOrUnconfirmed="
+                      + whirlpoolWallet.hasMoreMixableOrUnconfirmed()
+                      + " => no empty wallet management");
+            }
           }
 
           // no tx0 can be made now, check back later...
