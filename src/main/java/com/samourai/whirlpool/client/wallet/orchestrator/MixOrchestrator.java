@@ -72,9 +72,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
   @Override
   protected void runOrchestrator() {
     try {
-      // refresh mixableStatus
-      refreshMixableStatus();
-
       // check idles
       while (computeNbIdle() > 0) {
 
@@ -98,6 +95,11 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
         // find & mix
         boolean startedNewMix = findAndMix();
+
+        // refresh all mixableStatus (either if we started new mix or not, to clean state before
+        // sleeping)
+        refreshMixableStatus();
+
         if (!startedNewMix) {
           // nothing more to mix => exit this loop
           return;
@@ -193,8 +195,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
     for (WhirlpoolUtxo whirlpoolUtxo : toMixByPriority) {
       // recompute mixableStatus
-      MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
-      whirlpoolUtxo.setMixableStatus(mixableStatus);
+      MixableStatus mixableStatus = refreshMixableStatus(whirlpoolUtxo);
 
       // check mixableStatus
       if (ArrayUtils.contains(filterMixableStatuses, mixableStatus)) {
@@ -232,14 +233,16 @@ public class MixOrchestrator extends AbstractOrchestrator {
     return MixableStatus.MIXABLE;
   }
 
+  private MixableStatus refreshMixableStatus(WhirlpoolUtxo whirlpoolUtxo) {
+    MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
+    whirlpoolUtxo.setMixableStatus(mixableStatus);
+    return mixableStatus;
+  }
+
   private void refreshMixableStatus() {
-    if (log.isDebugEnabled()) {
-      log.debug("refreshMixableStatus");
-    }
     try {
       for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolWallet.getUtxos(false)) {
-        MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
-        whirlpoolUtxo.setMixableStatus(mixableStatus);
+        refreshMixableStatus(whirlpoolUtxo);
       }
     } catch (Exception e) {
       log.error("", e);
@@ -324,7 +327,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
     String key = whirlpoolUtxo.getUtxo().toKey();
     mixing.remove(key);
     mixingHashs.remove(whirlpoolUtxo.getUtxo().tx_hash);
-    refreshMixableStatus();
   }
 
   private void addMixing(Mixing mixingToAdd) {
@@ -335,13 +337,11 @@ public class MixOrchestrator extends AbstractOrchestrator {
     String key = whirlpoolUtxo.getUtxo().toKey();
     mixing.put(key, mixingToAdd);
     mixingHashs.add(whirlpoolUtxo.getUtxo().tx_hash);
-    refreshMixableStatus();
   }
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
     // set mixableStatus
-    MixableStatus mixableStatus = computeMixableStatus(whirlpoolUtxo);
-    whirlpoolUtxo.setMixableStatus(mixableStatus);
+    refreshMixableStatus(whirlpoolUtxo);
 
     WhirlpoolUtxoConfig utxoConfig = whirlpoolUtxo.getUtxoConfig();
 
@@ -369,8 +369,8 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   public void onUtxoConfirmed(WhirlpoolUtxo whirlpoolUtxo) {
-    // refresh mixableStatus for unconfirmed utxos
-    refreshMixableStatus();
+    // refresh mixableStatus for this utxos
+    refreshMixableStatus(whirlpoolUtxo);
 
     // wakeup on confirmed PREMIX/POSTMIX
     if (WhirlpoolUtxoStatus.MIX_QUEUE.equals(whirlpoolUtxo.getStatus())
