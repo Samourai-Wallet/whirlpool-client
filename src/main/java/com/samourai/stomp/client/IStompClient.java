@@ -1,21 +1,19 @@
 package com.samourai.stomp.client;
 
+import com.samourai.whirlpool.client.utils.MessageErrorListener;
 import java.util.Map;
-import javax.websocket.MessageHandler;
 
 public interface IStompClient {
   void connect(
       String url,
       Map<String, String> stompHeaders,
-      MessageHandler.Whole<IStompMessage> onConnect,
-      MessageHandler.Whole<Throwable> onDisconnect);
+      MessageErrorListener<IStompMessage, Throwable> onConnectOnDisconnectListener);
 
   String getSessionId();
 
   void subscribe(
       Map<String, String> stompHeaders,
-      MessageHandler.Whole<IStompMessage> onMessage,
-      MessageHandler.Whole<String> onError);
+      MessageErrorListener<IStompMessage, String> onMessageOnErrorListener);
 
   void send(Map<String, String> stompHeaders, Object payload);
 

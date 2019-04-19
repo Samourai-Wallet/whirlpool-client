@@ -3,6 +3,7 @@ package com.samourai.whirlpool.client.mix.dialog;
 import com.samourai.stomp.client.IStompTransportListener;
 import com.samourai.stomp.client.StompTransport;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.utils.MessageErrorListener;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolEndpoint;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -11,7 +12,6 @@ import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
 import com.samourai.whirlpool.protocol.websocket.messages.SubscribePoolResponse;
 import java.util.HashMap;
 import java.util.Map;
-import javax.websocket.MessageHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +91,7 @@ public class MixSession {
         whirlpoolProtocol.WS_PREFIX_USER_PRIVATE + whirlpoolProtocol.WS_PREFIX_USER_REPLY;
     transport.subscribe(
         computeStompHeaders(privateQueue),
-        new MessageHandler.Whole<Object>() {
+        new MessageErrorListener<Object, String>() {
           @Override
           public void onMessage(Object payload) {
             if (subscribePoolResponse == null) {
@@ -129,10 +129,9 @@ public class MixSession {
               }
             }
           }
-        },
-        new MessageHandler.Whole<String>() {
+
           @Override
-          public void onMessage(String errorMessage) {
+          public void onError(String errorMessage) {
             log.error("--> " + privateQueue + ": subscribe error: " + errorMessage);
             listener.exitOnResponseError(errorMessage); // probably a version mismatch
           }
@@ -237,6 +236,9 @@ public class MixSession {
 
       @Override
       public synchronized void onTransportDisconnected(Throwable exception) {
+        if (log.isDebugEnabled()) {
+          log.debug("onTransportDisconnected", exception);
+        }
         // transport cannot be used
         transport = null;
 

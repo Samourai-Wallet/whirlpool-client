@@ -1,10 +1,10 @@
 package com.samourai.stomp.client;
 
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.utils.MessageErrorListener;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import java.util.HashMap;
 import java.util.Map;
-import javax.websocket.MessageHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,8 +31,8 @@ public class StompTransport {
         wsUrl,
         connectHeaders,
 
-        // onConnect
-        new MessageHandler.Whole<IStompMessage>() {
+        new MessageErrorListener<IStompMessage, Throwable>() {
+          // onConnect
           @Override
           public void onMessage(IStompMessage connectedHeaders) {
             if (!done) {
@@ -48,12 +48,10 @@ public class StompTransport {
               log.info("IStompClient.onConnect: message ignored (done=true)");
             }
           }
-        },
 
-        // onDisconnect
-        new MessageHandler.Whole<Throwable>() {
+          // onDisconnect
           @Override
-          public void onMessage(Throwable exception) {
+          public void onError(Throwable exception) {
             if (!done) {
               disconnect();
               listener.onTransportDisconnected(exception);
@@ -68,16 +66,14 @@ public class StompTransport {
   }
 
   public void subscribe(
-      Map<String, String> subscribeHeaders,
-      final MessageHandler.Whole<Object> frameHandler,
-      final MessageHandler.Whole<String> errorHandler) {
+      Map<String, String> subscribeHeaders, final MessageErrorListener<Object, String> listener) {
     if (log.isDebugEnabled()) {
       log.debug("subscribe:" + subscribeHeaders.get(HEADER_DESTINATION));
     }
     final Map<String, String> completeHeaders = completeHeaders(subscribeHeaders);
 
-    MessageHandler.Whole<IStompMessage> onMessage =
-        new MessageHandler.Whole<IStompMessage>() {
+    MessageErrorListener<IStompMessage, String> onMessageOnErrorListener =
+        new MessageErrorListener<IStompMessage, String>() {
           @Override
           public void onMessage(IStompMessage stompMessage) {
             Object payload = stompMessage.getPayload();
@@ -100,10 +96,10 @@ public class StompTransport {
                         + (protocolVersion != null ? protocolVersion : "unknown")
                         + ", client="
                         + WhirlpoolProtocol.PROTOCOL_VERSION;
-                errorHandler.onMessage(errorMessage);
+                listener.onError(errorMessage);
                 return;
               }
-              frameHandler.onMessage(payload);
+              listener.onMessage(payload);
             } else {
               log.warn(
                   "frame ignored (done) ("
@@ -112,9 +108,14 @@ public class StompTransport {
                       + ClientUtils.toJsonString(payload));
             }
           }
+
+          @Override
+          public void onError(String error) {
+            listener.onError(error);
+          }
         };
 
-    stompClient.subscribe(subscribeHeaders, onMessage, errorHandler);
+    stompClient.subscribe(subscribeHeaders, onMessageOnErrorListener);
   }
 
   public void disconnect() {

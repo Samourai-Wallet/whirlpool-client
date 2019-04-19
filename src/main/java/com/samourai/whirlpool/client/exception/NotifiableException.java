@@ -1,12 +1,11 @@
 package com.samourai.whirlpool.client.exception;
 
-import org.glassfish.grizzly.http.util.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NotifiableException extends Exception {
   private static final Logger log = LoggerFactory.getLogger(NotifiableException.class);
-  private static final int STATUS_DEFAULT = HttpStatus.INTERNAL_SERVER_ERROR_500.getStatusCode();
+  private static final int STATUS_DEFAULT = 500;
 
   private int status;
 
@@ -18,12 +17,8 @@ public class NotifiableException extends Exception {
     this(message, null, STATUS_DEFAULT);
   }
 
-  public NotifiableException(HttpStatus status) {
-    this(status.getReasonPhrase(), null, status.getStatusCode());
-  }
-
-  public NotifiableException(HttpStatus status, Exception cause) {
-    this(status.getReasonPhrase(), cause, status.getStatusCode());
+  public NotifiableException(String message, int status) {
+    this(message, null, status);
   }
 
   public NotifiableException(String message, Exception cause, int status) {
