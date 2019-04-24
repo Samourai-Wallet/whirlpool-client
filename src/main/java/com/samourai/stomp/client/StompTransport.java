@@ -30,7 +30,6 @@ public class StompTransport {
     stompClient.connect(
         wsUrl,
         connectHeaders,
-
         new MessageErrorListener<IStompMessage, Throwable>() {
           // onConnect
           @Override

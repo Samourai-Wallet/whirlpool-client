@@ -83,9 +83,6 @@ public abstract class AbstractOrchestrator {
 
   protected synchronized void notifyOrchestrator() {
     if (isStarted() && !isDontDisturb()) {
-      if (log.isDebugEnabled()) {
-        log.debug("Notifying...");
-      }
       synchronized (myThread) {
         myThread.notify();
       }

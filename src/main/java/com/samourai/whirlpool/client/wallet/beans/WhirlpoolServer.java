@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import java8.util.Optional;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.params.TestNet3Params;
@@ -58,5 +59,13 @@ public enum WhirlpoolServer {
 
   public String getFeeData() {
     return feeData;
+  }
+
+  public static Optional<WhirlpoolServer> find(String value) {
+    try {
+      return Optional.of(valueOf(value));
+    } catch (Exception e) {
+      return Optional.empty();
+    }
   }
 }
