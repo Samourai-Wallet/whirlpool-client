@@ -130,7 +130,7 @@ public class SamouraiApi extends AbstractPushTxService {
     if (log.isDebugEnabled()) {
       log.debug("pushTx... " + txHex);
     } else {
-      log.info("pushTx tx..." + txHex);
+      log.info("pushTx...");
     }
     String url = urlBackend + URL_PUSHTX;
     Map<String, String> postBody = new HashMap<String, String>();
@@ -138,6 +138,9 @@ public class SamouraiApi extends AbstractPushTxService {
     try {
       httpClient.postUrlEncoded(url, postBody);
     } catch (HttpException e) {
+      if (log.isDebugEnabled()) {
+        log.error("pushTx failed", e);
+      }
       log.error(
           "PushTx failed: response="
               + e.getResponseBody()
