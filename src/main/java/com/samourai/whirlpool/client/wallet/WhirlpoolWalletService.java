@@ -7,6 +7,7 @@ import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletAccount;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
@@ -32,6 +33,8 @@ public class WhirlpoolWalletService {
 
   public WhirlpoolWalletService(WhirlpoolWalletConfig whirlpoolWalletConfig) {
     this(whirlpoolWalletConfig, null);
+
+    ClientUtils.setupEnv();
   }
 
   public WhirlpoolWalletService(WhirlpoolWalletConfig config, WhirlpoolClient whirlpoolClient) {

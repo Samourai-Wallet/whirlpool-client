@@ -32,8 +32,14 @@ public class ClientUtils {
 
   private static final int SLEEP_REFRESH_UTXOS_TESTNET = 20000;
   private static final int SLEEP_REFRESH_UTXOS_MAINNET = 10000;
+  public static final String USER_AGENT = "whirlpool-client/" + WhirlpoolProtocol.PROTOCOL_VERSION;
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
+
+  public static void setupEnv() {
+    // prevent user-agent tracking
+    System.setProperty("http.agent", USER_AGENT);
+  }
 
   public static Integer findTxOutputIndex(
       String outputAddressBech32, Transaction tx, NetworkParameters params) {
