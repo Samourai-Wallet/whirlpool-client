@@ -28,11 +28,16 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int persistCleanDelay;
 
   public WhirlpoolWalletConfig(
-      IHttpClient httpClient, IStompClient stompClient, WhirlpoolServer whirlpoolServer) {
+      IHttpClient httpClient,
+      IStompClient stompClient,
+      WhirlpoolServer whirlpoolServer,
+      boolean useOnion) {
     this(
         httpClient,
         stompClient,
-        whirlpoolServer.getServerUrl(),
+        useOnion && whirlpoolServer.getServerOnion() != null
+            ? whirlpoolServer.getServerOnion()
+            : whirlpoolServer.getServerUrl(),
         whirlpoolServer.getParams(),
         whirlpoolServer.isSsl(),
         whirlpoolServer.getFeeData());

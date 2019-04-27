@@ -5,7 +5,6 @@ import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
-import com.samourai.whirlpool.protocol.beans.Utxo;
 
 public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener {
   private WhirlpoolUtxo whirlpoolUtxo;
@@ -31,10 +30,8 @@ public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener
     whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS, 100);
     whirlpoolUtxo.getUtxoConfig().incrementMixsDone();
 
-    // preserve utxo config
-    Utxo receiveUtxo = mixSuccess.getReceiveUtxo();
-    whirlpoolWallet.setUtxoConfig(
-        whirlpoolUtxo.getUtxoConfig().copy(), receiveUtxo.getHash(), (int) receiveUtxo.getIndex());
+    // notify
+    whirlpoolWallet.onMixSuccess(mixSuccess, whirlpoolUtxo);
   }
 
   @Override
