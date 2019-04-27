@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.whirlpool.listener;
 
+import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
@@ -35,10 +36,14 @@ public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener
   }
 
   @Override
-  public void fail() {
-    super.fail();
+  public void fail(MixFailReason reason, String notifiableError) {
+    super.fail(reason, notifiableError);
+    String message = reason.getMessage();
+    if (notifiableError != null) {
+      message += " ; " + notifiableError;
+    }
     whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_FAILED);
-    whirlpoolUtxo.setError("Mix failed");
+    whirlpoolUtxo.setError(message);
   }
 
   @Override

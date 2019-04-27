@@ -101,18 +101,19 @@ public class MixDialog {
       exitOnResponseError(e.getMessage());
     } catch (Exception e) {
       log.error("onPrivateReceived Exception", e);
-      exitOnProtocolError(e);
+      exitOnPrivateReceivedException(e);
     }
   }
 
-  private void exitOnProtocolError(Exception e) {
+  private void exitOnPrivateReceivedException(Exception e) {
     log.error("Protocol error", e);
-    listener.exitOnProtocolError();
+    String notifiableError = "onPrivate: " + e.getClass().getName();
+    listener.exitOnProtocolError(notifiableError);
     done = true;
   }
 
   private void exitOnResponseError(String error) {
-    listener.exitOnResponseError(error);
+    listener.exitOnInputRejected(error);
     done = true;
   }
 
@@ -136,7 +137,7 @@ public class MixDialog {
 
     if (MixStatus.FAIL.equals(notification.status)) {
       done = true;
-      listener.onFail();
+      listener.onMixFail();
       return;
     }
 
@@ -177,7 +178,7 @@ public class MixDialog {
             } else if (mixStatusCompleted.contains(MixStatus.SIGNING)) {
 
               if (MixStatus.SUCCESS.equals(notification.status)) {
-                listener.onSuccess();
+                listener.onMixSuccess();
                 done = true;
                 return;
               }

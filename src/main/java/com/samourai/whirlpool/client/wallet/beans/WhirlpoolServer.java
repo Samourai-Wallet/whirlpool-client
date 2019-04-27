@@ -8,41 +8,52 @@ import org.bitcoinj.params.TestNet3Params;
 import org.slf4j.LoggerFactory;
 
 public enum WhirlpoolServer {
-  TEST(
+  TESTNET(
       "pool.whirl.mx:8081",
-      "udkmfc5j6zvv3ysavbrwzhwji4hpyfe3apqa6yst7c7l32mygf65g4ad.onion",
+      "kbwdyvawuqsniaop.onion",
+      "y5qvjlxvbohc73slq4j4qldoegyukvpp74mbsrjosnrsgg7w5fon6nyd.onion",
       TestNet3Params.get(),
       true,
       "q5ikHzegh1fVs0YekhV6IbeM1YVi6mW9txoHpqPVGDQ+XcYlusvZfTRDQjt3LVOgTNXrlbs4pjlDqHVk38L2/1rGRVposOVFopX2rpm0zIfcXLdb8ymahhqCzje6Lb6HUpx3nQRQd6uL3eG3+XFo;3ejRfQL51G+l4iFE2UMYU+Ti7PIWmAjE015Qy/SYcnxMJYoX14maJwxyAH8HGgmSHayo8u90/HoxxjcUrbeQijWTDzs5xdQfx/yk2MzfuuONCPkqpR/y1SO0mVXYe+TgJfkx5V0CRvnThIr1mjoc"),
   INTEGRATION(
       "pool.whirl.mx:8082",
-      null,
+      "mgsr5lru3csqfpjc.onion",
+      "yuvewbfkftftcbzn54lfx3i5s4jxr4sfgpsbkvcflgzcvumyxrkopmyd.onion",
       TestNet3Params.get(),
       true,
       "q5ikHzegh1fVs0YekhV6IbeM1YVi6mW9txoHpqPVGDQ+XcYlusvZfTRDQjt3LVOgTNXrlbs4pjlDqHVk38L2/1rGRVposOVFopX2rpm0zIfcXLdb8ymahhqCzje6Lb6HUpx3nQRQd6uL3eG3+XFo;3ejRfQL51G+l4iFE2UMYU+Ti7PIWmAjE015Qy/SYcnxMJYoX14maJwxyAH8HGgmSHayo8u90/HoxxjcUrbeQijWTDzs5xdQfx/yk2MzfuuONCPkqpR/y1SO0mVXYe+TgJfkx5V0CRvnThIr1mjoc"),
-  MAIN(
+  MAINNET(
       "pool.whirl.mx:8080",
-      null,
+      "valnvwglmmavmhfi.onion",
+      "udkmfc5j6zvv3ysavbrwzhwji4hpyfe3apqa6yst7c7l32mygf65g4ad.onion",
       MainNetParams.get(),
       true,
       "XRK4tP3cUnmvH5fGaQFO2Kb2uIGvoERCyWpqdERjZiPtAVhl8fHgA+fpRQ04d7WJ/xM+uOpnuKWfmPxys4pYtjmYbJec2GKNdTV738S+A5IVW7A+z7OehiNvMi3TTEGRViYzQLY70Z7DDfEXUNo6;J2LN1suuYwreU/S/BDAvu+TPwLbakTQoniQQQxUEJVWpQxQmiZmCSdGKJ3hoOvHNkStmz4cyyfCp6bRL58cg7A/UD8Kpkgz4QEwrhZX1Yeh9CMBp94bsyhA/Z0OWKzvoPl9rN/Jet6e6aLlNI7dp"),
-  LOCAL_TEST(
+  LOCAL_TESTNET(
       "127.0.0.1:8080",
+      null,
       null,
       TestNet3Params.get(),
       false,
       "q5ikHzegh1fVs0YekhV6IbeM1YVi6mW9txoHpqPVGDQ+XcYlusvZfTRDQjt3LVOgTNXrlbs4pjlDqHVk38L2/1rGRVposOVFopX2rpm0zIfcXLdb8ymahhqCzje6Lb6HUpx3nQRQd6uL3eG3+XFo;3ejRfQL51G+l4iFE2UMYU+Ti7PIWmAjE015Qy/SYcnxMJYoX14maJwxyAH8HGgmSHayo8u90/HoxxjcUrbeQijWTDzs5xdQfx/yk2MzfuuONCPkqpR/y1SO0mVXYe+TgJfkx5V0CRvnThIr1mjoc");
 
   private String serverUrl;
-  private String serverOnion;
+  private String serverOnionV2;
+  private String serverOnionV3;
   private NetworkParameters params;
   private boolean ssl;
   private String feeData;
 
   WhirlpoolServer(
-      String serverUrl, String serverOnion, NetworkParameters params, boolean ssl, String feeData) {
+      String serverUrl,
+      String serverOnionV2,
+      String serverOnionV3,
+      NetworkParameters params,
+      boolean ssl,
+      String feeData) {
     this.serverUrl = serverUrl;
-    this.serverOnion = serverOnion;
+    this.serverOnionV2 = serverOnionV2;
+    this.serverOnionV3 = serverOnionV3;
     this.params = params;
     this.ssl = ssl;
     try {
@@ -56,8 +67,12 @@ public enum WhirlpoolServer {
     return serverUrl;
   }
 
-  public String getServerOnion() {
-    return serverOnion;
+  public String getServerOnionV2() {
+    return serverOnionV2;
+  }
+
+  public String getServerOnionV3() {
+    return serverOnionV3;
   }
 
   public NetworkParameters getParams() {

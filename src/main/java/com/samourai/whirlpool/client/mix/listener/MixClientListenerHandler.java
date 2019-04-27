@@ -14,8 +14,8 @@ public class MixClientListenerHandler {
     mixClientListener.success(mixSuccess, nextMixParams);
   }
 
-  public void fail() {
-    mixClientListener.fail();
+  public void fail(MixFailReason reason, String notifiableError) {
+    mixClientListener.fail(reason, notifiableError);
   }
 
   public void progress(MixStep mixClientStatus) {

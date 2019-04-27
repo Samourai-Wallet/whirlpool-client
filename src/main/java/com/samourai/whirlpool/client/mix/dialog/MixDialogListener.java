@@ -32,15 +32,17 @@ public interface MixDialogListener {
 
   void onConfirmInputResponse(ConfirmInputResponse confirmInputResponse) throws Exception;
 
-  void onSuccess();
+  void onMixSuccess();
 
-  void onFail();
+  void onMixFail();
 
   void onResetMix();
 
-  void exitOnProtocolError();
+  void exitOnProtocolError(String notifiableError);
 
-  void exitOnResponseError(String notifiableError);
+  void exitOnProtocolVersionMismatch(String serverProtocolVersion);
+
+  void exitOnInputRejected(String notifiableError);
 
   void exitOnDisconnected();
 }

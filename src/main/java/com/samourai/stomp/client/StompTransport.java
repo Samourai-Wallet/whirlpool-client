@@ -2,6 +2,7 @@ package com.samourai.stomp.client;
 
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.utils.MessageErrorListener;
+import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,7 +66,9 @@ public class StompTransport {
   }
 
   public void subscribe(
-      Map<String, String> subscribeHeaders, final MessageErrorListener<Object, String> listener) {
+      Map<String, String> subscribeHeaders,
+      final MessageErrorListener<Object, String> listener,
+      final MessageListener<String> serverVersionMismatchListener) {
     if (log.isDebugEnabled()) {
       log.debug("subscribe:" + subscribeHeaders.get(HEADER_DESTINATION));
     }
@@ -90,12 +93,8 @@ public class StompTransport {
                   stompMessage.getStompHeader(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION);
               if (protocolVersion == null
                   || !WhirlpoolProtocol.PROTOCOL_VERSION.equals(protocolVersion)) {
-                String errorMessage =
-                    "Version mismatch: server="
-                        + (protocolVersion != null ? protocolVersion : "unknown")
-                        + ", client="
-                        + WhirlpoolProtocol.PROTOCOL_VERSION;
-                listener.onError(errorMessage);
+                serverVersionMismatchListener.onMessage(
+                    protocolVersion != null ? protocolVersion : "unknown");
                 return;
               }
               listener.onMessage(payload);

@@ -4,6 +4,7 @@ import com.samourai.stomp.client.IStompTransportListener;
 import com.samourai.stomp.client.StompTransport;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.utils.MessageErrorListener;
+import com.samourai.whirlpool.client.utils.MessageListener;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolEndpoint;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -104,15 +105,14 @@ public class MixSession {
                   registerInput(subscribePoolResponse);
                 } catch (Exception e) {
                   log.error("Unable to register input", e);
-                  listener.exitOnProtocolError();
+                  String notifiableError = "Unable to register input: " + e.getClass().getName();
+                  listener.exitOnProtocolError(notifiableError);
                 }
               } else {
-                log.error(
-                    "--> "
-                        + privateQueue
-                        + ": not a SubscribePoolResponse: "
-                        + ClientUtils.toJsonString(payload));
-                listener.exitOnProtocolError();
+                String notifiableError =
+                    "not a SubscribePoolResponse: " + ClientUtils.toJsonString(payload);
+                log.error("--> " + privateQueue + ": " + notifiableError);
+                listener.exitOnProtocolError(notifiableError);
               }
             } else {
               // 2) input already registered => should be a MixMessage
@@ -120,20 +120,25 @@ public class MixSession {
               if (mixMessage != null) {
                 dialog.onPrivateReceived(mixMessage);
               } else {
-                log.error(
-                    "--> "
-                        + privateQueue
-                        + ": not a MixMessage: "
-                        + ClientUtils.toJsonString(payload));
-                listener.exitOnProtocolError();
+                String notifiableError = "not a MixMessage: " + ClientUtils.toJsonString(payload);
+                log.error("--> " + privateQueue + ": " + notifiableError);
+                listener.exitOnProtocolError(notifiableError);
               }
             }
           }
 
           @Override
           public void onError(String errorMessage) {
-            log.error("--> " + privateQueue + ": subscribe error: " + errorMessage);
-            listener.exitOnResponseError(errorMessage); // probably a version mismatch
+            String notifiableException = "subscribe error: " + errorMessage;
+            log.error("--> " + privateQueue + ": " + notifiableException);
+            listener.exitOnProtocolError(errorMessage); // subscribe error
+          }
+        },
+        new MessageListener<String>() {
+          @Override
+          public void onMessage(String serverProtocolVersion) {
+            // server version mismatch
+            listener.exitOnProtocolVersionMismatch(serverProtocolVersion);
           }
         });
 
@@ -152,10 +157,10 @@ public class MixSession {
     // should be MixMessage
     Class payloadClass = payload.getClass();
     if (!MixMessage.class.isAssignableFrom(payloadClass)) {
-      log.error(
-          "Protocol error: unexpected message from server: "
-              + ClientUtils.toJsonString(payloadClass));
-      listener.exitOnProtocolError();
+      String notifiableError =
+          "unexpected message from server: " + ClientUtils.toJsonString(payloadClass);
+      log.error("Protocol error: " + notifiableError);
+      listener.exitOnProtocolError(notifiableError);
       return null;
     }
 

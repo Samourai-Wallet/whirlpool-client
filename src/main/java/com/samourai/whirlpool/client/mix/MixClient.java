@@ -5,6 +5,7 @@ import com.samourai.whirlpool.client.mix.dialog.MixSession;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.mix.listener.MixClientListener;
 import com.samourai.whirlpool.client.mix.listener.MixClientListenerHandler;
+import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -87,9 +88,8 @@ public class MixClient {
     }
   }
 
-  private void failAndExit() {
-    this.listener.progress(MixStep.FAIL);
-    this.listener.fail();
+  private void failAndExit(MixFailReason reason, String notifiableError) {
+    this.listener.fail(reason, notifiableError);
     exit();
   }
 
@@ -140,27 +140,37 @@ public class MixClient {
       }
 
       @Override
-      public void onFail() {
-        failAndExit();
+      public void onMixFail() {
+        failAndExit(MixFailReason.MIX_FAILED, null);
       }
 
       @Override
-      public void exitOnProtocolError() {
-        log.error("ERROR: protocol error, this may be a bug");
-        failAndExit();
+      public void exitOnProtocolError(String notifiableError) {
+        log.error("ERROR: protocol error");
+        failAndExit(MixFailReason.INTERNAL_ERROR, notifiableError);
       }
 
       @Override
-      public void exitOnResponseError(String notifiableError) {
+      public void exitOnProtocolVersionMismatch(String serverProtocolVersion) {
+        log.error(
+            "ERROR: protocol version mismatch: server="
+                + serverProtocolVersion
+                + ", client="
+                + WhirlpoolProtocol.PROTOCOL_VERSION);
+        failAndExit(MixFailReason.PROTOCOL_MISMATCH, serverProtocolVersion);
+      }
+
+      @Override
+      public void exitOnInputRejected(String notifiableError) {
         log.error("ERROR: " + notifiableError);
-        failAndExit();
+        failAndExit(MixFailReason.INPUT_REJECTED, notifiableError);
       }
 
       @Override
       public void exitOnDisconnected() {
         // failed to connect or connexion lost
-        log.error("Disconnected");
-        failAndExit();
+        log.error("ERROR: Disconnected");
+        failAndExit(MixFailReason.DISCONNECTED, null);
       }
 
       @Override
@@ -208,7 +218,7 @@ public class MixClient {
       }
 
       @Override
-      public void onSuccess() {
+      public void onMixSuccess() {
         exit(); // disconnect before notifying listener to avoid reconnecting before disconnect
         listener.progress(MixStep.SUCCESS);
         listener.success(mixProcess.computeMixSuccess(), computeNextMixParams());

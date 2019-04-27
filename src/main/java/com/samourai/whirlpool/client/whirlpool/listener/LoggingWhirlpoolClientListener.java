@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.whirlpool.listener;
 
+import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.utils.ClientUtils;
@@ -34,9 +35,13 @@ public class LoggingWhirlpoolClientListener extends AbstractWhirlpoolClientListe
   }
 
   @Override
-  public void fail() {
-    super.fail();
-    logError(format("⣿ WHIRLPOOL FAILED ⣿ Check logs for errors."));
+  public void fail(MixFailReason failReason, String notifiableError) {
+    super.fail(failReason, notifiableError);
+    String message = failReason.getMessage();
+    if (notifiableError != null) {
+      message += " ; " + notifiableError;
+    }
+    logError(format("⣿ WHIRLPOOL FAILED ⣿ " + message));
   }
 
   @Override

@@ -30,14 +30,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   public WhirlpoolWalletConfig(
       IHttpClient httpClient,
       IStompClient stompClient,
-      WhirlpoolServer whirlpoolServer,
-      boolean useOnion) {
+      String serverUrl,
+      WhirlpoolServer whirlpoolServer) {
     this(
         httpClient,
         stompClient,
-        useOnion && whirlpoolServer.getServerOnion() != null
-            ? whirlpoolServer.getServerOnion()
-            : whirlpoolServer.getServerUrl(),
+        serverUrl,
         whirlpoolServer.getParams(),
         whirlpoolServer.isSsl(),
         whirlpoolServer.getFeeData());

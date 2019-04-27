@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.orchestrator;
 
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
@@ -306,7 +307,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
           }
 
           @Override
-          public void fail() {
+          public void fail(MixFailReason reason, String notifiableError) {
             removeMixing(whirlpoolUtxo);
 
             // idle => notify orchestrator
