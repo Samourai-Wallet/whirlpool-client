@@ -21,10 +21,11 @@ public class JavaExample {
   private WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     IHttpClient httpClient = null; // provide impl here, ie: new AndroidHttpclient();
     IStompClient stompClient = null; // provide impl here, ie: new AndroidStompClient();
-    WhirlpoolServer whirlpoolServer = WhirlpoolServer.TEST;
+    WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
 
+    String serverUrl = whirlpoolServer.getServerUrl(); // or whirlpoolServer.getServerOnionV3()
     WhirlpoolWalletConfig whirlpoolWalletConfig =
-        new WhirlpoolWalletConfig(httpClient, stompClient, whirlpoolServer);
+        new WhirlpoolWalletConfig(httpClient, stompClient, serverUrl, whirlpoolServer);
 
     // configure optional settings (or don't set anything for using default values)
     whirlpoolWalletConfig.setScode("foo");
