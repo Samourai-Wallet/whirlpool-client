@@ -60,12 +60,16 @@ public class Tx0Service {
     // make sure destinationValue is acceptable for pool
     long premixBalanceMin = pool.computePremixBalanceMin(false);
     long premixBalanceMax = pool.computePremixBalanceMax(false);
-    premixValue = Math.min(premixValue, premixBalanceMax);
-    premixValue = Math.max(premixValue, premixBalanceMin);
+
+    long premixValueFinal = premixValue;
+    premixValueFinal = Math.min(premixValueFinal, premixBalanceMax);
+    premixValueFinal = Math.max(premixValueFinal, premixBalanceMin);
 
     if (log.isDebugEnabled()) {
       log.debug(
-          "premixValue="
+          "premixValueFinal="
+              + premixValueFinal
+              + ", premixValue="
               + premixValue
               + ", minerFeePerMustmix="
               + minerFeePerMustmix
@@ -74,7 +78,7 @@ public class Tx0Service {
               + " for poolId="
               + pool.getPoolId());
     }
-    return premixValue;
+    return premixValueFinal;
   }
 
   private int computeNbPremixMax(
