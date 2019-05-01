@@ -353,7 +353,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     // enqueue unfinished POSTMIX utxos
     if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())
         && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())
-        && utxoConfig.getMixsDone() < utxoConfig.getMixsTarget()
+        && (utxoConfig.getMixsDone() < utxoConfig.getMixsTarget() || utxoConfig.getMixsTarget() == WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED)
         && utxoConfig.getPoolId() != null) {
 
       log.info(

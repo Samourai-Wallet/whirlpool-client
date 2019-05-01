@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 public class WhirlpoolUtxoConfig {
+  public static final int MIXS_TARGET_UNLIMITED = 0;
   private String poolId;
   private int mixsTarget;
   private int mixsDone;
