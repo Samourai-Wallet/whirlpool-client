@@ -10,6 +10,7 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
+import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.zeroleak.throwingsupplier.LastValueFallbackSupplier;
@@ -33,7 +34,6 @@ public class WhirlpoolWalletCacheData {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWalletCacheData.class);
   private static final long FEE_REFRESH_DELAY = 300; // 5m
   private static final long POOLS_REFRESH_DELAY = 3600; // 1h
-  private static final int FEES_BLOCKS = 4;
 
   private WhirlpoolWallet whirlpoolWallet;
   private WhirlpoolWalletConfig config;
@@ -87,7 +87,7 @@ public class WhirlpoolWalletCacheData {
         if (log.isDebugEnabled()) {
           log.debug("fetching feeSatPerByte");
         }
-        return config.getSamouraiApi().fetchFees(FEES_BLOCKS);
+        return config.getSamouraiApi().fetchFees(WhirlpoolClientConfig.FEES_PRIORITY);
       }
     };
   }

@@ -869,4 +869,16 @@ public class WhirlpoolWallet {
   public boolean hasMoreMixableOrUnconfirmed() {
     return mixOrchestrator.hasMoreMixableOrUnconfirmed();
   }
+
+  public String getZpubDeposit() {
+    return depositWallet.getZpub();
+  }
+
+  public String getZpubPremix() {
+    return premixWallet.getZpub();
+  }
+
+  public String getZpubPostmix() {
+    return postmixWallet.getZpub();
+  }
 }
