@@ -7,5 +7,5 @@ public interface MixClientListener {
 
   void fail(MixFailReason reason, String notifiableError);
 
-  void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps);
+  void progress(MixStep step);
 }

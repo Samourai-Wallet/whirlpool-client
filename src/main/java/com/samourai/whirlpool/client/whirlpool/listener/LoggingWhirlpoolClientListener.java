@@ -45,18 +45,18 @@ public class LoggingWhirlpoolClientListener extends AbstractWhirlpoolClientListe
   }
 
   @Override
-  public void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps) {
-    super.progress(step, stepInfo, stepNumber, nbSteps);
-    String asciiProgress = renderProgress(stepNumber, nbSteps);
-    logInfo(format(asciiProgress + " " + step + " : " + stepInfo));
+  public void progress(MixStep step) {
+    super.progress(step);
+    String asciiProgress = renderProgress(step.getProgress());
+    logInfo(format(asciiProgress + " " + step + " : " + step.getMessage()));
   }
 
-  private String renderProgress(int stepNumber, int nbSteps) {
+  private String renderProgress(int progressPercent) {
     StringBuilder progress = new StringBuilder();
-    for (int i = 0; i < nbSteps; i++) {
-      progress.append(i < stepNumber ? "▮" : "▯");
+    for (int i = 0; i < 100; i += 10) {
+      progress.append(i < progressPercent ? "▮" : "▯");
     }
-    progress.append(" (" + stepNumber + "/" + nbSteps + ")");
+    progress.append(" (" + progressPercent + "%)");
     return progress.toString();
   }
 

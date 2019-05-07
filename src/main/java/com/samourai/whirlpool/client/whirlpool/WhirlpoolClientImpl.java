@@ -141,8 +141,8 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
       }
 
       @Override
-      public void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps) {
-        listener.progress(step, stepInfo, stepNumber, nbSteps);
+      public void progress(MixStep step) {
+        listener.progress(step);
       }
     };
   }

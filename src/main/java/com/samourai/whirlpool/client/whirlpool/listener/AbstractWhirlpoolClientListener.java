@@ -30,9 +30,9 @@ public abstract class AbstractWhirlpoolClientListener implements WhirlpoolClient
   }
 
   @Override
-  public void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps) {
+  public void progress(MixStep step) {
     if (notifyListener != null) {
-      notifyListener.progress(step, stepInfo, stepNumber, nbSteps);
+      notifyListener.progress(step);
     }
   }
 }

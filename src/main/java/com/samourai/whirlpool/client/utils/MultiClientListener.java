@@ -24,8 +24,8 @@ public class MultiClientListener extends LoggingWhirlpoolClientListener {
   }
 
   @Override
-  public void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps) {
-    super.progress(step, stepInfo, stepNumber, nbSteps);
+  public void progress(MixStep step) {
+    super.progress(step);
     mixStep = step;
   }
 

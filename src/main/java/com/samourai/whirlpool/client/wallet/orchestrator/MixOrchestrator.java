@@ -315,7 +315,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
           }
 
           @Override
-          public void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps) {}
+          public void progress(MixStep step) {}
         };
 
     // start mix

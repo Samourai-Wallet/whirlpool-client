@@ -4,7 +4,6 @@ import com.samourai.whirlpool.client.mix.dialog.MixDialogListener;
 import com.samourai.whirlpool.client.mix.dialog.MixSession;
 import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.mix.listener.MixClientListener;
-import com.samourai.whirlpool.client.mix.listener.MixClientListenerHandler;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.utils.ClientCryptoService;
@@ -12,12 +11,7 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RegisterOutputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.ConfirmInputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.ConfirmInputResponse;
-import com.samourai.whirlpool.protocol.websocket.messages.RegisterInputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.RevealOutputRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.SigningRequest;
-import com.samourai.whirlpool.protocol.websocket.messages.SubscribePoolResponse;
+import com.samourai.whirlpool.protocol.websocket.messages.*;
 import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
@@ -34,7 +28,7 @@ public class MixClient {
 
   // mix settings
   private MixParams mixParams;
-  private MixClientListenerHandler listener;
+  private MixClientListener listener;
 
   private ClientCryptoService clientCryptoService;
   private WhirlpoolProtocol whirlpoolProtocol;
@@ -57,12 +51,12 @@ public class MixClient {
 
   public void whirlpool(MixParams mixParams, MixClientListener listener) {
     this.mixParams = mixParams;
-    this.listener = new MixClientListenerHandler(listener);
+    this.listener = listener;
     connect();
   }
 
-  private void listenerProgress(MixStep mixClientStatus) {
-    this.listener.progress(mixClientStatus);
+  private void listenerProgress(MixStep mixStep) {
+    this.listener.progress(mixStep);
   }
 
   private void connect() {

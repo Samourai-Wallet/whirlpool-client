@@ -2,17 +2,18 @@ package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 
 public class WhirlpoolUtxo {
   private UnspentOutput utxo;
   private WhirlpoolAccount account;
   private WhirlpoolUtxoStatus status;
+  private MixStep mixStep;
   private MixableStatus mixableStatus;
   private WhirlpoolWallet wallet;
 
   private Integer progressPercent;
-  private String progressLabel;
   private String message;
   private String error;
   private Long lastActivity;
@@ -25,11 +26,11 @@ public class WhirlpoolUtxo {
     this.utxo = utxo;
     this.account = account;
     this.status = status;
+    this.mixStep = null;
     this.mixableStatus = null;
     this.wallet = wallet;
 
     this.progressPercent = null;
-    this.progressLabel = null;
     this.message = null;
     this.error = null;
     this.lastActivity = null;
@@ -47,18 +48,12 @@ public class WhirlpoolUtxo {
     return status;
   }
 
+  public MixStep getMixStep() {
+    return mixStep;
+  }
+
   public Integer getProgressPercent() {
     return progressPercent;
-  }
-
-  public String getProgressLabel() {
-    return progressLabel;
-  }
-
-  public void setProgress(Integer progressPercent, String progressLabel) {
-    this.progressPercent = progressPercent;
-    this.progressLabel = progressLabel;
-    setLastActivity();
   }
 
   public void setMessage(String message) {
@@ -92,10 +87,10 @@ public class WhirlpoolUtxo {
     return error;
   }
 
-  public void setStatus(WhirlpoolUtxoStatus status, Integer progressPercent, String progressLabel) {
+  public void setStatus(WhirlpoolUtxoStatus status, MixStep mixStep, Integer progressPercent) {
     this.status = status;
+    this.mixStep = mixStep;
     this.progressPercent = progressPercent;
-    this.progressLabel = progressLabel;
     this.error = null;
     if (!WhirlpoolUtxoStatus.MIX_QUEUE.equals(status)) {
       setLastActivity();
@@ -107,7 +102,7 @@ public class WhirlpoolUtxo {
   }
 
   public void setStatus(WhirlpoolUtxoStatus status, int progressPercent) {
-    setStatus(status, progressPercent, null);
+    setStatus(status, null, progressPercent);
   }
 
   public MixableStatus getMixableStatus() {
@@ -140,15 +135,14 @@ public class WhirlpoolUtxo {
     if (progressPercent != null) {
       progressStr += progressPercent + "%";
     }
-    if (progressLabel != null) {
-      progressStr += " " + progressLabel;
-    }
 
     return "account="
         + account
         + ", status="
         + status
         + (!progressStr.isEmpty() ? " (" + progressStr + ")" : "")
+        + ", mixStep="
+        + (mixStep != null ? mixStep : "null")
         + ", mixableStatus="
         + (mixableStatus != null ? mixableStatus : "null")
         + (hasMessage() ? ", message=" + message : "")

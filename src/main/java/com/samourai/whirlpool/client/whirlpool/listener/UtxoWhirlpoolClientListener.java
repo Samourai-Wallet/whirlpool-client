@@ -47,11 +47,9 @@ public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener
   }
 
   @Override
-  public void progress(MixStep step, String stepInfo, int stepNumber, int nbSteps) {
-    super.progress(step, stepInfo, stepNumber, nbSteps);
-    whirlpoolUtxo.setMessage(stepInfo);
-
-    int progressPercent = Math.round(stepNumber * 100 / nbSteps);
-    whirlpoolUtxo.setProgress(progressPercent, step.name());
+  public void progress(MixStep step) {
+    super.progress(step);
+    whirlpoolUtxo.setMessage(step.getMessage());
+    whirlpoolUtxo.setStatus(whirlpoolUtxo.getStatus(), step, step.getProgress());
   }
 }
