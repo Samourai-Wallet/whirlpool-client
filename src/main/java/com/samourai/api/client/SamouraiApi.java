@@ -99,26 +99,26 @@ public class SamouraiApi extends AbstractPushTxService {
     httpClient.postUrlEncoded(url, postBody);
   }
 
-  public int fetchFees() {
+  public int fetchFees(int blocks) {
     try {
-      return fetchFees(true);
+      return fetchFees(blocks, true);
     } catch (Exception e) {
       return FAILOVER_FEE_PER_BYTE;
     }
   }
 
-  private int fetchFees(boolean retry) throws Exception {
+  private int fetchFees(int blocks, boolean retry) throws Exception {
     String url = urlBackend + URL_FEES;
     int fees2 = 0;
     try {
       Map feesResponse = httpClient.parseJson(url, Map.class);
-      fees2 = Integer.parseInt(feesResponse.get("2").toString());
+      fees2 = Integer.parseInt(feesResponse.get(Integer.toString(blocks)).toString());
     } catch (Exception e) {
       log.error("Invalid fee response from server", e);
     }
     if (fees2 < 1) {
       if (retry) {
-        return fetchFees(false);
+        return fetchFees(blocks, false);
       }
       throw new Exception("Invalid fee response from server");
     }
@@ -156,7 +156,7 @@ public class SamouraiApi extends AbstractPushTxService {
   @Override
   public boolean testConnectivity() {
     try {
-      fetchFees(false);
+      fetchFees(2, false);
       return true;
     } catch (Exception e) {
       log.error("", e);
