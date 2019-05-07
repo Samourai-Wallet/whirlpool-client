@@ -369,35 +369,44 @@ public class WhirlpoolWallet {
 
     // run tx0
     IIndexHandler feeIndexHandler = walletPersistHandler.getIndexHandler(INDEX_FEE);
-    Tx0 tx0 =
-        tx0Service.tx0(
-            spendFromPrivKey,
-            spendFromOutpoint,
-            depositWallet,
-            premixWallet,
-            feeIndexHandler,
-            feeSatPerByte,
-            pools,
-            pool,
-            maxOutputs);
+    int initialFeeIndice = feeIndexHandler.get();
+    int initialPremixIndex = premixWallet.getIndexHandler().get();
+    try {
+      Tx0 tx0 =
+          tx0Service.tx0(
+              spendFromPrivKey,
+              spendFromOutpoint,
+              depositWallet,
+              premixWallet,
+              feeIndexHandler,
+              feeSatPerByte,
+              pools,
+              pool,
+              maxOutputs);
 
-    log.info(
-        " • Tx0 result: txid="
-            + tx0.getTx().getHashAsString()
-            + ", nbPremixs="
-            + tx0.getPremixUtxos().size());
-    if (log.isDebugEnabled()) {
-      log.debug(tx0.getTx().toString());
+      log.info(
+          " • Tx0 result: txid="
+              + tx0.getTx().getHashAsString()
+              + ", nbPremixs="
+              + tx0.getPremixUtxos().size());
+      if (log.isDebugEnabled()) {
+        log.debug(tx0.getTx().toString());
+      }
+
+      // pushTx
+      config.getPushTxService().pushTx(tx0.getTx());
+
+      // refresh utxos
+      ClientUtils.sleepRefreshUtxos(config.getNetworkParameters());
+      clearCache(WhirlpoolAccount.DEPOSIT);
+      clearCache(WhirlpoolAccount.PREMIX);
+      return tx0;
+    } catch (Exception e) {
+      // revert indexs
+      feeIndexHandler.set(initialFeeIndice);
+      premixWallet.getIndexHandler().set(initialPremixIndex);
+      throw e;
     }
-
-    // pushTx
-    config.getPushTxService().pushTx(tx0.getTx());
-
-    // refresh utxos
-    ClientUtils.sleepRefreshUtxos(config.getNetworkParameters());
-    clearCache(WhirlpoolAccount.DEPOSIT);
-    clearCache(WhirlpoolAccount.PREMIX);
-    return tx0;
   }
 
   public void start() {
