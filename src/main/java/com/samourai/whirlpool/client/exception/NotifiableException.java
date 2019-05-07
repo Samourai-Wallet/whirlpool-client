@@ -35,6 +35,6 @@ public class NotifiableException extends Exception {
       return (NotifiableException) e;
     }
     log.warn("Exception obfuscated to user", e);
-    return new NotifiableException("Technical error logged, check logs for details");
+    return new NotifiableException("Technical error, check logs for details");
   }
 }
