@@ -357,7 +357,7 @@ public class WhirlpoolWallet {
     final long spendFromBalanceMin =
         tx0Service.computeSpendFromBalanceMin(pool, feeTx0, feePremix, 1);
     if (spendFromValue < spendFromBalanceMin) {
-      throw new Exception(
+      throw new NotifiableException(
           "Insufficient utxo value for Tx0: " + spendFromValue + " < " + spendFromBalanceMin);
     }
 
@@ -531,7 +531,12 @@ public class WhirlpoolWallet {
   }
 
   public Pool findPoolById(String poolId, boolean clearCache) throws Exception {
-    return getPoolsResponse(clearCache).findPoolById(poolId);
+    for (Pool pool : getPoolsByPreference(clearCache)) {
+      if (pool.getPoolId().equals(poolId)) {
+        return pool;
+      }
+    }
+    return null;
   }
 
   public Collection<Pool> findPoolsByPreferenceForPremix(long utxoValue, boolean liquidity)
@@ -787,6 +792,23 @@ public class WhirlpoolWallet {
         if (log.isDebugEnabled()) {
           log.debug("New utxo detected: " + whirlpoolUtxo + " (no utxoConfig)");
         }
+      }
+    }
+    if (utxoConfig != null && utxoConfig.getPoolId() != null) {
+      // check configured pool exists
+      Pool pool = null;
+      try {
+        pool = findPoolById(utxoConfig.getPoolId());
+      } catch (Exception e) {
+        log.error("", e);
+      }
+      if (pool == null) {
+        // clear pool configuration
+        log.warn(
+            "pool not found for utxoConfig: "
+                + utxoConfig.getPoolId()
+                + " => reset utxoConfig.poolId");
+        utxoConfig.setPoolId(null);
       }
     }
 

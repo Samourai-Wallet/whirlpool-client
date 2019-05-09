@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.mix.dialog;
 
 import com.samourai.stomp.client.IStompTransportListener;
 import com.samourai.stomp.client.StompTransport;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.utils.MessageErrorListener;
 import com.samourai.whirlpool.client.utils.MessageListener;
@@ -105,8 +106,8 @@ public class MixSession {
                   registerInput(subscribePoolResponse);
                 } catch (Exception e) {
                   log.error("Unable to register input", e);
-                  String notifiableError = "Unable to register input: " + e.getClass().getName();
-                  listener.exitOnProtocolError(notifiableError);
+                  Exception notifiableException = NotifiableException.computeNotifiableException(e);
+                  listener.exitOnProtocolError(notifiableException.getMessage());
                 }
               } else {
                 String notifiableError =
