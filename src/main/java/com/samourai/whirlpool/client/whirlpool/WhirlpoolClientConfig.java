@@ -6,8 +6,6 @@ import com.samourai.whirlpool.client.WhirlpoolClient;
 import org.bitcoinj.core.NetworkParameters;
 
 public class WhirlpoolClientConfig {
-  public static final int FEES_PRIORITY = 4;
-
   private IHttpClient httpClient;
   private IStompClient stompClient;
   private String server;

@@ -11,6 +11,9 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletAccount;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -174,5 +177,62 @@ public class WhirlpoolWalletService {
             + postmixWallet.getIndexChangeHandler().get());
 
     return whirlpoolWallet;
+  }
+
+  public Map<String, String> getConfigInfo() {
+    Map<String, String> configInfo = new LinkedHashMap<String, String>();
+    String feeX = config.getFeeXpub();
+    configInfo.put(
+        "server",
+        "url="
+            + config.getServer()
+            + ", network="
+            + config.getNetworkParameters().getPaymentProtocolId()
+            + ", ssl="
+            + Boolean.toString(config.isSsl())
+            + ", feeX="
+            + ClientUtils.maskString(feeX, 6, 4));
+    configInfo.put("pushtx", config.getPushTxService().getClass().getName());
+    configInfo.put(
+        "persist",
+        "persistDelay="
+            + Integer.toString(config.getPersistDelay())
+            + ", persistCleanDelay="
+            + Integer.toString(config.getPersistCleanDelay()));
+    String poolIdsByPriorityStr = "null";
+    if (config.getPoolIdsByPriority() != null && !config.getPoolIdsByPriority().isEmpty()) {
+      poolIdsByPriorityStr = StringUtils.join(config.getPoolIdsByPriority(), ',');
+    }
+    configInfo.put(
+        "mix",
+        "maxClients="
+            + config.getMaxClients()
+            + ", clientDelay="
+            + config.getClientDelay()
+            + ", tx0Delay="
+            + config.getTx0Delay()
+            + ", tx0MaxOutputs="
+            + config.getTx0MaxOutputs()
+            + ", autoTx0="
+            + config.isAutoTx0()
+            + ", autoMix="
+            + config.isAutoMix()
+            + ", poolIdsByPriority="
+            + poolIdsByPriorityStr
+            + ", mixsTarget="
+            + config.getMixsTarget());
+    configInfo.put(
+        "fee",
+        "fallback="
+            + config.getFeeFallback()
+            + ", min="
+            + config.getFeeMin()
+            + ", max="
+            + config.getFeeMax()
+            + ", targetTx0="
+            + config.getFeeTargetTx0()
+            + ", targetPremix="
+            + config.getFeeTargetPremix());
+    return configInfo;
   }
 }

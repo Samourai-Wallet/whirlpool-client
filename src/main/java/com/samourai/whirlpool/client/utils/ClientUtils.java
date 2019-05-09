@@ -198,4 +198,10 @@ public class ClientUtils {
     String[] segments = feeData.split(";");
     return XORUtil.getInstance().decodeAsString(segments[0], segments[1]);
   }
+
+  public static String maskString(String value, int start, int end) {
+    return value.substring(0, Math.min(start, value.length()))
+        + "..."
+        + value.substring(Math.max(0, value.length() - end), value.length());
+  }
 }

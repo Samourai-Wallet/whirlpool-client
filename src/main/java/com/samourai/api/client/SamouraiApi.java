@@ -26,8 +26,6 @@ public class SamouraiApi extends AbstractPushTxService {
   private static final String URL_INIT_BIP84 = "/v2/xpub";
   private static final String URL_FEES = "/v2/fees";
   private static final String URL_PUSHTX = "/v2/pushtx/";
-  private static final int MAX_FEE_PER_BYTE = 500;
-  private static final int FAILOVER_FEE_PER_BYTE = 400;
 
   private IHttpClient httpClient;
   private String urlBackend;
@@ -99,30 +97,13 @@ public class SamouraiApi extends AbstractPushTxService {
     httpClient.postUrlEncoded(url, postBody);
   }
 
-  public int fetchFees(int blocks) {
-    try {
-      return fetchFees(blocks, true);
-    } catch (Exception e) {
-      return FAILOVER_FEE_PER_BYTE;
-    }
-  }
-
-  private int fetchFees(int blocks, boolean retry) throws Exception {
+  public SamouraiFee fetchFees() throws Exception {
     String url = urlBackend + URL_FEES;
-    int fees2 = 0;
-    try {
-      Map feesResponse = httpClient.parseJson(url, Map.class);
-      fees2 = Integer.parseInt(feesResponse.get(Integer.toString(blocks)).toString());
-    } catch (Exception e) {
-      log.error("Invalid fee response from server", e);
-    }
-    if (fees2 < 1) {
-      if (retry) {
-        return fetchFees(blocks, false);
-      }
+    Map<String, Integer> feeResponse = httpClient.parseJson(url, Map.class);
+    if (feeResponse == null) {
       throw new Exception("Invalid fee response from server");
     }
-    return Math.min(fees2, MAX_FEE_PER_BYTE);
+    return new SamouraiFee(feeResponse);
   }
 
   @Override
@@ -156,7 +137,7 @@ public class SamouraiApi extends AbstractPushTxService {
   @Override
   public boolean testConnectivity() {
     try {
-      fetchFees(2, false);
+      fetchFees();
       return true;
     } catch (Exception e) {
       log.error("", e);

@@ -2,6 +2,8 @@ package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.samourai.api.client.SamouraiFee;
+import com.samourai.api.client.SamouraiFeeTarget;
 import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84ApiWallet;
 import com.samourai.whirlpool.client.WhirlpoolClient;
@@ -10,7 +12,6 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
-import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.zeroleak.throwingsupplier.LastValueFallbackSupplier;
@@ -40,7 +41,7 @@ public class WhirlpoolWalletCacheData {
   private WhirlpoolClient whirlpoolClient;
 
   // fee
-  private Supplier<Integer> feeSatPerByte;
+  private Supplier<Throwing<SamouraiFee, Exception>> samouraiFee;
 
   // pools
   private Supplier<Throwing<Pools, Exception>> poolsResponse;
@@ -59,7 +60,7 @@ public class WhirlpoolWalletCacheData {
     this.whirlpoolClient = whirlpoolClient;
 
     // fee
-    this.feeSatPerByte =
+    this.samouraiFee =
         Suppliers.memoizeWithExpiration(initFeeSatPerByte(), FEE_REFRESH_DELAY, TimeUnit.SECONDS);
 
     // pools
@@ -76,18 +77,37 @@ public class WhirlpoolWalletCacheData {
   }
 
   // FEES
-  public int getFeeSatPerByte() {
-    return feeSatPerByte.get();
+  public int getFeeSatPerByte(SamouraiFeeTarget feeTarget) {
+    int fee;
+    try {
+      fee = samouraiFee.get().getOrThrow().get(feeTarget);
+    } catch (Exception e) {
+      log.error("Could not fetch fee/b => fallback to " + config.getFeeFallback());
+      fee = config.getFeeFallback();
+    }
+
+    // check min
+    if (fee < config.getFeeMin()) {
+      log.error("Fee/b too low (" + feeTarget + "): " + fee + " => " + config.getFeeMin());
+      fee = config.getFeeMin();
+    }
+
+    // check max
+    if (fee > config.getFeeMax()) {
+      log.error("Fee/b too high (" + feeTarget + "): " + fee + " => " + config.getFeeMax());
+      fee = config.getFeeMax();
+    }
+    return fee;
   }
 
-  private Supplier<Integer> initFeeSatPerByte() {
-    return new Supplier<Integer>() {
+  private ThrowingSupplier<SamouraiFee, Exception> initFeeSatPerByte() {
+    return new LastValueFallbackSupplier<SamouraiFee, Exception>() {
       @Override
-      public Integer get() {
+      public SamouraiFee getOrThrow() throws Exception {
         if (log.isDebugEnabled()) {
-          log.debug("fetching feeSatPerByte");
+          log.debug("fetching samouraiFee");
         }
-        return config.getSamouraiApi().fetchFees(WhirlpoolClientConfig.FEES_PRIORITY);
+        return config.getSamouraiApi().fetchFees();
       }
     };
   }

@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.api.client.SamouraiApi;
+import com.samourai.api.client.SamouraiFeeTarget;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClient;
 import com.samourai.wallet.util.FormatsUtilGeneric;
@@ -26,6 +27,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int mixsTarget;
   private int persistDelay;
   private int persistCleanDelay;
+
+  private int feeMin;
+  private int feeMax;
+  private int feeFallback;
+  private SamouraiFeeTarget feeTargetTx0;
+  private SamouraiFeeTarget feeTargetPremix;
 
   public WhirlpoolWalletConfig(
       IHttpClient httpClient,
@@ -69,6 +76,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.mixsTarget = 1;
     this.persistDelay = 2; // 2s
     this.persistCleanDelay = 300; // 5min
+
+    this.feeMin = 1;
+    this.feeMax = 510;
+    this.feeFallback = 75;
+    this.feeTargetTx0 = SamouraiFeeTarget.BLOCKS_4;
+    this.feeTargetPremix = SamouraiFeeTarget.BLOCKS_12;
   }
 
   public String getFeeXpub() {
@@ -173,5 +186,45 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setPersistCleanDelay(int persistCleanDelay) {
     this.persistCleanDelay = persistCleanDelay;
+  }
+
+  public int getFeeMin() {
+    return feeMin;
+  }
+
+  public void setFeeMin(int feeMin) {
+    this.feeMin = feeMin;
+  }
+
+  public int getFeeMax() {
+    return feeMax;
+  }
+
+  public void setFeeMax(int feeMax) {
+    this.feeMax = feeMax;
+  }
+
+  public int getFeeFallback() {
+    return feeFallback;
+  }
+
+  public void setFeeFallback(int feeFallback) {
+    this.feeFallback = feeFallback;
+  }
+
+  public SamouraiFeeTarget getFeeTargetTx0() {
+    return feeTargetTx0;
+  }
+
+  public void setFeeTargetTx0(SamouraiFeeTarget feeTargetTx0) {
+    this.feeTargetTx0 = feeTargetTx0;
+  }
+
+  public SamouraiFeeTarget getFeeTargetPremix() {
+    return feeTargetPremix;
+  }
+
+  public void setFeeTargetPremix(SamouraiFeeTarget feeTargetPremix) {
+    this.feeTargetPremix = feeTargetPremix;
   }
 }
