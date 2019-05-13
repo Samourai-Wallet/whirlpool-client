@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet.persist;
 
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 
 public class WhirlpoolUtxoConfigPersisted {
@@ -23,8 +24,8 @@ public class WhirlpoolUtxoConfigPersisted {
     this.mixsDone = mixsDone;
   }
 
-  public WhirlpoolUtxoConfig toUtxoConfig() {
-    return new WhirlpoolUtxoConfig(poolId, mixsTarget, mixsDone, 0);
+  public WhirlpoolUtxoConfig toUtxoConfig(WhirlpoolWallet whirlpoolWallet) {
+    return new WhirlpoolUtxoConfig(whirlpoolWallet, poolId, mixsTarget, mixsDone, 0);
   }
 
   public String getPoolId() {

@@ -118,6 +118,8 @@ public class WhirlpoolWallet {
     }
 
     this.clearCache();
+
+    this.walletPersistHandler.loadUtxoConfigs(this);
   }
 
   public void clearCache() {
@@ -755,7 +757,7 @@ public class WhirlpoolWallet {
     }
 
     // default value
-    utxoConfig = new WhirlpoolUtxoConfig(config.getMixsTarget());
+    utxoConfig = new WhirlpoolUtxoConfig(this, config.getMixsTarget());
     if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())) {
       // POSTMIX was already mixed once (at least)
       utxoConfig.incrementMixsDone();
@@ -913,5 +915,9 @@ public class WhirlpoolWallet {
 
   public String getZpubPostmix() {
     return postmixWallet.getZpub();
+  }
+
+  public void onUtxoConfigChanged(WhirlpoolUtxoConfig whirlpoolUtxoConfig) {
+    getWalletPersistHandler().onUtxoConfigChanged(whirlpoolUtxoConfig);
   }
 }

@@ -1,21 +1,35 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
+
 public class WhirlpoolUtxoConfig {
   public static final int MIXS_TARGET_UNLIMITED = 0;
+  private WhirlpoolWallet whirlpoolWallet;
   private String poolId;
   private int mixsTarget;
   private int mixsDone;
   private long lastModified;
 
-  public WhirlpoolUtxoConfig(int mixsTarget) {
-    this(null, mixsTarget, 0, 0);
+  public WhirlpoolUtxoConfig(WhirlpoolWallet whirlpoolWallet, int mixsTarget) {
+    this(whirlpoolWallet, null, mixsTarget, 0, 0);
   }
 
   public WhirlpoolUtxoConfig(WhirlpoolUtxoConfig copy) {
-    this(copy.poolId, copy.mixsTarget, copy.mixsDone, System.currentTimeMillis());
+    this(
+        copy.whirlpoolWallet,
+        copy.poolId,
+        copy.mixsTarget,
+        copy.mixsDone,
+        System.currentTimeMillis());
   }
 
-  public WhirlpoolUtxoConfig(String poolId, int mixsTarget, int mixsDone, long lastModified) {
+  public WhirlpoolUtxoConfig(
+      WhirlpoolWallet whirlpoolWallet,
+      String poolId,
+      int mixsTarget,
+      int mixsDone,
+      long lastModified) {
+    this.whirlpoolWallet = whirlpoolWallet;
     this.poolId = poolId;
     this.mixsTarget = mixsTarget;
     this.mixsDone = mixsDone;
@@ -33,7 +47,7 @@ public class WhirlpoolUtxoConfig {
 
   public void setPoolId(String poolId) {
     this.poolId = poolId;
-    setLastModified();
+    whirlpoolWallet.onUtxoConfigChanged(this);
   }
 
   public int getMixsTarget() {
@@ -42,7 +56,7 @@ public class WhirlpoolUtxoConfig {
 
   public void setMixsTarget(int mixsTarget) {
     this.mixsTarget = mixsTarget;
-    setLastModified();
+    whirlpoolWallet.onUtxoConfigChanged(this);
   }
 
   public int getMixsDone() {
@@ -52,6 +66,7 @@ public class WhirlpoolUtxoConfig {
   public void incrementMixsDone() {
     this.mixsDone++;
     setLastModified();
+    whirlpoolWallet.onUtxoConfigChanged(this);
   }
 
   public long getLastModified() {

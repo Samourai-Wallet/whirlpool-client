@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.persist;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 import java.io.File;
 import java.util.HashSet;
@@ -11,7 +12,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java8.util.function.Function;
-import java8.util.function.Predicate;
 import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
 import org.slf4j.Logger;
@@ -34,7 +34,6 @@ public class FileWhirlpoolUtxoConfigHandler {
     this.keysToClean = new HashSet<String>();
     this.lastSet = 0;
     this.lastWrite = 0;
-    load();
   }
 
   protected WhirlpoolUtxoConfig get(String key) {
@@ -43,7 +42,7 @@ public class FileWhirlpoolUtxoConfigHandler {
 
   protected void set(String key, WhirlpoolUtxoConfig value) {
     utxoConfigs.put(key, value);
-    this.lastSet = System.currentTimeMillis();
+    setLastSet();
   }
 
   protected boolean save() throws Exception {
@@ -58,26 +57,10 @@ public class FileWhirlpoolUtxoConfigHandler {
 
   private boolean hasModifications() {
     // check for local modifications
-    if (lastSet > lastWrite) {
-      return true;
-    }
-
-    // check for modifications in utxoConfigs
-    boolean anyModified =
-        StreamSupport.stream(utxoConfigs.entrySet())
-            .filter(
-                new Predicate<Entry<String, WhirlpoolUtxoConfig>>() {
-                  @Override
-                  public boolean test(Entry<String, WhirlpoolUtxoConfig> entry) {
-                    return entry.getValue().getLastModified() > lastWrite;
-                  }
-                })
-            .findAny()
-            .isPresent();
-    return anyModified;
+    return (lastSet > lastWrite);
   }
 
-  protected void load() {
+  public void loadUtxoConfigs(final WhirlpoolWallet whirlpoolWallet) {
     try {
       utxoConfigs.clear();
       if (file.exists() && file.length() > 0) {
@@ -103,7 +86,7 @@ public class FileWhirlpoolUtxoConfigHandler {
                           @Override
                           public WhirlpoolUtxoConfig apply(
                               Entry<String, WhirlpoolUtxoConfigPersisted> entry) {
-                            return entry.getValue().toUtxoConfig();
+                            return entry.getValue().toUtxoConfig(whirlpoolWallet);
                           }
                         }));
         utxoConfigs.putAll(whirlpoolUtxoConfigs);
@@ -140,7 +123,7 @@ public class FileWhirlpoolUtxoConfigHandler {
           }
           iter.remove();
           knownUtxosKeys.remove(entryKey);
-          lastSet = System.currentTimeMillis();
+          setLastSet();
         }
       }
     }
@@ -173,5 +156,9 @@ public class FileWhirlpoolUtxoConfigHandler {
     // write
     mapper.writeValue(file, mapPersisted);
     lastWrite = System.currentTimeMillis();
+  }
+
+  public void setLastSet() {
+    lastSet = System.currentTimeMillis();
   }
 }

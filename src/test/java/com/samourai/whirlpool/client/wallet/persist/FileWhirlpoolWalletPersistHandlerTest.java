@@ -47,7 +47,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
   private void reload() {
     ((FileWhirlpoolWalletPersistHandler) whirlpoolWallet.getWalletPersistHandler())
         .getUtxoConfigHandler()
-        .load();
+        .loadUtxoConfigs(whirlpoolWallet);
   }
 
   @Test

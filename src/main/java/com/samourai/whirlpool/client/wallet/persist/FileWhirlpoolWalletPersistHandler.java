@@ -4,6 +4,7 @@ import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.indexHandler.FileIndexHandler;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 import java.io.File;
@@ -51,6 +52,11 @@ public class FileWhirlpoolWalletPersistHandler implements WhirlpoolWalletPersist
   // --- UtxoConfig
 
   @Override
+  public void loadUtxoConfigs(WhirlpoolWallet whirlpoolWallet) {
+    fileUtxoConfigHandler.loadUtxoConfigs(whirlpoolWallet);
+  }
+
+  @Override
   public WhirlpoolUtxoConfig getUtxoConfig(String utxoHash, int utxoIndex) {
     String persistKey = computeUtxoConfigKey(utxoHash, utxoIndex);
     return fileUtxoConfigHandler.get(persistKey);
@@ -87,6 +93,11 @@ public class FileWhirlpoolWalletPersistHandler implements WhirlpoolWalletPersist
   @Override
   public void save() throws Exception {
     fileUtxoConfigHandler.save();
+  }
+
+  @Override
+  public void onUtxoConfigChanged(WhirlpoolUtxoConfig whirlpoolUtxoConfig) {
+    fileUtxoConfigHandler.setLastSet();
   }
 
   private String computeUtxoConfigKey(String utxoHash, int utxoIndex) {
