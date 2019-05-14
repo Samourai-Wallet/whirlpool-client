@@ -8,7 +8,6 @@ import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.pushTx.PushTxService;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
-import java.util.Collection;
 import org.bitcoinj.core.NetworkParameters;
 
 public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
@@ -17,7 +16,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int clientDelay;
   private boolean autoTx0;
   private boolean autoMix;
-  private Collection<String> poolIdsByPriority;
 
   private SamouraiApi samouraiApi;
   private PushTxService pushTxService;
@@ -64,7 +62,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.clientDelay = 30;
     this.autoTx0 = false;
     this.autoMix = false;
-    this.poolIdsByPriority = null;
 
     // technical settings
     boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
@@ -118,14 +115,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setAutoMix(boolean autoMix) {
     this.autoMix = autoMix;
-  }
-
-  public Collection<String> getPoolIdsByPriority() {
-    return poolIdsByPriority;
-  }
-
-  public void setPoolIdsByPriority(Collection<String> poolIdsByPriority) {
-    this.poolIdsByPriority = poolIdsByPriority;
   }
 
   public PushTxService getPushTxService() {

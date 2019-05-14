@@ -130,22 +130,21 @@ public class WhirlpoolWallet {
     this.cacheData.clearUtxos(account);
   }
 
-  public Collection<Pool> findPoolsByPreferenceForTx0(long utxoValue, int nbOutputsMin)
-      throws Exception {
-    return findPoolsByPreferenceForTx0(utxoValue, nbOutputsMin, false);
+  public Collection<Pool> findPoolsForTx0(long utxoValue, int nbOutputsMin) throws Exception {
+    return findPoolsForTx0(utxoValue, nbOutputsMin, false);
   }
 
-  public Collection<Pool> findPoolsByPreferenceForTx0(
-      long utxoValue, int nbOutputsMin, boolean clearCache) throws Exception {
+  public Collection<Pool> findPoolsForTx0(long utxoValue, int nbOutputsMin, boolean clearCache)
+      throws Exception {
     // clear cache
     if (clearCache) {
       cacheData.clearPools();
     }
 
     // find eligible pools
-    Collection<Pool> poolsByPreference = getPoolsByPreference();
+    Collection<Pool> poolsAvailable = getPoolsAvailable();
     return tx0Service.findPools(
-        nbOutputsMin, poolsByPreference, utxoValue, getFeeTx0(), getFeePremix());
+        nbOutputsMin, poolsAvailable, utxoValue, getFeeTx0(), getFeePremix());
   }
 
   public WhirlpoolUtxo findTx0SpendFrom(int nbOutputsMin, Collection<Pool> poolsByPreference)
@@ -250,7 +249,7 @@ public class WhirlpoolWallet {
 
   public Tx0 tx0(int nbOutputsMin)
       throws Exception { // throws UnconfirmedUtxoException, EmptyWalletException
-    Collection<Pool> poolsByPreference = getPoolsByPreference();
+    Collection<Pool> poolsByPreference = getPoolsAvailable();
     WhirlpoolUtxo spendFrom =
         findTx0SpendFrom(
             nbOutputsMin,
@@ -511,18 +510,10 @@ public class WhirlpoolWallet {
   }
 
   public Collection<Pool> getPoolsAvailable(boolean clearCache) throws Exception {
-    return getPoolsResponse(clearCache).getPools();
-  }
-
-  public Collection<Pool> getPoolsByPreference() throws Exception {
-    return getPoolsByPreference(false);
-  }
-
-  public Collection<Pool> getPoolsByPreference(boolean clearCache) throws Exception {
     if (clearCache) {
       cacheData.clearPools();
     }
-    return cacheData.getPoolsByPreference();
+    return cacheData.getPools();
   }
 
   public Pool findPoolById(String poolId) throws Exception {
@@ -533,7 +524,7 @@ public class WhirlpoolWallet {
   }
 
   public Pool findPoolById(String poolId, boolean clearCache) throws Exception {
-    for (Pool pool : getPoolsByPreference(clearCache)) {
+    for (Pool pool : getPoolsAvailable(clearCache)) {
       if (pool.getPoolId().equals(poolId)) {
         return pool;
       }
@@ -541,13 +532,12 @@ public class WhirlpoolWallet {
     return null;
   }
 
-  public Collection<Pool> findPoolsByPreferenceForPremix(long utxoValue, boolean liquidity)
-      throws Exception {
-    return findPoolsByPreferenceForPremix(utxoValue, liquidity, false);
+  public Collection<Pool> findPoolsForPremix(long utxoValue, boolean liquidity) throws Exception {
+    return findPoolsForPremix(utxoValue, liquidity, false);
   }
 
-  public Collection<Pool> findPoolsByPreferenceForPremix(
-      long utxoValue, boolean liquidity, boolean clearCache) throws Exception {
+  public Collection<Pool> findPoolsForPremix(long utxoValue, boolean liquidity, boolean clearCache)
+      throws Exception {
     // clear cache
     if (clearCache) {
       cacheData.clearPools();
@@ -555,7 +545,7 @@ public class WhirlpoolWallet {
 
     // find eligible pools
     List<Pool> poolsAccepted = new ArrayList<Pool>();
-    for (Pool pool : getPoolsByPreference()) {
+    for (Pool pool : getPoolsAvailable()) {
       if (pool.checkInputBalance(utxoValue, liquidity)) {
         poolsAccepted.add(pool);
       }
@@ -838,14 +828,14 @@ public class WhirlpoolWallet {
 
     // find eligible pools for tx0
     if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())) {
-      eligiblePools = findPoolsByPreferenceForTx0(whirlpoolUtxo.getUtxo().value, 1);
+      eligiblePools = findPoolsForTx0(whirlpoolUtxo.getUtxo().value, 1);
     }
 
     // find eligible pools for mix
     else if (WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())
         || WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())) {
       boolean liquidity = WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount());
-      eligiblePools = findPoolsByPreferenceForPremix(whirlpoolUtxo.getUtxo().value, liquidity);
+      eligiblePools = findPoolsForPremix(whirlpoolUtxo.getUtxo().value, liquidity);
     }
 
     // auto-assign pool by preference when found

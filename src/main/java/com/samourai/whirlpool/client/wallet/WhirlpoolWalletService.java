@@ -13,7 +13,6 @@ import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandle
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -199,10 +198,6 @@ public class WhirlpoolWalletService {
             + Integer.toString(config.getPersistDelay())
             + ", persistCleanDelay="
             + Integer.toString(config.getPersistCleanDelay()));
-    String poolIdsByPriorityStr = "null";
-    if (config.getPoolIdsByPriority() != null && !config.getPoolIdsByPriority().isEmpty()) {
-      poolIdsByPriorityStr = StringUtils.join(config.getPoolIdsByPriority(), ',');
-    }
     configInfo.put(
         "mix",
         "maxClients="
@@ -217,8 +212,6 @@ public class WhirlpoolWalletService {
             + config.isAutoTx0()
             + ", autoMix="
             + config.isAutoMix()
-            + ", poolIdsByPriority="
-            + poolIdsByPriorityStr
             + ", mixsTarget="
             + config.getMixsTarget());
     configInfo.put(

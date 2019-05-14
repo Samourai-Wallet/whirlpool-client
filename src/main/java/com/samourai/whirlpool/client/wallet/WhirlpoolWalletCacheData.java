@@ -17,11 +17,7 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.zeroleak.throwingsupplier.LastValueFallbackSupplier;
 import com.zeroleak.throwingsupplier.Throwing;
 import com.zeroleak.throwingsupplier.ThrowingSupplier;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java8.util.function.Consumer;
@@ -45,7 +41,7 @@ public class WhirlpoolWalletCacheData {
 
   // pools
   private Supplier<Throwing<Pools, Exception>> poolsResponse;
-  private Supplier<Throwing<Collection<Pool>, Exception>> poolsByPreference;
+  private Supplier<Throwing<Collection<Pool>, Exception>> pools;
 
   // utxos
   private Map<WhirlpoolAccount, Supplier<Throwing<Map<String, WhirlpoolUtxo>, Exception>>> utxos;
@@ -116,18 +112,17 @@ public class WhirlpoolWalletCacheData {
 
   public void clearPools() {
     this.poolsResponse =
-        Suppliers.memoizeWithExpiration(initPools(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
+        Suppliers.memoizeWithExpiration(initPoolsResponse(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
 
-    this.poolsByPreference =
-        Suppliers.memoizeWithExpiration(
-            initPoolsByPreference(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
+    this.pools =
+        Suppliers.memoizeWithExpiration(initPools(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
   }
 
   public Pools getPoolsResponse() throws Exception {
     return poolsResponse.get().getOrThrow();
   }
 
-  private ThrowingSupplier<Pools, Exception> initPools() {
+  private ThrowingSupplier<Pools, Exception> initPoolsResponse() {
     return new LastValueFallbackSupplier<Pools, Exception>() {
       @Override
       public Pools getOrThrow() throws Exception {
@@ -139,43 +134,27 @@ public class WhirlpoolWalletCacheData {
     };
   }
 
-  public Collection<Pool> getPoolsByPreference() throws Exception {
-    return poolsByPreference.get().getOrThrow();
+  public Collection<Pool> getPools() throws Exception {
+    return pools.get().getOrThrow();
   }
 
-  private ThrowingSupplier<Collection<Pool>, Exception> initPoolsByPreference() {
+  private ThrowingSupplier<Collection<Pool>, Exception> initPools() {
     return new LastValueFallbackSupplier<Collection<Pool>, Exception>() {
       @Override
       public Collection<Pool> getOrThrow() throws Exception {
         if (log.isDebugEnabled()) {
-          log.debug("fetching poolsByPreference");
+          log.debug("fetching pools");
         }
 
         Pools pools = getPoolsResponse();
 
         // add pools by preference
         Collection<Pool> poolsByPreference = new LinkedList<Pool>();
-        if (config.getPoolIdsByPriority() != null && !config.getPoolIdsByPriority().isEmpty()) {
-          // use user-specified pools
-          for (String poolId : config.getPoolIdsByPriority()) {
-            Pool pool = pools.findPoolById(poolId);
-            if (pool != null) {
-              poolsByPreference.add(pool);
-            } else {
-              log.error("No such pool: " + poolId);
-            }
-          }
-        } else {
-          // use all pools
-          if (log.isDebugEnabled()) {
-            log.debug("getPoolsByPreference: no priority defined, using all poolsResponse");
-          }
-          // biggest balanceMin first
-          poolsByPreference =
-              StreamSupport.stream(pools.getPools())
-                  .sorted(new WhirlpoolPoolByBalanceMinDescComparator())
-                  .collect(Collectors.<Pool>toList());
-        }
+        // biggest balanceMin first
+        poolsByPreference =
+            StreamSupport.stream(pools.getPools())
+                .sorted(new WhirlpoolPoolByBalanceMinDescComparator())
+                .collect(Collectors.<Pool>toList());
         return poolsByPreference;
       }
     };
