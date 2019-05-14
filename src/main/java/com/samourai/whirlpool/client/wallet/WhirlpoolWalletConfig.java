@@ -5,6 +5,7 @@ import com.samourai.api.client.SamouraiFeeTarget;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClient;
 import com.samourai.wallet.util.FormatsUtilGeneric;
+import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.pushTx.PushTxService;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
@@ -16,6 +17,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int maxClients;
   private int clientDelay;
   private String autoTx0PoolId;
+  private Tx0FeeTarget autoTx0FeeTarget;
   private boolean autoMix;
 
   private SamouraiApi samouraiApi;
@@ -30,7 +32,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int feeMin;
   private int feeMax;
   private int feeFallback;
-  private SamouraiFeeTarget feeTargetTx0;
   private SamouraiFeeTarget feeTargetPremix;
 
   public WhirlpoolWalletConfig(
@@ -62,6 +63,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.maxClients = 1;
     this.clientDelay = 30;
     this.autoTx0PoolId = null;
+    this.autoTx0FeeTarget = Tx0FeeTarget.DEFAULT;
     this.autoMix = false;
 
     // technical settings
@@ -78,7 +80,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.feeMin = 1;
     this.feeMax = 510;
     this.feeFallback = 75;
-    this.feeTargetTx0 = SamouraiFeeTarget.BLOCKS_4;
     this.feeTargetPremix = SamouraiFeeTarget.BLOCKS_12;
   }
 
@@ -112,6 +113,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setAutoTx0PoolId(String autoTx0PoolId) {
     this.autoTx0PoolId = autoTx0PoolId;
+  }
+
+  public Tx0FeeTarget getAutoTx0FeeTarget() {
+    return autoTx0FeeTarget;
+  }
+
+  public void setAutoTx0FeeTarget(Tx0FeeTarget autoTx0FeeTarget) {
+    this.autoTx0FeeTarget = autoTx0FeeTarget;
   }
 
   public boolean isAutoMix() {
@@ -204,14 +213,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setFeeFallback(int feeFallback) {
     this.feeFallback = feeFallback;
-  }
-
-  public SamouraiFeeTarget getFeeTargetTx0() {
-    return feeTargetTx0;
-  }
-
-  public void setFeeTargetTx0(SamouraiFeeTarget feeTargetTx0) {
-    this.feeTargetTx0 = feeTargetTx0;
   }
 
   public SamouraiFeeTarget getFeeTargetPremix() {

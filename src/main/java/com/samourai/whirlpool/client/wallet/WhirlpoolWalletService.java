@@ -210,6 +210,8 @@ public class WhirlpoolWalletService {
             + config.getTx0MaxOutputs()
             + ", autoTx0="
             + (config.isAutoTx0() ? config.getAutoTx0PoolId() : "false")
+            + ", autoTx0FeeTarget="
+            + config.getAutoTx0FeeTarget().name()
             + ", autoMix="
             + config.isAutoMix()
             + ", mixsTarget="
@@ -222,8 +224,6 @@ public class WhirlpoolWalletService {
             + config.getFeeMin()
             + ", max="
             + config.getFeeMax()
-            + ", targetTx0="
-            + config.getFeeTargetTx0()
             + ", targetPremix="
             + config.getFeeTargetPremix());
     return configInfo;
