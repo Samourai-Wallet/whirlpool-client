@@ -209,7 +209,7 @@ public class WhirlpoolWalletService {
             + ", tx0MaxOutputs="
             + config.getTx0MaxOutputs()
             + ", autoTx0="
-            + config.isAutoTx0()
+            + (config.isAutoTx0() ? config.getAutoTx0PoolId() : "false")
             + ", autoMix="
             + config.isAutoMix()
             + ", mixsTarget="

@@ -41,7 +41,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
           if (log.isDebugEnabled()) {
             log.debug("AutoTx0: looking for Tx0...");
           }
-          whirlpoolWallet.tx0(); // throws UnconfirmedUtxoException, EmptyWalletException
+          whirlpoolWallet.autoTx0(); // throws UnconfirmedUtxoException, EmptyWalletException
           setLastRun();
           log.info(" • AutoTx0: SUCCESS");
 

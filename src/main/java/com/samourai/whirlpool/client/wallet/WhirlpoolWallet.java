@@ -31,6 +31,7 @@ import com.samourai.whirlpool.protocol.beans.Utxo;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java8.util.Lists;
 import java8.util.Optional;
 import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
@@ -147,13 +148,12 @@ public class WhirlpoolWallet {
         nbOutputsMin, poolsAvailable, utxoValue, getFeeTx0(), getFeePremix());
   }
 
-  public WhirlpoolUtxo findTx0SpendFrom(int nbOutputsMin, Collection<Pool> poolsByPreference)
+  public WhirlpoolUtxo findTx0SpendFrom(int nbOutputsMin, Pool pool)
       throws Exception { // throws EmptyWalletException, UnconfirmedUtxoException
-    return findTx0SpendFrom(nbOutputsMin, poolsByPreference, getFeeTx0(), getFeePremix());
+    return findTx0SpendFrom(nbOutputsMin, pool, getFeeTx0(), getFeePremix());
   }
 
-  public WhirlpoolUtxo findTx0SpendFrom(
-      int nbOutputsMin, Collection<Pool> poolsByPreference, int feeTx0, int feePremix)
+  private WhirlpoolUtxo findTx0SpendFrom(int nbOutputsMin, Pool pool, int feeTx0, int feePremix)
       throws Exception { // throws EmptyWalletException, UnconfirmedUtxoException
 
     Collection<WhirlpoolUtxo> depositUtxosByPriority =
@@ -163,7 +163,7 @@ public class WhirlpoolWallet {
 
     return findTx0SpendFrom(
         nbOutputsMin,
-        poolsByPreference,
+        pool,
         depositUtxosByPriority,
         feeTx0,
         feePremix); // throws EmptyWalletException, UnconfirmedUtxoException
@@ -171,13 +171,13 @@ public class WhirlpoolWallet {
 
   private WhirlpoolUtxo findTx0SpendFrom(
       int nbOutputsMin,
-      Collection<Pool> poolsByPreference,
+      Pool pool,
       Collection<WhirlpoolUtxo> depositUtxosByPriority,
       int feeTx0,
       int feePremix)
       throws EmptyWalletException, Exception, NotifiableException {
 
-    if (poolsByPreference.isEmpty()) {
+    if (pool == null) {
       throw new NotifiableException("No pool to spend tx0 from");
     }
 
@@ -188,7 +188,7 @@ public class WhirlpoolWallet {
       if (eligiblePool == null) {
         Collection<Pool> eligiblePools =
             tx0Service.findPools(
-                nbOutputsMin, poolsByPreference, whirlpoolUtxo.getUtxo().value, feeTx0, feePremix);
+                nbOutputsMin, Lists.of(pool), whirlpoolUtxo.getUtxo().value, feeTx0, feePremix);
         if (!eligiblePools.isEmpty()) {
           eligiblePool = eligiblePools.iterator().next();
         }
@@ -238,22 +238,31 @@ public class WhirlpoolWallet {
 
     // no eligible deposit UTXO found
     long requiredBalance =
-        tx0Service.computeSpendFromBalanceMin(
-            poolsByPreference.iterator().next(), feeTx0, feePremix, nbOutputsMin);
+        tx0Service.computeSpendFromBalanceMin(pool, feeTx0, feePremix, nbOutputsMin);
     throw new EmptyWalletException("No UTXO found to spend TX0 from", requiredBalance);
   }
 
-  public Tx0 tx0() throws Exception { // throws UnconfirmedUtxoException, EmptyWalletException
-    return tx0(1);
+  public Tx0 autoTx0() throws Exception { // throws UnconfirmedUtxoException, EmptyWalletException
+    String poolId = config.getAutoTx0PoolId();
+    Pool pool = findPoolById(poolId);
+    if (pool == null) {
+      throw new NotifiableException(
+          "No pool found for autoTx0 (autoTx0 = " + (poolId != null ? poolId : "null") + ")");
+    }
+    return tx0(pool);
   }
 
-  public Tx0 tx0(int nbOutputsMin)
+  public Tx0 tx0(Pool pool)
       throws Exception { // throws UnconfirmedUtxoException, EmptyWalletException
-    Collection<Pool> poolsByPreference = getPoolsAvailable();
+    return tx0(pool, 1);
+  }
+
+  public Tx0 tx0(Pool pool, int nbOutputsMin)
+      throws Exception { // throws UnconfirmedUtxoException, EmptyWalletException
     WhirlpoolUtxo spendFrom =
         findTx0SpendFrom(
             nbOutputsMin,
-            poolsByPreference,
+            pool,
             getFeeTx0(),
             getFeePremix()); // throws UnconfirmedUtxoException, EmptyWalletException
     return tx0(spendFrom, getFeeTx0(), getFeePremix(), config.getTx0MaxOutputs());
