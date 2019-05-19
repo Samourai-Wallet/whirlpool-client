@@ -1,10 +1,10 @@
 package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.client.Bip84Wallet;
-import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
+import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import org.bitcoinj.core.Coin;
 import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.Sha256Hash;
@@ -19,11 +19,9 @@ import org.slf4j.LoggerFactory;
 public class Tx0ServiceTest extends AbstractTest {
   private Logger log = LoggerFactory.getLogger(Tx0ServiceTest.class);
 
-  private static final String FEE_XPUB =
-      "vpub5YS8pQgZKVbrSn9wtrmydDWmWMjHrxL2mBCZ81BDp7Z2QyCgTLZCrnBprufuoUJaQu1ZeiRvUkvdQTNqV6hS96WbbVZgweFxYR1RXYkBcKt";
   private static final long FEE_VALUE = 10000; // TODO
 
-  private Tx0Service tx0Service = new Tx0Service(params, FEE_XPUB);
+  private Tx0Service tx0Service = new Tx0Service(params);
 
   @Test
   public void tx0_5premix_withChange() throws Exception {
@@ -50,8 +48,9 @@ public class Tx0ServiceTest extends AbstractTest {
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
-    IIndexHandler feeIndexHandler = new MemoryIndexHandler();
     byte[] feePayload = new byte[] {1, 2};
+    Tx0Data tx0Data =
+        new Tx0Data(feePaymentCode, feePayload, "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym", 0);
 
     Tx0 tx0 =
         tx0Service.tx0(
@@ -59,13 +58,11 @@ public class Tx0ServiceTest extends AbstractTest {
             spendFromOutpoint,
             depositWallet,
             premixWallet,
-            feeIndexHandler,
             feeSatPerByte,
             nbOutputsPreferred,
             premixValue,
             FEE_VALUE,
-            feePaymentCode,
-            feePayload);
+            tx0Data);
 
     Transaction tx = tx0.getTx();
     Assertions.assertEquals(
@@ -105,8 +102,9 @@ public class Tx0ServiceTest extends AbstractTest {
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
-    IIndexHandler feeIndexHandler = new MemoryIndexHandler();
     byte[] feePayload = new byte[] {1, 2};
+    Tx0Data tx0Data =
+        new Tx0Data(feePaymentCode, feePayload, "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym", 0);
 
     Tx0 tx0 =
         tx0Service.tx0(
@@ -114,13 +112,11 @@ public class Tx0ServiceTest extends AbstractTest {
             spendFromOutpoint,
             depositWallet,
             premixWallet,
-            feeIndexHandler,
             feeSatPerByte,
             null,
             premixValue,
             FEE_VALUE,
-            feePaymentCode,
-            feePayload);
+            tx0Data);
 
     Transaction tx = tx0.getTx();
     Assertions.assertEquals(
@@ -161,8 +157,9 @@ public class Tx0ServiceTest extends AbstractTest {
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
-    IIndexHandler feeIndexHandler = new MemoryIndexHandler();
     byte[] feePayload = new byte[] {1, 2};
+    Tx0Data tx0Data =
+        new Tx0Data(feePaymentCode, feePayload, "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym", 0);
 
     Tx0 tx0 =
         tx0Service.tx0(
@@ -170,13 +167,11 @@ public class Tx0ServiceTest extends AbstractTest {
             spendFromOutpoint,
             depositWallet,
             premixWallet,
-            feeIndexHandler,
             feeSatPerByte,
             nbOutputsPreferred,
             premixValue,
             FEE_VALUE,
-            feePaymentCode,
-            feePayload);
+            tx0Data);
 
     Transaction tx = tx0.getTx();
     Assertions.assertEquals(
@@ -217,8 +212,9 @@ public class Tx0ServiceTest extends AbstractTest {
     String feePaymentCode =
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
-    IIndexHandler feeIndexHandler = new MemoryIndexHandler();
     byte[] feePayload = new byte[] {1, 2};
+    Tx0Data tx0Data =
+        new Tx0Data(feePaymentCode, feePayload, "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym", 0);
 
     Tx0 tx0 =
         tx0Service.tx0(
@@ -226,13 +222,11 @@ public class Tx0ServiceTest extends AbstractTest {
             spendFromOutpoint,
             depositWallet,
             premixWallet,
-            feeIndexHandler,
             feeSatPerByte,
             nbOutputsPreferred,
             premixValue,
             FEE_VALUE,
-            feePaymentCode,
-            feePayload);
+            tx0Data);
 
     Transaction tx = tx0.getTx();
     Assertions.assertEquals(

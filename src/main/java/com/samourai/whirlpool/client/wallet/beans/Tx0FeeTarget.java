@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
-import com.samourai.api.client.SamouraiFeeTarget;
+import com.samourai.wallet.api.backend.SamouraiFeeTarget;
 
 public enum Tx0FeeTarget {
   BLOCKS_2(SamouraiFeeTarget.BLOCKS_2),

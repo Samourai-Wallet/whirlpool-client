@@ -1,8 +1,8 @@
 package com.samourai.wallet.client;
 
 import com.samourai.api.client.SamouraiApi;
-import com.samourai.api.client.beans.MultiAddrResponse;
-import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
+import com.samourai.wallet.api.backend.beans.MultiAddrResponse;
+import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.exception.NotifiableException;

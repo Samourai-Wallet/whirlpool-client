@@ -2,29 +2,15 @@ package com.samourai.whirlpool.client.tx0;
 
 import com.samourai.wallet.bip69.BIP69OutputComparator;
 import com.samourai.wallet.client.Bip84Wallet;
-import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.FeeUtil;
-import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.client.whirlpool.beans.Pools;
+import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.fee.WhirlpoolFee;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutPoint;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.crypto.ChildNumber;
-import org.bitcoinj.crypto.DeterministicKey;
-import org.bitcoinj.crypto.HDKeyDerivation;
+import java.util.*;
+import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
 import org.bitcoinj.script.ScriptBuilder;
 import org.bitcoinj.script.ScriptOpCodes;
@@ -41,11 +27,9 @@ public class Tx0Service {
   private final FeeUtil feeUtil = FeeUtil.getInstance();
 
   private NetworkParameters params;
-  private String feeXpub;
 
-  public Tx0Service(NetworkParameters params, String feeXpub) {
+  public Tx0Service(NetworkParameters params) {
     this.params = params;
-    this.feeXpub = feeXpub;
   }
 
   private long computePremixValue(Pool pool, int feePremix) {
@@ -154,53 +138,32 @@ public class Tx0Service {
     return spendValue;
   }
 
-  private String computeFeeAddressDestination(
-      byte[] feePayload, int feeIndice, Bip84Wallet depositWallet) {
-    String feeAddressBech32;
-    if (feePayload == null) {
-      // pay to xpub
-      feeAddressBech32 = computeFeeAddressToXpub(feeXpub, feeIndice);
-      if (log.isDebugEnabled()) {
-        log.debug("feeAddressDestination: xpub");
-      }
-    } else {
-      // pay to deposit
-      feeAddressBech32 = bech32Util.toBech32(depositWallet.getNextChangeAddress(), params);
-      if (log.isDebugEnabled()) {
-        log.debug("feeAddressDestination: deposit");
-      }
-    }
-    return feeAddressBech32;
-  }
-
   /** Generate maxOutputs premixes outputs max. */
   public Tx0 tx0(
       byte[] spendFromPrivKey,
       TransactionOutPoint depositSpendFrom,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
-      IIndexHandler feeIndexHandler,
       int feeTx0,
       int feePremix,
-      Pools pools,
       Pool pool,
-      Integer maxOutputs)
+      Integer maxOutputs,
+      Tx0Data tx0Data)
       throws Exception {
 
     // compute premixValue for pool
     long premixValue = computePremixValue(pool, feePremix);
+
     return tx0(
         spendFromPrivKey,
         depositSpendFrom,
         depositWallet,
         premixWallet,
-        feeIndexHandler,
         feeTx0,
         maxOutputs,
         premixValue,
         pool.getFeeValue(),
-        pools.getFeePaymentCode(),
-        pools.getFeePayload());
+        tx0Data);
   }
 
   protected Tx0 tx0(
@@ -208,17 +171,33 @@ public class Tx0Service {
       TransactionOutPoint depositSpendFrom,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
-      IIndexHandler feeIndexHandler,
       int feeTx0,
       Integer maxOutputs,
       long premixValue,
       long samouraiFee,
-      String feePaymentCode,
-      byte[] feePayload)
+      Tx0Data tx0Data)
       throws Exception {
 
     // compute opReturnValue for feePaymentCode and feePayload
-    int feeIndice = (feePayload != null ? 0 : feeIndexHandler.getAndIncrement());
+    byte[] feePayload = tx0Data.getFeePayload();
+    int feeIndice;
+    String feeAddressBech32;
+    if (feePayload == null) {
+      // pay to fee
+      feeIndice = tx0Data.getFeeIndice();
+      feeAddressBech32 = tx0Data.getFeeAddress();
+      if (log.isDebugEnabled()) {
+        log.debug("feeAddressDestination: feeAddress");
+      }
+    } else {
+      // pay to deposit
+      feeIndice = 0;
+      feeAddressBech32 = bech32Util.toBech32(depositWallet.getNextChangeAddress(), params);
+      if (log.isDebugEnabled()) {
+        log.debug("feeAddressDestination: deposit");
+      }
+    }
+    String feePaymentCode = tx0Data.getFeePaymentCode();
     byte[] opReturnValue =
         whirlpoolFee.encode(
             feeIndice, feePayload, feePaymentCode, params, spendFromPrivKey, depositSpendFrom);
@@ -230,7 +209,6 @@ public class Tx0Service {
               + (feePayload != null ? Hex.toHexString(feePayload) : "null"));
     }
 
-    String feeAddressBech32 = computeFeeAddressDestination(feePayload, feeIndice, depositWallet);
     return tx0(
         spendFromPrivKey,
         depositSpendFrom,
@@ -423,17 +401,6 @@ public class Tx0Service {
       premixUtxos.add(utxo);
     }
     return new Tx0(tx, premixUtxos);
-  }
-
-  private String computeFeeAddressToXpub(String xpubFee, int feeIndice) {
-    DeterministicKey mKey = FormatsUtilGeneric.getInstance().createMasterPubKeyFromXPub(xpubFee);
-    DeterministicKey cKey =
-        HDKeyDerivation.deriveChildKey(
-            mKey, new ChildNumber(0, false)); // assume external/receive chain
-    DeterministicKey adk = HDKeyDerivation.deriveChildKey(cKey, new ChildNumber(feeIndice, false));
-    ECKey feePubkey = ECKey.fromPublicOnly(adk.getPubKey());
-    String feeAddressBech32 = bech32Util.toBech32(feePubkey.getPubKey(), params);
-    return feeAddressBech32;
   }
 
   public Collection<Pool> findPools(

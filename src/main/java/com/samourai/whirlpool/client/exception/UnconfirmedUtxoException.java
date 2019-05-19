@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.exception;
 
-import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
+import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 
 public class UnconfirmedUtxoException extends NotifiableException {
   private UnspentOutput utxo;

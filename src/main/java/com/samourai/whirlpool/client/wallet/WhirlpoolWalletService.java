@@ -42,7 +42,7 @@ public class WhirlpoolWalletService {
   public WhirlpoolWalletService(WhirlpoolWalletConfig config, WhirlpoolClient whirlpoolClient) {
     this.config = config;
 
-    this.tx0Service = new Tx0Service(config.getNetworkParameters(), config.getFeeXpub());
+    this.tx0Service = new Tx0Service(config.getNetworkParameters());
     this.bech32Util = Bech32UtilGeneric.getInstance();
 
     if (whirlpoolClient == null) {
@@ -180,7 +180,6 @@ public class WhirlpoolWalletService {
 
   public Map<String, String> getConfigInfo() {
     Map<String, String> configInfo = new LinkedHashMap<String, String>();
-    String feeX = config.getFeeXpub();
     configInfo.put(
         "server",
         "url="
@@ -188,9 +187,7 @@ public class WhirlpoolWalletService {
             + ", network="
             + config.getNetworkParameters().getPaymentProtocolId()
             + ", ssl="
-            + Boolean.toString(config.isSsl())
-            + ", feeX="
-            + ClientUtils.maskString(feeX, 6, 4));
+            + Boolean.toString(config.isSsl()));
     configInfo.put("pushtx", config.getPushTxService().getClass().getName());
     configInfo.put(
         "persist",

@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
-import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
+import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;

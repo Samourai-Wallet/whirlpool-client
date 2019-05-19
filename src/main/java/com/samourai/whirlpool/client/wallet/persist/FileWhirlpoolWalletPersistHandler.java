@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.persist;
 
-import com.samourai.api.client.beans.UnspentResponse.UnspentOutput;
+import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.indexHandler.FileIndexHandler;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.whirlpool.client.utils.ClientUtils;

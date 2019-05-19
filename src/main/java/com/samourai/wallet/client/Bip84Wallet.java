@@ -1,6 +1,6 @@
 package com.samourai.wallet.client;
 
-import com.samourai.api.client.beans.UnspentResponse;
+import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.hd.HD_Wallet;

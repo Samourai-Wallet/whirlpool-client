@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.mix.dialog;
 
-import com.samourai.http.client.HttpException;
+import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;

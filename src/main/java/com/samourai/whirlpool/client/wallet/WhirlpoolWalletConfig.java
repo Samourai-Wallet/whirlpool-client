@@ -1,9 +1,9 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.api.client.SamouraiApi;
-import com.samourai.api.client.SamouraiFeeTarget;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClient;
+import com.samourai.wallet.api.backend.SamouraiFeeTarget;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
@@ -13,7 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.NetworkParameters;
 
 public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
-  private String feeXpub;
   private int maxClients;
   private int clientDelay;
   private String autoTx0PoolId;
@@ -39,13 +38,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
       IStompClient stompClient,
       String serverUrl,
       WhirlpoolServer whirlpoolServer) {
-    this(
-        httpClient,
-        stompClient,
-        serverUrl,
-        whirlpoolServer.getParams(),
-        whirlpoolServer.isSsl(),
-        whirlpoolServer.getFeeData());
+    this(httpClient, stompClient, serverUrl, whirlpoolServer.getParams(), whirlpoolServer.isSsl());
   }
 
   public WhirlpoolWalletConfig(
@@ -53,11 +46,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
       IStompClient stompClient,
       String server,
       NetworkParameters params,
-      boolean ssl,
-      String feeXpub) {
+      boolean ssl) {
     super(httpClient, stompClient, server, params, ssl);
-
-    this.feeXpub = feeXpub;
 
     // default settings
     this.maxClients = 1;
@@ -81,10 +71,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.feeMax = 510;
     this.feeFallback = 75;
     this.feeTargetPremix = SamouraiFeeTarget.BLOCKS_12;
-  }
-
-  public String getFeeXpub() {
-    return feeXpub;
   }
 
   public int getMaxClients() {
