@@ -177,6 +177,11 @@ public class ClientUtils {
     return utxoHash + ':' + utxoIndex;
   }
 
+  public static String getTxHex(Transaction tx) {
+    String txHex = org.bitcoinj.core.Utils.HEX.encode(tx.bitcoinSerialize());
+    return txHex;
+  }
+
   public static void sleepRefreshUtxos(NetworkParameters params) {
     if (log.isDebugEnabled()) {
       log.debug("Refreshing utxos...");

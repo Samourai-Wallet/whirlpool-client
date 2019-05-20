@@ -207,7 +207,9 @@ public class MixClient {
           log.debug(
               "POST " + registerOutputUrl + ": " + ClientUtils.toJsonString(registerOutputRequest));
         }
-        config.getHttpClient().postJsonOverTor(registerOutputUrl, registerOutputRequest);
+        config
+            .getHttpClient()
+            .postJsonOverTor(registerOutputUrl, Void.class, registerOutputRequest);
         listenerProgress(MixStep.REGISTERED_OUTPUT);
       }
 

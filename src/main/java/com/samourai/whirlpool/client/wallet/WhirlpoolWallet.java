@@ -426,7 +426,7 @@ public class WhirlpoolWallet {
       }
 
       // pushTx
-      config.getPushTxService().pushTx(tx0.getTx());
+      config.getPushTxService().pushTx(ClientUtils.getTxHex(tx0.getTx()));
 
       // refresh utxos
       ClientUtils.sleepRefreshUtxos(config.getNetworkParameters());
@@ -444,7 +444,7 @@ public class WhirlpoolWallet {
     String url =
         WhirlpoolProtocol.getUrlTx0Data(config.getServer(), config.isSsl(), config.getScode());
     try {
-      Tx0DataResponse tx0Response = config.getHttpClient().parseJson(url, Tx0DataResponse.class);
+      Tx0DataResponse tx0Response = config.getHttpClient().getJson(url, Tx0DataResponse.class);
       byte[] feePayload = WhirlpoolProtocol.decodeBytes(tx0Response.feePayload64);
       Tx0Data tx0Data =
           new Tx0Data(

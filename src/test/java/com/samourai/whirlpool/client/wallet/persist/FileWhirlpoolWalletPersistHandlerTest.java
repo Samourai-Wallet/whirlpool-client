@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.persist;
 
 import com.samourai.api.client.SamouraiApi;
+import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84ApiWallet;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
@@ -41,7 +42,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     this.persistHandler = new FileWhirlpoolWalletPersistHandler(fileState, fileUtxos);
     persistHandler.setInitialized(true);
 
-    this.whirlpoolWallet = computeWallet(new SamouraiApi(null, true));
+    this.whirlpoolWallet = computeWallet(new SamouraiApi(null, BackendServer.TESTNET));
   }
 
   private void reload() {

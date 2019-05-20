@@ -3,14 +3,15 @@ package com.samourai.whirlpool.client.wallet;
 import com.samourai.api.client.SamouraiApi;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClient;
+import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.SamouraiFeeTarget;
-import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.pushTx.PushTxService;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.params.MainNetParams;
 
 public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int maxClients;
@@ -57,8 +58,9 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.autoMix = false;
 
     // technical settings
-    boolean isTestnet = FormatsUtilGeneric.getInstance().isTestNet(params);
-    this.samouraiApi = new SamouraiApi(httpClient, isTestnet); // single instance to SamouraiApi
+    BackendServer backendServer =
+        (params instanceof MainNetParams ? BackendServer.MAINNET : BackendServer.TESTNET);
+    this.samouraiApi = new SamouraiApi(httpClient, backendServer);
     this.pushTxService = samouraiApi; // use backend as default push service
     this.tx0Delay = 30;
     this.tx0MaxOutputs = null; // spend whole utxo when possible
