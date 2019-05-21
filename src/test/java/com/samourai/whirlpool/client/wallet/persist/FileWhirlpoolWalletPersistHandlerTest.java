@@ -46,7 +46,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
   }
 
   private void reload() {
-    ((FileWhirlpoolWalletPersistHandler) whirlpoolWallet.getWalletPersistHandler())
+    ((FileWhirlpoolWalletPersistHandler) whirlpoolWallet.getConfig().getPersistHandler())
         .getUtxoConfigHandler()
         .loadUtxoConfigs(whirlpoolWallet);
   }
@@ -154,12 +154,14 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
             false,
             1,
             1);
-    return new WhirlpoolWalletService(
-            new WhirlpoolWalletConfig(
-                null,
-                null,
-                WhirlpoolServer.LOCAL_TESTNET.getServerUrl(),
-                WhirlpoolServer.LOCAL_TESTNET))
-        .openWallet(persistHandler, depositWallet, premixWallet, postmixWallet);
+    WhirlpoolWalletConfig config =
+        new WhirlpoolWalletConfig(
+            null,
+            null,
+            persistHandler,
+            WhirlpoolServer.LOCAL_TESTNET.getServerUrl(),
+            WhirlpoolServer.LOCAL_TESTNET);
+    return new WhirlpoolWalletService()
+        .openWallet(config, depositWallet, premixWallet, postmixWallet);
   }
 }

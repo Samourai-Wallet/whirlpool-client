@@ -3,11 +3,13 @@ package com.samourai.whirlpool.client.whirlpool;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClient;
 import com.samourai.whirlpool.client.WhirlpoolClient;
+import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import org.bitcoinj.core.NetworkParameters;
 
 public class WhirlpoolClientConfig {
   private IHttpClient httpClient;
   private IStompClient stompClient;
+  private WhirlpoolWalletPersistHandler persistHandler;
   private String server;
   private NetworkParameters networkParameters;
   private boolean ssl;
@@ -19,15 +21,27 @@ public class WhirlpoolClientConfig {
   public WhirlpoolClientConfig(
       IHttpClient httpClient,
       IStompClient stompClient,
+      WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters networkParameters,
       boolean ssl) {
-    this(httpClient, stompClient, server, networkParameters, ssl, null, 5, 500, false);
+    this(
+        httpClient,
+        stompClient,
+        persistHandler,
+        server,
+        networkParameters,
+        ssl,
+        null,
+        5,
+        500,
+        false);
   }
 
   public WhirlpoolClientConfig(
       IHttpClient httpClient,
       IStompClient stompClient,
+      WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters networkParameters,
       boolean ssl,
@@ -37,6 +51,7 @@ public class WhirlpoolClientConfig {
       boolean testMode) {
     this.httpClient = httpClient;
     this.stompClient = stompClient;
+    this.persistHandler = persistHandler;
     this.server = server;
     this.networkParameters = networkParameters;
     this.ssl = ssl;
@@ -49,6 +64,7 @@ public class WhirlpoolClientConfig {
   private WhirlpoolClientConfig(WhirlpoolClientConfig copy) {
     this.httpClient = copy.httpClient;
     this.stompClient = copy.stompClient.copyForNewClient();
+    this.persistHandler = copy.persistHandler;
     this.server = copy.server;
     this.networkParameters = copy.networkParameters;
     this.ssl = copy.ssl;
@@ -73,6 +89,10 @@ public class WhirlpoolClientConfig {
 
   public IStompClient getStompClient() {
     return stompClient;
+  }
+
+  public WhirlpoolWalletPersistHandler getPersistHandler() {
+    return persistHandler;
   }
 
   public void setStompClient(IStompClient stompClient) {

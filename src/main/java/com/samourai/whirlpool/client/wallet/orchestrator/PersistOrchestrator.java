@@ -41,10 +41,10 @@ public class PersistOrchestrator extends AbstractOrchestrator {
   protected void cleanUtxoConfig() throws Exception {
     Collection<WhirlpoolUtxo> knownUtxos =
         whirlpoolWallet.getUtxos(false, WhirlpoolAccount.values());
-    whirlpoolWallet.getWalletPersistHandler().cleanUtxoConfig(knownUtxos);
+    whirlpoolWallet.getConfig().getPersistHandler().cleanUtxoConfig(knownUtxos);
   }
 
   protected void persist() throws Exception {
-    whirlpoolWallet.getWalletPersistHandler().save();
+    whirlpoolWallet.getConfig().getPersistHandler().save();
   }
 }

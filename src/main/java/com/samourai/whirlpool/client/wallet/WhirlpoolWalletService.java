@@ -11,7 +11,7 @@ import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletAccount;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
-import java.util.LinkedHashMap;
+import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,44 +26,25 @@ public class WhirlpoolWalletService {
   private static final String INDEX_POSTMIX = "postmix";
   private static final String INDEX_POSTMIX_CHANGE = "postmix_change";
 
-  private WhirlpoolWalletConfig config;
+  public WhirlpoolWalletService() {
+    this(null);
+  }
 
-  private Tx0Service tx0Service;
-  private Bech32UtilGeneric bech32Util;
-
-  private WhirlpoolClient whirlpoolClient;
-
-  public WhirlpoolWalletService(WhirlpoolWalletConfig whirlpoolWalletConfig) {
-    this(whirlpoolWalletConfig, null);
-
+  public WhirlpoolWalletService(WhirlpoolClient whirlpoolClient) {
+    // set user-agent
     ClientUtils.setupEnv();
   }
 
-  public WhirlpoolWalletService(WhirlpoolWalletConfig config, WhirlpoolClient whirlpoolClient) {
-    this.config = config;
-
-    this.tx0Service = new Tx0Service(config.getNetworkParameters());
-    this.bech32Util = Bech32UtilGeneric.getInstance();
-
-    if (whirlpoolClient == null) {
-      whirlpoolClient = WhirlpoolClientImpl.newClient(config);
-    }
-    this.whirlpoolClient = whirlpoolClient;
+  public Pools listPools(WhirlpoolWalletConfig config) throws Exception {
+    WhirlpoolClient whirlpoolClient = WhirlpoolClientImpl.newClient(config);
+    return whirlpoolClient.fetchPools();
   }
 
-  public boolean testConnectivity() {
-    try {
-      this.whirlpoolClient.fetchPools();
-      return true;
-    } catch (Exception e) {
-      log.error("", e);
-      return false;
-    }
-  }
-
-  public WhirlpoolWallet openWallet(
-      HD_Wallet bip84w, WhirlpoolWalletPersistHandler walletPersistHandler) throws Exception {
+  public WhirlpoolWallet openWallet(WhirlpoolWalletConfig config, HD_Wallet bip84w)
+      throws Exception {
     SamouraiApi samouraiApi = config.getSamouraiApi();
+
+    WhirlpoolWalletPersistHandler walletPersistHandler = config.getPersistHandler();
 
     IIndexHandler depositIndexHandler = walletPersistHandler.getIndexHandler(INDEX_DEPOSIT);
     IIndexHandler depositChangeIndexHandler =
@@ -105,21 +86,33 @@ public class WhirlpoolWalletService {
     if (init) {
       walletPersistHandler.setInitialized(true);
     }
-    return openWallet(walletPersistHandler, depositWallet, premixWallet, postmixWallet);
+    return openWallet(config, depositWallet, premixWallet, postmixWallet);
   }
 
   public WhirlpoolWallet openWallet(
-      WhirlpoolWalletPersistHandler walletPersistHandler,
+      WhirlpoolWalletConfig config,
       Bip84ApiWallet depositWallet,
       Bip84ApiWallet premixWallet,
       Bip84ApiWallet postmixWallet) {
+
+    // debug whirlpoolWalletConfig
+    if (log.isDebugEnabled()) {
+      log.debug("openWallet with whirlpoolWalletConfig:");
+      for (Map.Entry<String, String> entry : config.getConfigInfo().entrySet()) {
+        log.debug("[whirlpoolWalletConfig/" + entry.getKey() + "] " + entry.getValue());
+      }
+    }
+
+    Tx0Service tx0Service = new Tx0Service(config.getNetworkParameters());
+    Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
+    WhirlpoolClient whirlpoolClient = WhirlpoolClientImpl.newClient(config);
+
     WhirlpoolWallet whirlpoolWallet =
         new WhirlpoolWallet(
             config,
             tx0Service,
             bech32Util,
             whirlpoolClient,
-            walletPersistHandler,
             depositWallet,
             premixWallet,
             postmixWallet);
@@ -176,53 +169,5 @@ public class WhirlpoolWalletService {
             + postmixWallet.getIndexChangeHandler().get());
 
     return whirlpoolWallet;
-  }
-
-  public Map<String, String> getConfigInfo() {
-    Map<String, String> configInfo = new LinkedHashMap<String, String>();
-    configInfo.put(
-        "server",
-        "url="
-            + config.getServer()
-            + ", network="
-            + config.getNetworkParameters().getPaymentProtocolId()
-            + ", ssl="
-            + Boolean.toString(config.isSsl()));
-    configInfo.put("pushtx", config.getPushTxService().getClass().getName());
-    configInfo.put(
-        "persist",
-        "persistDelay="
-            + Integer.toString(config.getPersistDelay())
-            + ", persistCleanDelay="
-            + Integer.toString(config.getPersistCleanDelay()));
-    configInfo.put(
-        "mix",
-        "maxClients="
-            + config.getMaxClients()
-            + ", clientDelay="
-            + config.getClientDelay()
-            + ", tx0Delay="
-            + config.getTx0Delay()
-            + ", tx0MaxOutputs="
-            + config.getTx0MaxOutputs()
-            + ", autoTx0="
-            + (config.isAutoTx0() ? config.getAutoTx0PoolId() : "false")
-            + ", autoTx0FeeTarget="
-            + config.getAutoTx0FeeTarget().name()
-            + ", autoMix="
-            + config.isAutoMix()
-            + ", mixsTarget="
-            + config.getMixsTarget());
-    configInfo.put(
-        "fee",
-        "fallback="
-            + config.getFeeFallback()
-            + ", min="
-            + config.getFeeMin()
-            + ", max="
-            + config.getFeeMax()
-            + ", targetPremix="
-            + config.getFeeTargetPremix());
-    return configInfo;
   }
 }

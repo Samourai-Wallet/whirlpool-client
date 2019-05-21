@@ -7,13 +7,20 @@ import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.SamouraiFeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
+import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.wallet.pushTx.PushTxService;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.params.MainNetParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
+  private final Logger log = LoggerFactory.getLogger(WhirlpoolWalletConfig.class);
+
   private int maxClients;
   private int clientDelay;
   private String autoTx0PoolId;
@@ -37,18 +44,26 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   public WhirlpoolWalletConfig(
       IHttpClient httpClient,
       IStompClient stompClient,
+      WhirlpoolWalletPersistHandler persistHandler,
       String serverUrl,
       WhirlpoolServer whirlpoolServer) {
-    this(httpClient, stompClient, serverUrl, whirlpoolServer.getParams(), whirlpoolServer.isSsl());
+    this(
+        httpClient,
+        stompClient,
+        persistHandler,
+        serverUrl,
+        whirlpoolServer.getParams(),
+        whirlpoolServer.isSsl());
   }
 
   public WhirlpoolWalletConfig(
       IHttpClient httpClient,
       IStompClient stompClient,
+      WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters params,
       boolean ssl) {
-    super(httpClient, stompClient, server, params, ssl);
+    super(httpClient, stompClient, persistHandler, server, params, ssl);
 
     // default settings
     this.maxClients = 1;
@@ -209,5 +224,53 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setFeeTargetPremix(SamouraiFeeTarget feeTargetPremix) {
     this.feeTargetPremix = feeTargetPremix;
+  }
+
+  public Map<String, String> getConfigInfo() {
+    Map<String, String> configInfo = new LinkedHashMap<String, String>();
+    configInfo.put(
+        "server",
+        "url="
+            + getServer()
+            + ", network="
+            + getNetworkParameters().getPaymentProtocolId()
+            + ", ssl="
+            + Boolean.toString(isSsl()));
+    configInfo.put("pushtx", getPushTxService().getClass().getName());
+    configInfo.put(
+        "persist",
+        "persistDelay="
+            + Integer.toString(getPersistDelay())
+            + ", persistCleanDelay="
+            + Integer.toString(getPersistCleanDelay()));
+    configInfo.put(
+        "mix",
+        "maxClients="
+            + getMaxClients()
+            + ", clientDelay="
+            + getClientDelay()
+            + ", tx0Delay="
+            + getTx0Delay()
+            + ", tx0MaxOutputs="
+            + getTx0MaxOutputs()
+            + ", autoTx0="
+            + (isAutoTx0() ? getAutoTx0PoolId() : "false")
+            + ", autoTx0FeeTarget="
+            + getAutoTx0FeeTarget().name()
+            + ", autoMix="
+            + isAutoMix()
+            + ", mixsTarget="
+            + getMixsTarget());
+    configInfo.put(
+        "fee",
+        "fallback="
+            + getFeeFallback()
+            + ", min="
+            + getFeeMin()
+            + ", max="
+            + getFeeMax()
+            + ", targetPremix="
+            + getFeeTargetPremix());
+    return configInfo;
   }
 }

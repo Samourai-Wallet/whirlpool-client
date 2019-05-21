@@ -10,6 +10,7 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletState;
 import com.samourai.whirlpool.client.wallet.persist.FileWhirlpoolWalletPersistHandler;
+import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.io.File;
 import java.util.Collection;
@@ -21,11 +22,15 @@ public class JavaExample {
   private WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     IHttpClient httpClient = null; // provide impl here, ie: new AndroidHttpclient();
     IStompClient stompClient = null; // provide impl here, ie: new AndroidStompClient();
+    WhirlpoolWalletPersistHandler persistHandler =
+        new FileWhirlpoolWalletPersistHandler(new File("/tmp/state"), new File("/tmp/utxos"));
+
     WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
 
     String serverUrl = whirlpoolServer.getServerUrl(); // or whirlpoolServer.getServerOnionV3()
     WhirlpoolWalletConfig whirlpoolWalletConfig =
-        new WhirlpoolWalletConfig(httpClient, stompClient, serverUrl, whirlpoolServer);
+        new WhirlpoolWalletConfig(
+            httpClient, stompClient, persistHandler, serverUrl, whirlpoolServer);
 
     // configure optional settings (or don't set anything for using default values)
     whirlpoolWalletConfig.setScode("foo");
@@ -38,22 +43,12 @@ public class JavaExample {
 
   public void example() throws Exception {
     // configure whirlpool
-    WhirlpoolWalletConfig whirlpoolWalletConfig = computeWhirlpoolWalletConfig();
-    WhirlpoolWalletService whirlpoolWalletService =
-        new WhirlpoolWalletService(whirlpoolWalletConfig);
-
-    // check server connectivity
-    if (!whirlpoolWalletService.testConnectivity()) {
-      throw new Exception("Failed to connect to Whirlpool server");
-    }
+    WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
 
     // configure wallet
     HD_Wallet bip84w = null; // provide your wallet here
 
-    WhirlpoolWallet whirlpoolWallet =
-        whirlpoolWalletService.openWallet(
-            bip84w,
-            new FileWhirlpoolWalletPersistHandler(new File("/tmp/state"), new File("/tmp/utxos")));
+    WhirlpoolWallet whirlpoolWallet = new WhirlpoolWalletService().openWallet(config, bip84w);
 
     // start wallet
     whirlpoolWallet.start();
@@ -62,7 +57,7 @@ public class JavaExample {
     WhirlpoolWalletState whirlpoolWalletState = whirlpoolWallet.getState();
 
     // list pools
-    Collection<Pool> poolsAvailable = whirlpoolWallet.getPoolsAvailable();
+    Collection<Pool> pools = whirlpoolWallet.getPools();
 
     // find pool by poolId
     Pool pool05btc = whirlpoolWallet.findPoolById("0.5btc");
