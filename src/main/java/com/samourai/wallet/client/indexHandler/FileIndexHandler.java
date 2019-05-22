@@ -49,7 +49,7 @@ public class FileIndexHandler {
           mapper.readValue(file, new TypeReference<Map<String, Integer>>() {});
       indexes.putAll(readValue);
     } catch (Exception e) {
-      log.error("Unable to read " + file.getAbsolutePath() + ", resetting indexes");
+      log.warn("Unable to read " + file.getAbsolutePath() + ", resetting indexes");
     }
   }
 

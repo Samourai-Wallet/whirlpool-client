@@ -98,7 +98,7 @@ public class FileWhirlpoolUtxoConfigHandler {
       lastSet = 0;
       lastWrite = 0;
     } catch (Exception e) {
-      log.error("load: unable to read " + file.getAbsolutePath(), e);
+      log.warn("load: unable to read " + file.getAbsolutePath(), e);
     }
   }
 

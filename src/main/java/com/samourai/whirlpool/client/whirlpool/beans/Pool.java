@@ -8,6 +8,7 @@ public class Pool {
   private long denomination;
   private long feeValue;
   private long mustMixBalanceMin;
+  private long mustMixBalanceCap;
   private long mustMixBalanceMax;
   private int minAnonymitySet;
   private int minMustMix;
@@ -64,6 +65,14 @@ public class Pool {
 
   public void setMustMixBalanceMin(long mustMixBalanceMin) {
     this.mustMixBalanceMin = mustMixBalanceMin;
+  }
+
+  public long getMustMixBalanceCap() {
+    return mustMixBalanceCap;
+  }
+
+  public void setMustMixBalanceCap(long mustMixBalanceCap) {
+    this.mustMixBalanceCap = mustMixBalanceCap;
   }
 
   public long getMustMixBalanceMax() {

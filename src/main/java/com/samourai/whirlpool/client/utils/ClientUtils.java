@@ -202,9 +202,16 @@ public class ClientUtils {
     return Sha256Hash.wrap(Sha256Hash.hash(bytes)).toString();
   }
 
-  public static String maskString(String value, int start, int end) {
-    return value.substring(0, Math.min(start, value.length()))
+  public static String maskString(String value) {
+    return maskString(value, 3);
+  }
+
+  private static String maskString(String value, int startEnd) {
+    if (value.length() <= startEnd) {
+      return value;
+    }
+    return value.substring(0, Math.min(startEnd, value.length()))
         + "..."
-        + value.substring(Math.max(0, value.length() - end), value.length());
+        + value.substring(Math.max(0, value.length() - startEnd), value.length());
   }
 }

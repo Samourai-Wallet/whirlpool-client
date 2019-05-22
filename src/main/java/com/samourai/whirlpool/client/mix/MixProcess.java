@@ -290,6 +290,8 @@ public class MixProcess {
       throws NotifiableException {
     long premixBalanceMin =
         WhirlpoolProtocol.computePremixBalanceMin(poolDenomination, mustMixBalanceMin, liquidity);
+    long premixBalanceMax =
+        WhirlpoolProtocol.computePremixBalanceMax(poolDenomination, mustMixBalanceMax, liquidity);
 
     long utxoBalance = premixHandler.getUtxo().getBalance();
     if (utxoBalance < premixBalanceMin) {
@@ -298,10 +300,21 @@ public class MixProcess {
               + utxoBalance
               + ". (expected: "
               + premixBalanceMin
-              + " <= utxo-balance");
+              + " <= utxo-balance <= "
+              + premixBalanceMax
+              + ")");
     }
 
-    // no check for premixBalanceMax as client doesn't know minerFeeMaxHard
+    if (utxoBalance > premixBalanceMax) {
+      throw new NotifiableException(
+          "Too high utxo-balance="
+              + utxoBalance
+              + ". (expected: "
+              + premixBalanceMin
+              + " <= utxo-balance <= "
+              + premixBalanceMax
+              + ")");
+    }
   }
 
   private int verifyTx(Transaction tx) throws Exception {
