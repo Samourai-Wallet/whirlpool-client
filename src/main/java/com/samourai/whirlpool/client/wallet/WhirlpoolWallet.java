@@ -184,46 +184,20 @@ public class WhirlpoolWallet {
 
     WhirlpoolUtxo unconfirmedUtxo = null;
     for (WhirlpoolUtxo whirlpoolUtxo : depositUtxosByPriority) {
-      Pool whirlpoolUtxoPool = findPoolById(whirlpoolUtxo.getUtxoConfig().getPoolId());
-      Pool eligiblePool = whirlpoolUtxoPool;
-      if (eligiblePool == null) {
-        Collection<Pool> eligiblePools =
-            tx0Service.findPools(
-                nbOutputsMin, Lists.of(pool), whirlpoolUtxo.getUtxo().value, feeTx0, feePremix);
-        if (!eligiblePools.isEmpty()) {
-          eligiblePool = eligiblePools.iterator().next();
-        }
-      }
-
+      Collection<Pool> eligiblePools =
+          tx0Service.findPools(
+              nbOutputsMin, Lists.of(pool), whirlpoolUtxo.getUtxo().value, feeTx0, feePremix);
       // check pool
-      if (eligiblePool != null) {
+      if (!eligiblePools.isEmpty()) {
 
         // check confirmation
         if (whirlpoolUtxo.getUtxo().confirmations >= TX0_MIN_CONFIRMATIONS) {
 
-          if (whirlpoolUtxoPool == null) {
-            // no pool was set => set pool found
-            whirlpoolUtxo.getUtxoConfig().setPoolId(eligiblePool.getPoolId());
-            // utxo found
-            return whirlpoolUtxo;
-          } else {
-            // pool was already set => verify pool still eligible
-            boolean eligible =
-                tx0Service.isTx0Possible(
-                    whirlpoolUtxo.getUtxo().value,
-                    whirlpoolUtxoPool,
-                    feeTx0,
-                    feePremix,
-                    nbOutputsMin);
-            if (eligible) {
-              // still eligible
-              return whirlpoolUtxo;
-            } else {
-              // unset pool
-              whirlpoolUtxo.getUtxoConfig().setPoolId(null);
-            }
-          }
+          // set pool
+          whirlpoolUtxo.getUtxoConfig().setPoolId(pool.getPoolId());
 
+          // utxo found
+          return whirlpoolUtxo;
         } else {
           // found unconfirmed
           unconfirmedUtxo = whirlpoolUtxo;
