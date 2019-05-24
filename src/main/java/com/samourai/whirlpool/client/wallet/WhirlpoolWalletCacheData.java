@@ -29,8 +29,6 @@ import org.slf4j.LoggerFactory;
 /** Thread-safe cache data for WhirlpooWallet. */
 public class WhirlpoolWalletCacheData {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWalletCacheData.class);
-  private static final long FEE_REFRESH_DELAY = 300; // 5m
-  private static final long POOLS_REFRESH_DELAY = 3600; // 1h
 
   private WhirlpoolWallet whirlpoolWallet;
   private WhirlpoolWalletConfig config;
@@ -57,7 +55,8 @@ public class WhirlpoolWalletCacheData {
 
     // fee
     this.samouraiFee =
-        Suppliers.memoizeWithExpiration(initFeeSatPerByte(), FEE_REFRESH_DELAY, TimeUnit.SECONDS);
+        Suppliers.memoizeWithExpiration(
+            initFeeSatPerByte(), config.getRefreshFeeDelay(), TimeUnit.SECONDS);
 
     // pools
     clearPools();
@@ -112,10 +111,12 @@ public class WhirlpoolWalletCacheData {
 
   public void clearPools() {
     this.poolsResponse =
-        Suppliers.memoizeWithExpiration(initPoolsResponse(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
+        Suppliers.memoizeWithExpiration(
+            initPoolsResponse(), config.getRefreshPoolsDelay(), TimeUnit.SECONDS);
 
     this.pools =
-        Suppliers.memoizeWithExpiration(initPools(), POOLS_REFRESH_DELAY, TimeUnit.SECONDS);
+        Suppliers.memoizeWithExpiration(
+            initPools(), config.getRefreshPoolsDelay(), TimeUnit.SECONDS);
   }
 
   public Pools getPoolsResponse() throws Exception {

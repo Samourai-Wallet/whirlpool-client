@@ -32,6 +32,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int tx0Delay;
   private Integer tx0MaxOutputs;
   private int refreshUtxoDelay;
+  private int refreshFeeDelay;
+  private int refreshPoolsDelay;
   private int mixsTarget;
   private int persistDelay;
   private int persistCleanDelay;
@@ -80,6 +82,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.tx0Delay = 30;
     this.tx0MaxOutputs = null; // spend whole utxo when possible
     this.refreshUtxoDelay = 60; // 1min
+    this.refreshFeeDelay = 300; // 5min
+    this.refreshPoolsDelay = 300; // 5min
     this.mixsTarget = 1;
     this.persistDelay = 2; // 2s
     this.persistCleanDelay = 300; // 5min
@@ -170,6 +174,22 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.refreshUtxoDelay = refreshUtxoDelay;
   }
 
+  public int getRefreshFeeDelay() {
+    return refreshFeeDelay;
+  }
+
+  public void setRefreshFeeDelay(int refreshFeeDelay) {
+    this.refreshFeeDelay = refreshFeeDelay;
+  }
+
+  public int getRefreshPoolsDelay() {
+    return refreshPoolsDelay;
+  }
+
+  public void setRefreshPoolsDelay(int refreshPoolsDelay) {
+    this.refreshPoolsDelay = refreshPoolsDelay;
+  }
+
   public int getMixsTarget() {
     return mixsTarget;
   }
@@ -243,6 +263,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
             + Integer.toString(getPersistDelay())
             + ", persistCleanDelay="
             + Integer.toString(getPersistCleanDelay()));
+    configInfo.put(
+        "refreshDelay",
+        "refreshUtxoDelay="
+            + refreshUtxoDelay
+            + ", refreshFeeDelay"
+            + refreshFeeDelay
+            + ", refreshPoolsDelay="
+            + refreshPoolsDelay);
     configInfo.put(
         "mix",
         "maxClients="
