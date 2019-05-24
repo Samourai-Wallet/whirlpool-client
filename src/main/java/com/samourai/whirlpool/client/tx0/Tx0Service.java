@@ -110,8 +110,8 @@ public class Tx0Service {
 
   private long computeTx0MinerFee(int nbPremix, long feeTx0, TransactionOutPoint spendFrom) {
     int nbOutputsNonOpReturn = nbPremix + 2; // outputs + change + fee
-    // compute fee for worst input possible => P2PKH
-    long tx0MinerFee = feeUtil.estimatedFeeSegwit(1, 0, 0, nbOutputsNonOpReturn, 1, feeTx0);
+    // spend from 1 bech32 input
+    long tx0MinerFee = feeUtil.estimatedFeeSegwit(0, 0, 1, nbOutputsNonOpReturn, 1, feeTx0);
 
     if (log.isDebugEnabled()) {
       log.debug(
