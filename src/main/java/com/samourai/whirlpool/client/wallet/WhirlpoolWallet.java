@@ -441,6 +441,14 @@ public class WhirlpoolWallet {
     // reset utxos
     clearCache();
 
+    // fetch utxos before starting orchestrators to fix concurrency issue on startup
+    // (lock between findAndMix() -> recursive call to utxosupplier[account].get()
+    try {
+      getUtxos(false);
+    } catch (Exception e) {
+      log.error("", e);
+    }
+
     persistOrchestrator.start();
     this.mixOrchestrator.start();
     if (this.autoTx0Orchestrator.isPresent()) {
