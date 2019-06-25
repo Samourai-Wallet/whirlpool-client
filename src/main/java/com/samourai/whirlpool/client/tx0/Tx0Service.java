@@ -43,7 +43,7 @@ public class Tx0Service {
 
     // make sure destinationValue is acceptable for pool
     long premixBalanceMin = pool.computePremixBalanceMin(false);
-    long premixBalanceCap = pool.computePremixBalanceMax(false);
+    long premixBalanceCap = pool.computePremixBalanceCap(false);
     long premixBalanceMax = pool.computePremixBalanceMax(false);
 
     long premixValueFinal = premixValue;

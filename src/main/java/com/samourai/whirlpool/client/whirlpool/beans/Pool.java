@@ -35,6 +35,10 @@ public class Pool {
     return WhirlpoolProtocol.computePremixBalanceMax(denomination, mustMixBalanceMax, liquidity);
   }
 
+  public long computePremixBalanceCap(boolean liquidity) {
+    return WhirlpoolProtocol.computePremixBalanceMax(denomination, mustMixBalanceCap, liquidity);
+  }
+
   public String getPoolId() {
     return poolId;
   }
