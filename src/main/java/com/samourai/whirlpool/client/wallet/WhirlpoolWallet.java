@@ -289,6 +289,9 @@ public class WhirlpoolWallet {
       long spendFromValue = whirlpoolUtxoSpendFrom.getUtxo().value;
 
       int feeTx0 = getFee(feeTarget);
+      if (log.isDebugEnabled()) {
+        log.debug("Tx0 fee: feeTarget=" + feeTarget + " => " + feeTx0);
+      }
       int feePremix = getFeePremix();
       Tx0 tx0 =
           tx0(
