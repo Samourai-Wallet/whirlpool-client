@@ -8,7 +8,7 @@ public class Tx0Data {
   private String feeAddress;
   private Integer feeIndice;
 
-  public Tx0Data(String feePaymentCode, byte[] feePayload, String feeAddress, int feeIndice) {
+  public Tx0Data(String feePaymentCode, byte[] feePayload, String feeAddress, Integer feeIndice) {
     this.feePaymentCode = feePaymentCode;
     this.feePayload = feePayload;
     this.feeAddress = feeAddress;
