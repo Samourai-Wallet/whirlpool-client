@@ -2,7 +2,7 @@ package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.api.client.SamouraiApi;
 import com.samourai.http.client.IHttpClient;
-import com.samourai.stomp.client.IStompClient;
+import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.SamouraiFeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
@@ -45,13 +45,13 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public WhirlpoolWalletConfig(
       IHttpClient httpClient,
-      IStompClient stompClient,
+      IStompClientService stompClientService,
       WhirlpoolWalletPersistHandler persistHandler,
       String serverUrl,
       WhirlpoolServer whirlpoolServer) {
     this(
         httpClient,
-        stompClient,
+        stompClientService,
         persistHandler,
         serverUrl,
         whirlpoolServer.getParams(),
@@ -60,12 +60,12 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public WhirlpoolWalletConfig(
       IHttpClient httpClient,
-      IStompClient stompClient,
+      IStompClientService stompClientService,
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters params,
       boolean ssl) {
-    super(httpClient, stompClient, persistHandler, server, params, ssl);
+    super(httpClient, stompClientService, persistHandler, server, params, ssl);
 
     // default settings
     this.maxClients = 1;

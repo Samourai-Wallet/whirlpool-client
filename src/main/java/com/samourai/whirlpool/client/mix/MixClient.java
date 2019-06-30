@@ -88,12 +88,8 @@ public class MixClient {
   }
 
   public void exit() {
-    disconnect();
     done = true;
-  }
-
-  public boolean isDone() {
-    return done;
+    disconnect();
   }
 
   public void setLogPrefix(String logPrefix) {

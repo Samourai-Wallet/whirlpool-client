@@ -18,6 +18,4 @@ public interface IStompClient {
   void send(Map<String, String> stompHeaders, Object payload);
 
   void disconnect();
-
-  IStompClient copyForNewClient();
 }

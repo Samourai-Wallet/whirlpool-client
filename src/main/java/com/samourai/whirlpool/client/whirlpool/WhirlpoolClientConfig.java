@@ -1,14 +1,14 @@
 package com.samourai.whirlpool.client.whirlpool;
 
 import com.samourai.http.client.IHttpClient;
-import com.samourai.stomp.client.IStompClient;
+import com.samourai.stomp.client.IStompClientService;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import org.bitcoinj.core.NetworkParameters;
 
 public class WhirlpoolClientConfig {
   private IHttpClient httpClient;
-  private IStompClient stompClient;
+  private IStompClientService stompClientService;
   private WhirlpoolWalletPersistHandler persistHandler;
   private String server;
   private NetworkParameters networkParameters;
@@ -20,14 +20,14 @@ public class WhirlpoolClientConfig {
 
   public WhirlpoolClientConfig(
       IHttpClient httpClient,
-      IStompClient stompClient,
+      IStompClientService stompClientService,
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters networkParameters,
       boolean ssl) {
     this(
         httpClient,
-        stompClient,
+        stompClientService,
         persistHandler,
         server,
         networkParameters,
@@ -40,7 +40,7 @@ public class WhirlpoolClientConfig {
 
   public WhirlpoolClientConfig(
       IHttpClient httpClient,
-      IStompClient stompClient,
+      IStompClientService stompClientService,
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters networkParameters,
@@ -50,7 +50,7 @@ public class WhirlpoolClientConfig {
       int reconnectUntil,
       boolean testMode) {
     this.httpClient = httpClient;
-    this.stompClient = stompClient;
+    this.stompClientService = stompClientService;
     this.persistHandler = persistHandler;
     this.server = server;
     this.networkParameters = networkParameters;
@@ -61,42 +61,20 @@ public class WhirlpoolClientConfig {
     this.scode = scode;
   }
 
-  private WhirlpoolClientConfig(WhirlpoolClientConfig copy) {
-    this.httpClient = copy.httpClient;
-    this.stompClient = copy.stompClient.copyForNewClient();
-    this.persistHandler = copy.persistHandler;
-    this.server = copy.server;
-    this.networkParameters = copy.networkParameters;
-    this.ssl = copy.ssl;
-    this.reconnectDelay = copy.reconnectDelay;
-    this.reconnectUntil = copy.reconnectUntil;
-    this.testMode = copy.testMode;
-    this.scode = copy.scode;
-  }
-
-  private WhirlpoolClientConfig copyForNewClient() {
-    return new WhirlpoolClientConfig(this);
-  }
-
   public WhirlpoolClient newClient() {
-    WhirlpoolClientConfig whirlpoolClientConfig = copyForNewClient();
-    return WhirlpoolClientImpl.newClient(whirlpoolClientConfig);
+    return WhirlpoolClientImpl.newClient(this);
   }
 
   public IHttpClient getHttpClient() {
     return httpClient;
   }
 
-  public IStompClient getStompClient() {
-    return stompClient;
+  public IStompClientService getStompClientService() {
+    return stompClientService;
   }
 
   public WhirlpoolWalletPersistHandler getPersistHandler() {
     return persistHandler;
-  }
-
-  public void setStompClient(IStompClient stompClient) {
-    this.stompClient = stompClient;
   }
 
   public String getServer() {

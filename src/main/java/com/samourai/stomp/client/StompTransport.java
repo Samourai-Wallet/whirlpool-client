@@ -21,8 +21,8 @@ public class StompTransport {
 
   private boolean done;
 
-  public StompTransport(IStompClient stompClient, IStompTransportListener listener) {
-    this.stompClient = stompClient;
+  public StompTransport(IStompClientService stompClientService, IStompTransportListener listener) {
+    this.stompClient = stompClientService.newStompClient();
     this.listener = listener;
   }
 
@@ -121,10 +121,7 @@ public class StompTransport {
       log.debug("disconnect");
     }
     this.done = true;
-    try {
-      stompClient.disconnect();
-    } catch (Exception e) {
-    }
+    stompClient.disconnect();
   }
 
   // STOMP communication

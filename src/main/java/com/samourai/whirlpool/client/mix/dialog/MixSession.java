@@ -70,7 +70,7 @@ public class MixSession {
 
     // connect with a new transport
     Map<String, String> connectHeaders = computeStompHeaders(null);
-    transport = new StompTransport(config.getStompClient(), computeTransportListener());
+    transport = new StompTransport(config.getStompClientService(), computeTransportListener());
     if (logPrefix != null) {
       transport.setLogPrefix(logPrefix);
     }
@@ -253,10 +253,10 @@ public class MixSession {
           }
           return;
         }
+
         if (log.isDebugEnabled()) {
           log.debug("onTransportDisconnected", exception);
         }
-
         if (connectBeginTime != null) {
           // we were trying connect
           long elapsedTime = System.currentTimeMillis() - connectBeginTime;
@@ -282,6 +282,13 @@ public class MixSession {
           log.error(" ! connexion lost, reconnecting for a new mix...");
           resetDialog();
           listener.onConnectionLostWillRetry();
+        }
+
+        if (done) {
+          if (log.isDebugEnabled()) {
+            log.debug("onTransportDisconnected: done");
+          }
+          return;
         }
 
         // reconnect
