@@ -27,6 +27,7 @@ public class MixSession {
   private String poolId;
   private StompTransport transport;
   private String logPrefix;
+  private boolean done;
 
   // connect data
   private Long connectBeginTime;
@@ -186,6 +187,7 @@ public class MixSession {
     if (log.isDebugEnabled()) {
       log.debug("Disconnecting...");
     }
+    done = true;
     connectBeginTime = null;
     if (transport != null) {
       transport.disconnect();
@@ -242,11 +244,18 @@ public class MixSession {
 
       @Override
       public synchronized void onTransportDisconnected(Throwable exception) {
+        // transport cannot be used
+        transport = null;
+
+        if (done) {
+          if (log.isDebugEnabled()) {
+            log.debug("onTransportDisconnected: done");
+          }
+          return;
+        }
         if (log.isDebugEnabled()) {
           log.debug("onTransportDisconnected", exception);
         }
-        // transport cannot be used
-        transport = null;
 
         if (connectBeginTime != null) {
           // we were trying connect
