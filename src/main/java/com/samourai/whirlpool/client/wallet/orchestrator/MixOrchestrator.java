@@ -263,7 +263,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     final String key = ClientUtils.utxoToKey(whirlpoolUtxo.getUtxo());
     if (!mixing.containsKey(key)) {
       // add to queue
-      whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_QUEUE);
+      whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_QUEUE, false);
       if (log.isDebugEnabled()) {
         log.debug(" + mixQueue: " + whirlpoolUtxo.toString());
       }
@@ -291,7 +291,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
       myMixing.getWhirlpoolClient().exit();
     }
     removeMixing(whirlpoolUtxo);
-    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.READY);
+    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.READY, false);
   }
 
   private synchronized void mix(final WhirlpoolUtxo whirlpoolUtxo) throws Exception {

@@ -28,7 +28,7 @@ public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener
   public void success(MixSuccess mixSuccess) {
     super.success(mixSuccess);
     whirlpoolUtxo.setMessage("txid: " + mixSuccess.getReceiveUtxo().getHash());
-    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS, 100);
+    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_SUCCESS, true, 100);
     whirlpoolUtxo.getUtxoConfig().incrementMixsDone();
 
     // notify
@@ -42,7 +42,7 @@ public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener
     if (notifiableError != null) {
       message += " ; " + notifiableError;
     }
-    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_FAILED);
+    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_FAILED, true);
     whirlpoolUtxo.setError(message);
   }
 
@@ -50,6 +50,6 @@ public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener
   public void progress(MixStep step) {
     super.progress(step);
     whirlpoolUtxo.setMessage(step.getMessage());
-    whirlpoolUtxo.setStatus(whirlpoolUtxo.getStatus(), step, step.getProgress());
+    whirlpoolUtxo.setStatus(whirlpoolUtxo.getStatus(), true, step, step.getProgress());
   }
 }

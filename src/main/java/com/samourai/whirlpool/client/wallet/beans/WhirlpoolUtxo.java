@@ -87,22 +87,27 @@ public class WhirlpoolUtxo {
     return error;
   }
 
-  public void setStatus(WhirlpoolUtxoStatus status, MixStep mixStep, Integer progressPercent) {
+  public void setStatus(
+      WhirlpoolUtxoStatus status,
+      boolean updateLastActivity,
+      MixStep mixStep,
+      Integer progressPercent) {
     this.status = status;
     this.mixStep = mixStep;
     this.progressPercent = progressPercent;
     this.error = null;
-    if (!WhirlpoolUtxoStatus.MIX_QUEUE.equals(status)) {
+    if (updateLastActivity) {
       setLastActivity();
     }
   }
 
-  public void setStatus(WhirlpoolUtxoStatus status) {
-    setStatus(status, null, null);
+  public void setStatus(WhirlpoolUtxoStatus status, boolean updateLastActivity) {
+    setStatus(status, updateLastActivity, null, null);
   }
 
-  public void setStatus(WhirlpoolUtxoStatus status, int progressPercent) {
-    setStatus(status, null, progressPercent);
+  public void setStatus(
+      WhirlpoolUtxoStatus status, boolean updateLastActivity, int progressPercent) {
+    setStatus(status, updateLastActivity, null, progressPercent);
   }
 
   public MixableStatus getMixableStatus() {

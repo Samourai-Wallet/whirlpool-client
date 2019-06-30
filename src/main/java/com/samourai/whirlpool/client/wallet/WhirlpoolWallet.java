@@ -266,7 +266,7 @@ public class WhirlpoolWallet {
     // check pool
     Pool pool = findPoolById(whirlpoolUtxoSpendFrom.getUtxoConfig().getPoolId());
     if (pool == null) {
-      whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, 0);
+      whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, true, 0);
       whirlpoolUtxoSpendFrom.setError("Tx0 failed: no pool set");
       throw new NotifiableException("Tx0 failed: no pool set");
     }
@@ -275,12 +275,12 @@ public class WhirlpoolWallet {
 
     // check confirmations
     if (utxoSpendFrom.confirmations < TX0_MIN_CONFIRMATIONS) {
-      whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, 0);
+      whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, true, 0);
       whirlpoolUtxoSpendFrom.setError("Minimum confirmation(s) for tx0: " + TX0_MIN_CONFIRMATIONS);
       throw new UnconfirmedUtxoException(utxoSpendFrom);
     }
 
-    whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0, 50);
+    whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0, true, 50);
     try {
       TransactionOutPoint spendFromOutpoint =
           utxoSpendFrom.computeOutpoint(config.getNetworkParameters());
@@ -304,7 +304,7 @@ public class WhirlpoolWallet {
               maxOutputs);
 
       // success
-      whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_SUCCESS, 100);
+      whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_SUCCESS, true, 100);
       whirlpoolUtxoSpendFrom.setMessage("TX0 txid: " + tx0.getTx().getHashAsString());
 
       // preserve utxo config
@@ -314,7 +314,7 @@ public class WhirlpoolWallet {
       return tx0;
     } catch (Exception e) {
       // error
-      whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, 100);
+      whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, true, 100);
       whirlpoolUtxoSpendFrom.setError(e);
       throw e;
     }
@@ -636,7 +636,7 @@ public class WhirlpoolWallet {
       throw new NotifiableException("Pool not found: " + poolId);
     }
 
-    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_STARTED, 1);
+    whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_STARTED, true, 1);
     if (log.isDebugEnabled()) {
       log.info(
           " • Connecting client to pool: "
