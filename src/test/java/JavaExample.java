@@ -1,5 +1,5 @@
 import com.samourai.http.client.IHttpClient;
-import com.samourai.stomp.client.IStompClient;
+import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
@@ -21,7 +21,8 @@ public class JavaExample {
   // TODO configure these values as you wish
   private WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
     IHttpClient httpClient = null; // provide impl here, ie: new AndroidHttpclient();
-    IStompClient stompClient = null; // provide impl here, ie: new AndroidStompClient();
+    IStompClientService stompClientService =
+        null; // provide impl here, ie: new AndroidStompClientService();
     WhirlpoolWalletPersistHandler persistHandler =
         new FileWhirlpoolWalletPersistHandler(new File("/tmp/state"), new File("/tmp/utxos"));
 
@@ -30,7 +31,7 @@ public class JavaExample {
     String serverUrl = whirlpoolServer.getServerUrl(); // or whirlpoolServer.getServerOnionV3()
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
-            httpClient, stompClient, persistHandler, serverUrl, whirlpoolServer);
+            httpClient, stompClientService, persistHandler, serverUrl, whirlpoolServer);
 
     // configure optional settings (or don't set anything for using default values)
     whirlpoolWalletConfig.setScode("foo");
