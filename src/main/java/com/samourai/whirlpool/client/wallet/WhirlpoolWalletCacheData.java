@@ -45,6 +45,8 @@ public class WhirlpoolWalletCacheData {
   private Map<WhirlpoolAccount, Supplier<Throwing<Map<String, WhirlpoolUtxo>, Exception>>> utxos;
   private Map<WhirlpoolAccount, Map<String, WhirlpoolUtxo>> previousUtxos;
 
+  private static final int ATTEMPTS = 2;
+
   public WhirlpoolWalletCacheData(
       WhirlpoolWallet whirlpoolWallet,
       WhirlpoolWalletConfig config,
@@ -56,7 +58,7 @@ public class WhirlpoolWalletCacheData {
     // fee
     this.samouraiFee =
         Suppliers.memoizeWithExpiration(
-            initFeeSatPerByte(), config.getRefreshFeeDelay(), TimeUnit.SECONDS);
+            initFeeSatPerByte().attempts(ATTEMPTS), config.getRefreshFeeDelay(), TimeUnit.SECONDS);
 
     // pools
     clearPools();
@@ -112,11 +114,13 @@ public class WhirlpoolWalletCacheData {
   public void clearPools() {
     this.poolsResponse =
         Suppliers.memoizeWithExpiration(
-            initPoolsResponse(), config.getRefreshPoolsDelay(), TimeUnit.SECONDS);
+            initPoolsResponse().attempts(ATTEMPTS),
+            config.getRefreshPoolsDelay(),
+            TimeUnit.SECONDS);
 
     this.pools =
         Suppliers.memoizeWithExpiration(
-            initPools(), config.getRefreshPoolsDelay(), TimeUnit.SECONDS);
+            initPools().attempts(ATTEMPTS), config.getRefreshPoolsDelay(), TimeUnit.SECONDS);
   }
 
   public Pools getPoolsResponse() throws Exception {
@@ -170,7 +174,9 @@ public class WhirlpoolWalletCacheData {
     this.utxos.put(
         whirlpoolAccount,
         Suppliers.memoizeWithExpiration(
-            initUtxos(whirlpoolAccount), config.getRefreshUtxoDelay(), TimeUnit.SECONDS));
+            initUtxos(whirlpoolAccount).attempts(ATTEMPTS),
+            config.getRefreshUtxoDelay(),
+            TimeUnit.SECONDS));
   }
 
   public Collection<WhirlpoolUtxo> getUtxos(boolean clearCache, WhirlpoolAccount... accounts)
