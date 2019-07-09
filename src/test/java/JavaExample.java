@@ -28,7 +28,8 @@ public class JavaExample {
 
     WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
 
-    String serverUrl = whirlpoolServer.getServerUrl(); // or whirlpoolServer.getServerOnionV3()
+    boolean tor = true;
+    String serverUrl = whirlpoolServer.computeServerUrl(tor);
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
             httpClient, stompClientService, persistHandler, serverUrl, whirlpoolServer);

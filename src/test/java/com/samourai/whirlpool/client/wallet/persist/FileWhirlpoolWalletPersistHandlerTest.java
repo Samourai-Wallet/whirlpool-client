@@ -159,7 +159,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
             null,
             null,
             persistHandler,
-            WhirlpoolServer.LOCAL_TESTNET.getServerUrl(),
+            WhirlpoolServer.LOCAL_TESTNET.computeServerUrl(false),
             WhirlpoolServer.LOCAL_TESTNET);
     return new WhirlpoolWalletService()
         .openWallet(config, depositWallet, premixWallet, postmixWallet);

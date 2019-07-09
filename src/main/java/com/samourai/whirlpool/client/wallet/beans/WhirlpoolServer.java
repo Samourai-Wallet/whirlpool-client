@@ -45,16 +45,22 @@ public enum WhirlpoolServer {
     this.ssl = ssl;
   }
 
-  public String getServerUrl() {
+  protected String getServerUrl() {
     return serverUrl;
   }
 
-  public String getServerOnionV2() {
+  protected String getServerOnionV2() {
     return serverOnionV2;
   }
 
-  public String getServerOnionV3() {
+  protected String getServerOnionV3() {
     return serverOnionV3;
+  }
+
+  public String computeServerUrl(boolean tor) {
+    // String serverUrl = tor ? getServerOnionV3() : getServerUrl();
+    String serverUrl = getServerUrl(); // TODO use onion
+    return serverUrl;
   }
 
   public NetworkParameters getParams() {
