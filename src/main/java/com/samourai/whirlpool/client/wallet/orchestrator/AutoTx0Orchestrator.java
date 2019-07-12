@@ -99,7 +99,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     }
   }
 
-  public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
+  public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo, boolean isFirstFetch) {
     if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())
         && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())
         && whirlpoolUtxo.getUtxoConfig().getPoolId() != null) {

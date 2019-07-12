@@ -307,7 +307,7 @@ public class WhirlpoolWalletCacheData {
                     // set lastActivity when utxo is detected but ignore on first fetch
                     whirlpoolUtxo.setLastActivity();
                   }
-                  whirlpoolWallet.onUtxoDetected(whirlpoolUtxo);
+                  whirlpoolWallet.onUtxoDetected(whirlpoolUtxo, isFirstFetch);
                   result.put(key, whirlpoolUtxo);
                 }
               }

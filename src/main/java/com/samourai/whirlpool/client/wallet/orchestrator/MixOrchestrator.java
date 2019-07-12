@@ -341,7 +341,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     mixingHashs.add(whirlpoolUtxo.getUtxo().tx_hash);
   }
 
-  public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
+  public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo, boolean isFirstFetch) {
     // set mixableStatus
     refreshMixableStatus(whirlpoolUtxo);
 
@@ -351,22 +351,25 @@ public class MixOrchestrator extends AbstractOrchestrator {
       log.debug("onUtxoDetected: " + whirlpoolUtxo + " ; " + utxoConfig);
     }
 
-    // enqueue unfinished POSTMIX utxos
-    if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())
-        && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())
-        && (utxoConfig.getMixsDone() < utxoConfig.getMixsTarget()
-            || utxoConfig.getMixsTarget() == WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED)
-        && utxoConfig.getPoolId() != null) {
+    boolean isAutoMix = whirlpoolWallet.getConfig().isAutoMix();
+    if (!isFirstFetch || isAutoMix) {
+      // enqueue unfinished POSTMIX utxos
+      if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())
+          && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())
+          && (utxoConfig.getMixsDone() < utxoConfig.getMixsTarget()
+              || utxoConfig.getMixsTarget() == WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED)
+          && utxoConfig.getPoolId() != null) {
 
-      log.info(
-          " o Mix: new POSTMIX utxo detected, adding to mixQueue: "
-              + whirlpoolUtxo
-              + " ; "
-              + utxoConfig);
-      try {
-        whirlpoolWallet.mixQueue(whirlpoolUtxo);
-      } catch (Exception e) {
-        log.error("onUtxoDetected failed", e);
+        log.info(
+            " o Mix: new POSTMIX utxo detected, adding to mixQueue: "
+                + whirlpoolUtxo
+                + " ; "
+                + utxoConfig);
+        try {
+          whirlpoolWallet.mixQueue(whirlpoolUtxo);
+        } catch (Exception e) {
+          log.error("onUtxoDetected failed", e);
+        }
       }
     }
   }

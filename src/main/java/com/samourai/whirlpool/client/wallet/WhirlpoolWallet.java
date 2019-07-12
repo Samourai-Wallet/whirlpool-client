@@ -780,16 +780,23 @@ public class WhirlpoolWallet {
     return utxoConfig;
   }
 
-  protected void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
+  protected void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo, boolean isFirstFetch) {
+    String firstFetchInfo = isFirstFetch ? "(init) " : "";
 
     // preserve utxo config
     UnspentOutput utxo = whirlpoolUtxo.getUtxo();
+
     // find by utxo (new POSTMIX from mix or CLI restart)
     WhirlpoolUtxoConfig utxoConfig = getUtxoConfigOrNull(utxo);
     if (utxoConfig != null) {
       // utxoConfig found (from previous mix)
       if (log.isDebugEnabled()) {
-        log.debug("New utxo detected: " + whirlpoolUtxo + " ; (existing utxoConfig) " + utxoConfig);
+        log.debug(
+            firstFetchInfo
+                + "New utxo detected: "
+                + whirlpoolUtxo
+                + " ; (existing utxoConfig) "
+                + utxoConfig);
       }
     } else {
       // find by tx hash (new PREMIX from TX0)
@@ -798,11 +805,16 @@ public class WhirlpoolWallet {
         utxoConfig = new WhirlpoolUtxoConfig(utxoConfig);
         setUtxoConfig(utxoConfig, utxo.tx_hash, utxo.tx_output_n);
         if (log.isDebugEnabled()) {
-          log.debug("New utxo detected: " + whirlpoolUtxo + " ; (from TX0) " + utxoConfig);
+          log.debug(
+              firstFetchInfo
+                  + "New utxo detected: "
+                  + whirlpoolUtxo
+                  + " ; (from TX0) "
+                  + utxoConfig);
         }
       } else {
         if (log.isDebugEnabled()) {
-          log.debug("New utxo detected: " + whirlpoolUtxo + " (no utxoConfig)");
+          log.debug(firstFetchInfo + "New utxo detected: " + whirlpoolUtxo + " (no utxoConfig)");
         }
       }
     }
@@ -817,7 +829,8 @@ public class WhirlpoolWallet {
       if (pool == null) {
         // clear pool configuration
         log.warn(
-            "pool not found for utxoConfig: "
+            firstFetchInfo
+                + "pool not found for utxoConfig: "
                 + utxoConfig.getPoolId()
                 + " => reset utxoConfig.poolId");
         utxoConfig.setPoolId(null);
@@ -834,12 +847,12 @@ public class WhirlpoolWallet {
     }
 
     // notify orchestrators
-    mixOrchestrator.onUtxoDetected(whirlpoolUtxo);
+    mixOrchestrator.onUtxoDetected(whirlpoolUtxo, isFirstFetch);
     if (autoTx0Orchestrator.isPresent()) {
-      autoTx0Orchestrator.get().onUtxoDetected(whirlpoolUtxo);
+      autoTx0Orchestrator.get().onUtxoDetected(whirlpoolUtxo, isFirstFetch);
     }
     if (autoMixOrchestrator.isPresent()) {
-      autoMixOrchestrator.get().onUtxoDetected(whirlpoolUtxo);
+      autoMixOrchestrator.get().onUtxoDetected(whirlpoolUtxo, isFirstFetch);
     }
   }
 

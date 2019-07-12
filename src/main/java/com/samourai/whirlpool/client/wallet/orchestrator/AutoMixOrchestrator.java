@@ -19,21 +19,24 @@ public class AutoMixOrchestrator extends AbstractOrchestrator {
   @Override
   protected void runOrchestrator() {
     try {
-      resumePremix();
+      resumePremixPostmix();
     } catch (Exception e) {
       log.error("", e);
     }
   }
 
-  protected void resumePremix() throws Exception {
+  protected void resumePremixPostmix() throws Exception {
     if (log.isDebugEnabled()) {
-      log.debug("Checking for PREMIX utxos ready to mix...");
+      log.debug("Checking for utxos ready to mix...");
     }
     // rescan premix
     whirlpoolWallet.getUtxosPremix(false);
+
+    // rescan postmix
+    whirlpoolWallet.getUtxosPostmix(false);
   }
 
-  public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo) {
+  public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo, boolean isFirstFetch) {
     try {
       if (whirlpoolUtxo.getUtxoConfig().getPoolId() != null
           && WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())
