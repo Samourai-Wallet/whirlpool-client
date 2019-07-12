@@ -32,6 +32,8 @@ import org.slf4j.LoggerFactory;
 
 public class MixOrchestrator extends AbstractOrchestrator {
   private final Logger log = LoggerFactory.getLogger(MixOrchestrator.class);
+  private static final int LAST_ERROR_DELAY = 60 * 5; // 5min
+
   private WhirlpoolWallet whirlpoolWallet;
   private int maxClients;
   private int clientDelay;
@@ -181,14 +183,17 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   public boolean hasMoreMixableOrUnconfirmed() {
-    return getQueueByMixableStatus(MixableStatus.MIXABLE, MixableStatus.UNCONFIRMED) != null;
+    return getQueueByMixableStatus(false, MixableStatus.MIXABLE, MixableStatus.UNCONFIRMED) != null;
   }
 
   private WhirlpoolUtxo findMixable() {
-    return getQueueByMixableStatus(MixableStatus.MIXABLE);
+    return getQueueByMixableStatus(true, MixableStatus.MIXABLE);
   }
 
-  private WhirlpoolUtxo getQueueByMixableStatus(MixableStatus... filterMixableStatuses) {
+  private WhirlpoolUtxo getQueueByMixableStatus(
+      boolean filterErrorDelay, MixableStatus... filterMixableStatuses) {
+    long lastErrorMax = System.currentTimeMillis() - (LAST_ERROR_DELAY * 1000);
+
     // find queued
     Collection<WhirlpoolUtxo> toMixByPriority =
         getQueue()
@@ -201,7 +206,12 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
       // check mixableStatus
       if (ArrayUtils.contains(filterMixableStatuses, mixableStatus)) {
-        return whirlpoolUtxo;
+        // don't retry before errorDelay
+        if (!filterErrorDelay
+            || whirlpoolUtxo.getLastError() == null
+            || whirlpoolUtxo.getLastError() < lastErrorMax) {
+          return whirlpoolUtxo;
+        }
       }
     }
     return null;

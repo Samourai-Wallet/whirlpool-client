@@ -17,6 +17,7 @@ public class WhirlpoolUtxo {
   private String message;
   private String error;
   private Long lastActivity;
+  private Long lastError;
 
   public WhirlpoolUtxo(
       UnspentOutput utxo,
@@ -34,6 +35,7 @@ public class WhirlpoolUtxo {
     this.message = null;
     this.error = null;
     this.lastActivity = null;
+    this.lastError = null;
   }
 
   public UnspentOutput getUtxo() {
@@ -77,6 +79,7 @@ public class WhirlpoolUtxo {
   public void setError(String error) {
     this.error = error;
     setLastActivity();
+    setLastError();
   }
 
   public boolean hasError() {
@@ -95,7 +98,9 @@ public class WhirlpoolUtxo {
     this.status = status;
     this.mixStep = mixStep;
     this.progressPercent = progressPercent;
-    this.error = null;
+    if (!WhirlpoolUtxoStatus.MIX_QUEUE.equals(status)) {
+      this.error = null;
+    }
     if (updateLastActivity) {
       setLastActivity();
     }
@@ -130,6 +135,18 @@ public class WhirlpoolUtxo {
     this.lastActivity = System.currentTimeMillis();
   }
 
+  public void setLastError() {
+    this.lastError = System.currentTimeMillis();
+  }
+
+  public Long getLastError() {
+    return lastError;
+  }
+
+  public void setLastError(Long lastError) {
+    this.lastError = lastError;
+  }
+
   public WhirlpoolUtxoConfig getUtxoConfig() {
     return wallet.getUtxoConfig(this);
   }
@@ -152,6 +169,7 @@ public class WhirlpoolUtxo {
         + (mixableStatus != null ? mixableStatus : "null")
         + (hasMessage() ? ", message=" + message : "")
         + (hasError() ? ", error=" + error : "")
+        + (lastError != null ? ", lastError=" + lastError : "")
         + ", utxo="
         + utxo.toString();
   }

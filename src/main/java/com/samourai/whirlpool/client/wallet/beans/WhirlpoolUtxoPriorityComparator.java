@@ -16,6 +16,18 @@ public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo
       return 1;
     }
 
+    // when same priority: no error first
+    if (o1.getLastError() != null && o2.getLastError() == null) {
+      return 1;
+    }
+    if (o2.getLastError() != null && o1.getLastError() == null) {
+      return -1;
+    }
+    if (o1.getLastError() != null && o2.getLastError() != null) {
+      // both errors: last error last
+      return Longs.compare(o1.getLastError(), o2.getLastError());
+    }
+
     // when same priority: last activity first
     // if (o1.getUtxoConfig().getPriority() == o2.getUtxoConfig().getPriority()) {
     if (o1.getLastActivity() != null && o2.getLastActivity() == null) {
