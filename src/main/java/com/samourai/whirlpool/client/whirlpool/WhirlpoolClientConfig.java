@@ -12,7 +12,6 @@ public class WhirlpoolClientConfig {
   private WhirlpoolWalletPersistHandler persistHandler;
   private String server;
   private NetworkParameters networkParameters;
-  private boolean ssl;
   private int reconnectDelay;
   private int reconnectUntil;
   private boolean testMode;
@@ -23,15 +22,13 @@ public class WhirlpoolClientConfig {
       IStompClientService stompClientService,
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
-      NetworkParameters networkParameters,
-      boolean ssl) {
+      NetworkParameters networkParameters) {
     this(
         httpClient,
         stompClientService,
         persistHandler,
         server,
         networkParameters,
-        ssl,
         null,
         5,
         500,
@@ -44,7 +41,6 @@ public class WhirlpoolClientConfig {
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters networkParameters,
-      boolean ssl,
       String scode,
       int reconnectDelay,
       int reconnectUntil,
@@ -54,7 +50,6 @@ public class WhirlpoolClientConfig {
     this.persistHandler = persistHandler;
     this.server = server;
     this.networkParameters = networkParameters;
-    this.ssl = ssl;
     this.reconnectDelay = reconnectDelay;
     this.reconnectUntil = reconnectUntil;
     this.testMode = testMode;
@@ -87,14 +82,6 @@ public class WhirlpoolClientConfig {
 
   public NetworkParameters getNetworkParameters() {
     return networkParameters;
-  }
-
-  public boolean isSsl() {
-    return ssl;
-  }
-
-  public void setSsl(boolean ssl) {
-    this.ssl = ssl;
   }
 
   public void setNetworkParameters(NetworkParameters networkParameters) {

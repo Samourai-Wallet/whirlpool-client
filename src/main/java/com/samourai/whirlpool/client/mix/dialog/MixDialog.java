@@ -223,8 +223,7 @@ public class MixDialog {
   private void doRegisterOutput(
       RegisterOutputMixStatusNotification registerOutputMixStatusNotification) throws Exception {
     try {
-      String registerOutputUrl =
-          WhirlpoolProtocol.getUrlRegisterOutput(clientConfig.getServer(), clientConfig.isSsl());
+      String registerOutputUrl = WhirlpoolProtocol.getUrlRegisterOutput(clientConfig.getServer());
       listener.postRegisterOutput(registerOutputMixStatusNotification, registerOutputUrl);
     } catch (HttpException e) {
       String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);

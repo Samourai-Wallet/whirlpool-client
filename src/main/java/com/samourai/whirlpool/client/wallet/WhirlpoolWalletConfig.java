@@ -5,7 +5,6 @@ import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.api.backend.SamouraiFeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.wallet.pushTx.PushTxService;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
@@ -45,25 +44,10 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
       IHttpClient httpClient,
       IStompClientService stompClientService,
       WhirlpoolWalletPersistHandler persistHandler,
-      String serverUrl,
-      WhirlpoolServer whirlpoolServer) {
-    this(
-        httpClient,
-        stompClientService,
-        persistHandler,
-        serverUrl,
-        whirlpoolServer.getParams(),
-        whirlpoolServer.isSsl());
-  }
-
-  public WhirlpoolWalletConfig(
-      IHttpClient httpClient,
-      IStompClientService stompClientService,
-      WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters params,
-      boolean ssl) {
-    super(httpClient, stompClientService, persistHandler, server, params, ssl);
+      SamouraiApi samouraiApi) {
+    super(httpClient, stompClientService, persistHandler, server, params);
 
     // default settings
     this.maxClients = 1;
@@ -73,7 +57,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.autoMix = false;
 
     // technical settings
-    this.samouraiApi = new SamouraiApi(httpClient, server);
+    this.samouraiApi = samouraiApi;
     this.pushTxService = samouraiApi; // use backend as default push service
     this.tx0Delay = 30;
     this.tx0MaxOutputs = null; // spend whole utxo when possible
@@ -246,12 +230,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     Map<String, String> configInfo = new LinkedHashMap<String, String>();
     configInfo.put(
         "server",
-        "url="
-            + getServer()
-            + ", network="
-            + getNetworkParameters().getPaymentProtocolId()
-            + ", ssl="
-            + Boolean.toString(isSsl()));
+        "url=" + getServer() + ", network=" + getNetworkParameters().getPaymentProtocolId());
     configInfo.put("pushtx", getPushTxService().getClass().getName());
     configInfo.put(
         "persist",

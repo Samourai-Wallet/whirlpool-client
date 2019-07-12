@@ -1,3 +1,5 @@
+import com.samourai.api.client.BackendServer;
+import com.samourai.api.client.SamouraiApi;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.hd.HD_Wallet;
@@ -14,6 +16,7 @@ import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandle
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.io.File;
 import java.util.Collection;
+import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.TransactionOutPoint;
 
 public class JavaExample {
@@ -28,11 +31,15 @@ public class JavaExample {
 
     WhirlpoolServer whirlpoolServer = WhirlpoolServer.TESTNET;
 
-    boolean tor = true;
-    String serverUrl = whirlpoolServer.computeServerUrl(tor);
+    boolean onion = true;
+    String serverUrl = whirlpoolServer.getServerUrl(onion);
+    String backendUrl = BackendServer.TESTNET.getBackendUrl(onion);
+    SamouraiApi samouraiApi = new SamouraiApi(httpClient, backendUrl);
+
+    NetworkParameters params = whirlpoolServer.getParams();
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
-            httpClient, stompClientService, persistHandler, serverUrl, whirlpoolServer);
+            httpClient, stompClientService, persistHandler, serverUrl, params, samouraiApi);
 
     // configure optional settings (or don't set anything for using default values)
     whirlpoolWalletConfig.setScode("foo");

@@ -63,7 +63,7 @@ public class MixSession {
       connectBeginTime = System.currentTimeMillis();
     }
 
-    String wsUrl = WhirlpoolProtocol.getUrlConnect(config.getServer(), config.isSsl());
+    String wsUrl = WhirlpoolProtocol.getUrlConnect(config.getServer());
     if (log.isDebugEnabled()) {
       log.debug("connecting to server: " + wsUrl);
     }

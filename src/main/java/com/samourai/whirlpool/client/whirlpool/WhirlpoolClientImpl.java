@@ -53,7 +53,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
 
   @Override
   public Pools fetchPools() throws HttpException, NotifiableException {
-    String url = WhirlpoolProtocol.getUrlFetchPools(config.getServer(), config.isSsl());
+    String url = WhirlpoolProtocol.getUrlFetchPools(config.getServer());
     try {
       PoolsResponse poolsResponse = config.getHttpClient().getJson(url, PoolsResponse.class);
       return computePools(poolsResponse);
