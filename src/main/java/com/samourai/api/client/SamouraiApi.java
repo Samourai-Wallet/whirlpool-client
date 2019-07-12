@@ -12,6 +12,9 @@ public class SamouraiApi extends BackendApi implements PushTxService {
 
   public SamouraiApi(IHttpClient httpClient, String urlBackend) {
     super(httpClient, urlBackend);
+    if (log.isDebugEnabled()) {
+      log.debug("urlBackend=" + urlBackend);
+    }
   }
 
   @Override

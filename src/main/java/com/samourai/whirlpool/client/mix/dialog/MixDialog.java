@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 public class MixDialog {
   // non-static logger to prefix it with stomp sessionId
-  private Logger log = LoggerFactory.getLogger(MixDialog.class);
+  private Logger log;
 
   private MixDialogListener listener;
   private MixSession mixSession;
@@ -44,14 +44,14 @@ public class MixDialog {
   private boolean done;
 
   public MixDialog(
-      MixDialogListener listener, MixSession mixSession, WhirlpoolClientConfig clientConfig) {
+      MixDialogListener listener,
+      MixSession mixSession,
+      WhirlpoolClientConfig clientConfig,
+      String logPrefix) {
+    this.log = LoggerFactory.getLogger(MixDialog.class + "[" + logPrefix + "]");
     this.listener = listener;
     this.clientConfig = clientConfig;
     this.mixSession = mixSession;
-  }
-
-  public void setLogPrefix(String logPrefix) {
-    this.log = ClientUtils.prefixLogger(log, logPrefix);
   }
 
   public synchronized void onPrivateReceived(MixMessage mixMessage) {

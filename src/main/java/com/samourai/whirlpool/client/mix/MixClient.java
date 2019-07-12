@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 
 public class MixClient {
   // non-static logger to prefix it with stomp sessionId
-  private Logger log = LoggerFactory.getLogger(MixClient.class);
+  private Logger log;
 
   // server settings
   private WhirlpoolClientConfig config;
@@ -34,17 +34,19 @@ public class MixClient {
   private WhirlpoolProtocol whirlpoolProtocol;
   private String logPrefix;
   private MixSession mixSession;
-  private boolean done;
 
-  public MixClient(WhirlpoolClientConfig config) {
-    this(config, new ClientCryptoService(), new WhirlpoolProtocol());
+  public MixClient(WhirlpoolClientConfig config, String logPrefix) {
+    this(config, logPrefix, new ClientCryptoService(), new WhirlpoolProtocol());
   }
 
   public MixClient(
       WhirlpoolClientConfig config,
+      String logPrefix,
       ClientCryptoService clientCryptoService,
       WhirlpoolProtocol whirlpoolProtocol) {
+    this.log = LoggerFactory.getLogger(MixClient.class + "[" + logPrefix + "]");
     this.config = config;
+    this.logPrefix = logPrefix;
     this.clientCryptoService = clientCryptoService;
     this.whirlpoolProtocol = whirlpoolProtocol;
   }
@@ -68,10 +70,11 @@ public class MixClient {
     listenerProgress(MixStep.CONNECTING);
     mixSession =
         new MixSession(
-            computeMixDialogListener(), whirlpoolProtocol, config, mixParams.getPoolId());
-    if (logPrefix != null) {
-      mixSession.setLogPrefix(logPrefix);
-    }
+            computeMixDialogListener(),
+            whirlpoolProtocol,
+            config,
+            mixParams.getPoolId(),
+            logPrefix);
     mixSession.connect();
   }
 
@@ -88,16 +91,7 @@ public class MixClient {
   }
 
   public void exit() {
-    done = true;
     disconnect();
-  }
-
-  public void setLogPrefix(String logPrefix) {
-    this.logPrefix = logPrefix;
-    if (mixSession != null) {
-      mixSession.setLogPrefix(logPrefix);
-    }
-    log = ClientUtils.prefixLogger(log, logPrefix);
   }
 
   private MixProcess computeMixProcess() {

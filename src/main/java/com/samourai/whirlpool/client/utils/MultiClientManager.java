@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.utils;
 
 import com.samourai.whirlpool.client.WhirlpoolClient;
-import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +23,6 @@ public class MultiClientManager {
     if (log.isDebugEnabled()) {
       log.debug("Register client#" + i);
     }
-    ((WhirlpoolClientImpl) whirlpoolClient).setLogPrefix("cli#" + i);
     MultiClientListener listener = new MultiClientListener(this);
     listener.setLogPrefix("cli#" + i);
     this.clients.add(whirlpoolClient);

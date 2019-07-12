@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WhirlpoolClientImpl implements WhirlpoolClient {
-  private Logger log = LoggerFactory.getLogger(WhirlpoolClientImpl.class);
+  private Logger log;
 
   private WhirlpoolClientConfig config;
 
@@ -40,15 +40,18 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
    * @return
    */
   public static WhirlpoolClient newClient(WhirlpoolClientConfig config) {
-    return new WhirlpoolClientImpl(config);
+    String logPrefix = Long.toString(System.currentTimeMillis());
+    return new WhirlpoolClientImpl(config, logPrefix);
   }
 
-  private WhirlpoolClientImpl(WhirlpoolClientConfig config) {
+  private WhirlpoolClientImpl(WhirlpoolClientConfig config, String logPrefix) {
+    this.log = LoggerFactory.getLogger(WhirlpoolClientImpl.class + "[" + logPrefix + "]");
     this.config = config;
-    this.logPrefix = null;
+    this.logPrefix = logPrefix;
     if (log.isDebugEnabled()) {
-      log.debug("protocolVersion=" + WhirlpoolProtocol.PROTOCOL_VERSION);
+      log.debug("+whirlpoolClient");
     }
+    log.info("+whirlpoolClient"); // TODO !!!!
   }
 
   @Override
@@ -102,22 +105,22 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
                 runClient(mixParams);
                 while (!done) {
                   try {
-                    wait();
+                    synchronized (mixThread) {
+                      mixThread.wait();
+                    }
                   } catch (Exception e) {
                   }
                 }
               }
-            });
+            },
+            "whirlpoolClient-" + logPrefix);
     this.mixThread.start();
   }
 
   private void runClient(MixParams mixParams) {
     MixClientListener mixListener = computeMixListener();
 
-    mixClient = new MixClient(config);
-    if (logPrefix != null) {
-      mixClient.setLogPrefix(logPrefix);
-    }
+    mixClient = new MixClient(config, logPrefix);
     mixClient.whirlpool(mixParams, mixListener);
   }
 
@@ -127,13 +130,13 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
       public void success(MixSuccess mixSuccess, MixParams nextMixParams) {
         // done
         listener.success(mixSuccess);
-        endMixThread();
+        exit();
       }
 
       @Override
       public void fail(MixFailReason reason, String notifiableError) {
         listener.fail(reason, notifiableError);
-        endMixThread();
+        exit();
       }
 
       @Override
@@ -143,22 +146,22 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     };
   }
 
-  private void endMixThread() {
-    synchronized (mixThread) {
-      done = true;
-      mixThread.notify();
-    }
-  }
-
   @Override
   public void exit() {
-    if (mixClient != null) {
-      mixClient.exit();
+    if (!done) {
+      if (log.isDebugEnabled()) {
+        log.debug("--whirlpoolClient");
+      }
+      done = true;
+      if (mixClient != null) {
+        mixClient.exit();
+      }
+      if (mixThread != null) {
+        synchronized (mixThread) {
+          mixThread.notify();
+        }
+      }
     }
-  }
-
-  public void setLogPrefix(String logPrefix) {
-    this.logPrefix = logPrefix;
   }
 
   public MixClient getMixClient() {

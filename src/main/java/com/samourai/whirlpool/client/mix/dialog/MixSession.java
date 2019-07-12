@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 
 public class MixSession {
   // non-static logger to prefix it with stomp sessionId
-  private Logger log = LoggerFactory.getLogger(MixSession.class);
+  private Logger log;
 
   private MixDialogListener listener;
   private WhirlpoolProtocol whirlpoolProtocol;
@@ -40,13 +40,15 @@ public class MixSession {
       MixDialogListener listener,
       WhirlpoolProtocol whirlpoolProtocol,
       WhirlpoolClientConfig config,
-      String poolId) {
+      String poolId,
+      String logPrefix) {
+    this.log = LoggerFactory.getLogger(MixSession.class + "[" + logPrefix + "]");
     this.listener = listener;
     this.whirlpoolProtocol = whirlpoolProtocol;
     this.config = config;
     this.poolId = poolId;
     this.transport = null;
-    this.logPrefix = null;
+    this.logPrefix = logPrefix;
     resetDialog();
   }
 
@@ -54,7 +56,7 @@ public class MixSession {
     if (this.dialog != null) {
       this.dialog.stop();
     }
-    this.dialog = new MixDialog(listener, this, config);
+    this.dialog = new MixDialog(listener, this, config, logPrefix);
     listener.onResetMix();
   }
 
@@ -70,19 +72,9 @@ public class MixSession {
 
     // connect with a new transport
     Map<String, String> connectHeaders = computeStompHeaders(null);
-    transport = new StompTransport(config.getStompClientService(), computeTransportListener());
-    if (logPrefix != null) {
-      transport.setLogPrefix(logPrefix);
-    }
+    transport =
+        new StompTransport(config.getStompClientService(), computeTransportListener(), logPrefix);
     transport.connect(wsUrl, connectHeaders);
-  }
-
-  public void setLogPrefix(String logPrefix) {
-    dialog.setLogPrefix(logPrefix);
-    if (transport != null) {
-      transport.setLogPrefix(logPrefix);
-    }
-    log = ClientUtils.prefixLogger(log, logPrefix);
   }
 
   private void subscribe() {
@@ -231,9 +223,8 @@ public class MixSession {
           // no way to get stompUsername on Android?
           stompUsername = "android";
         }
-        setLogPrefix(stompUsername);
         if (log.isDebugEnabled()) {
-          log.debug("connected to server, stompUsername=" + stompUsername);
+          log.debug("connected => stompUsername=" + stompUsername);
         }
 
         // will get SubscribePoolResponse and start dialog

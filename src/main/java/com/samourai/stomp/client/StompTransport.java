@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 /** STOMP communication. */
 public class StompTransport {
   // non-static logger to prefix it with stomp sessionId
-  private Logger log = LoggerFactory.getLogger(StompTransport.class);
+  private Logger log;
   private static final String HEADER_USERNAME = "user-name";
   public static final String HEADER_DESTINATION = "destination";
 
@@ -21,7 +21,9 @@ public class StompTransport {
 
   private boolean done;
 
-  public StompTransport(IStompClientService stompClientService, IStompTransportListener listener) {
+  public StompTransport(
+      IStompClientService stompClientService, IStompTransportListener listener, String logPrefix) {
+    this.log = LoggerFactory.getLogger(StompTransport.class + "[" + logPrefix + "]");
     this.stompClient = stompClientService.newStompClient();
     this.listener = listener;
   }
@@ -139,9 +141,5 @@ public class StompTransport {
   private Map<String, String> completeHeaders(Map<String, String> stompHeaders) {
     stompHeaders.put(WhirlpoolProtocol.HEADER_PROTOCOL_VERSION, WhirlpoolProtocol.PROTOCOL_VERSION);
     return stompHeaders;
-  }
-
-  public void setLogPrefix(String logPrefix) {
-    this.log = ClientUtils.prefixLogger(log, logPrefix);
   }
 }

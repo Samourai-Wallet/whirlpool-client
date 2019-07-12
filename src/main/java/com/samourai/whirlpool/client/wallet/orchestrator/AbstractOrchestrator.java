@@ -61,7 +61,8 @@ public abstract class AbstractOrchestrator {
                 }
                 resetOrchestrator();
               }
-            });
+            },
+            getClass().getSimpleName());
     this.myThread.start();
   }
 
