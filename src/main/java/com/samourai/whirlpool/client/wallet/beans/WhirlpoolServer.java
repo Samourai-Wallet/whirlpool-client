@@ -8,17 +8,17 @@ import org.bitcoinj.params.TestNet3Params;
 public enum WhirlpoolServer {
   TESTNET(
       "https://pool.whirl.mx:8081",
-      "https://y5qvjlxvbohc73slq4j4qldoegyukvpp74mbsrjosnrsgg7w5fon6nyd.onion",
+      "http://y5qvjlxvbohc73slq4j4qldoegyukvpp74mbsrjosnrsgg7w5fon6nyd.onion",
       TestNet3Params.get()),
   INTEGRATION(
       "https://pool.whirl.mx:8082",
-      "https://yuvewbfkftftcbzn54lfx3i5s4jxr4sfgpsbkvcflgzcvumyxrkopmyd.onion",
+      "http://yuvewbfkftftcbzn54lfx3i5s4jxr4sfgpsbkvcflgzcvumyxrkopmyd.onion",
       TestNet3Params.get()),
   MAINNET(
       "https://pool.whirl.mx:8080",
-      "https://udkmfc5j6zvv3ysavbrwzhwji4hpyfe3apqa6yst7c7l32mygf65g4ad.onion",
+      "http://udkmfc5j6zvv3ysavbrwzhwji4hpyfe3apqa6yst7c7l32mygf65g4ad.onion",
       MainNetParams.get()),
-  LOCAL_TESTNET("http://127.0.0.1:8080", null, TestNet3Params.get());
+  LOCAL_TESTNET("http://127.0.0.1:8080", "http://127.0.0.1:8080", TestNet3Params.get());
 
   private String serverUrlClear;
   private String serverUrlOnion;
