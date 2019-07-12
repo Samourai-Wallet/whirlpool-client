@@ -32,7 +32,7 @@ public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener
     whirlpoolUtxo.getUtxoConfig().incrementMixsDone();
 
     // notify
-    whirlpoolWallet.onMixSuccess(mixSuccess, whirlpoolUtxo);
+    whirlpoolWallet.onMixSuccess(whirlpoolUtxo, mixSuccess);
   }
 
   @Override
@@ -44,6 +44,8 @@ public class UtxoWhirlpoolClientListener extends AbstractWhirlpoolClientListener
     }
     whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.MIX_FAILED, true);
     whirlpoolUtxo.setError(message);
+
+    whirlpoolWallet.onMixFail(whirlpoolUtxo, reason, notifiableError);
   }
 
   @Override

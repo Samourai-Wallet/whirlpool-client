@@ -12,6 +12,7 @@ import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.handler.*;
+import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
@@ -660,11 +661,20 @@ public class WhirlpoolWallet {
     return mixClient;
   }
 
-  public void onMixSuccess(MixSuccess mixSuccess, WhirlpoolUtxo whirlpoolUtxo) {
+  public void onMixSuccess(WhirlpoolUtxo whirlpoolUtxo, MixSuccess mixSuccess) {
     // preserve utxo config
     Utxo receiveUtxo = mixSuccess.getReceiveUtxo();
     setUtxoConfig(
         whirlpoolUtxo.getUtxoConfig().copy(), receiveUtxo.getHash(), (int) receiveUtxo.getIndex());
+  }
+
+  public void onMixFail(WhirlpoolUtxo whirlpoolUtxo, MixFailReason reason, String notifiableError) {
+    try {
+      // retry
+      mixQueue(whirlpoolUtxo);
+    } catch (Exception e) {
+      log.error("", e);
+    }
   }
 
   private IPremixHandler computePremixHandler(WhirlpoolUtxo whirlpoolUtxo) {
