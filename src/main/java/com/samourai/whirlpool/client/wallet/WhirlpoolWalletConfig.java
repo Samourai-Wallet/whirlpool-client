@@ -3,7 +3,6 @@ package com.samourai.whirlpool.client.wallet;
 import com.samourai.api.client.SamouraiApi;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClientService;
-import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.SamouraiFeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
@@ -14,7 +13,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.params.MainNetParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,9 +73,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.autoMix = false;
 
     // technical settings
-    BackendServer backendServer =
-        (params instanceof MainNetParams ? BackendServer.MAINNET : BackendServer.TESTNET);
-    this.samouraiApi = new SamouraiApi(httpClient, backendServer);
+    this.samouraiApi = new SamouraiApi(httpClient, server);
     this.pushTxService = samouraiApi; // use backend as default push service
     this.tx0Delay = 30;
     this.tx0MaxOutputs = null; // spend whole utxo when possible
