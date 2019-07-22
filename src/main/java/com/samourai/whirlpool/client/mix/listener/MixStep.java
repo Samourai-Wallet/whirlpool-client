@@ -4,9 +4,9 @@ public enum MixStep {
   CONNECTING("connecting...", 10),
   CONNECTED("connected", 20),
 
-  REGISTERED_INPUT("waiting for a mix...", 30),
+  REGISTERED_INPUT("registered input", 30),
 
-  CONFIRMING_INPUT("trying to join a mix...", 40),
+  CONFIRMING_INPUT("waiting for a mix...", 40),
   CONFIRMED_INPUT("joined a mix!", 50),
 
   REGISTERING_OUTPUT("registering output", 60),
