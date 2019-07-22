@@ -47,7 +47,9 @@ public class StompTransport {
               }
               listener.onTransportConnected(stompUsername);
             } else {
-              log.info("IStompClient.onConnect: message ignored (done=true)");
+              if (log.isDebugEnabled()) {
+                log.debug("onMessage: message ignored (done=true)");
+              }
             }
           }
 
@@ -58,7 +60,9 @@ public class StompTransport {
               disconnect();
               listener.onTransportDisconnected(exception);
             } else {
-              log.info("IStompClient.onDisconnect: message ignored (done=true)");
+              if (log.isDebugEnabled()) {
+                log.info("onError: message ignored (done=true)");
+              }
             }
           }
         });
