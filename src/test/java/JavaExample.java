@@ -34,7 +34,7 @@ public class JavaExample {
     boolean onion = true;
     String serverUrl = whirlpoolServer.getServerUrl(onion);
     String backendUrl = BackendServer.TESTNET.getBackendUrl(onion);
-    SamouraiApi samouraiApi = new SamouraiApi(httpClient, backendUrl);
+    SamouraiApi samouraiApi = new SamouraiApi(httpClient, backendUrl, null);
 
     NetworkParameters params = whirlpoolServer.getParams();
     WhirlpoolWalletConfig whirlpoolWalletConfig =

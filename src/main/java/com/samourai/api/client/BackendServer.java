@@ -2,11 +2,11 @@ package com.samourai.api.client;
 
 public enum BackendServer {
   MAINNET(
-      "https://api.samouraiwallet.com",
-      "http://d2oagweysnavqgcfsfawqwql2rwxend7xxpriq676lzsmtfwbt75qbqd.onion"),
+      "https://api.samouraiwallet.com/v2",
+      "http://d2oagweysnavqgcfsfawqwql2rwxend7xxpriq676lzsmtfwbt75qbqd.onion/v2"),
   TESTNET(
-      "https://api.samouraiwallet.com/test",
-      "http://d2oagweysnavqgcfsfawqwql2rwxend7xxpriq676lzsmtfwbt75qbqd.onion/test");
+      "https://api.samouraiwallet.com/test/v2",
+      "http://d2oagweysnavqgcfsfawqwql2rwxend7xxpriq676lzsmtfwbt75qbqd.onion/test/v2");
 
   private String backendUrlClear;
   private String backendUrlOnion;

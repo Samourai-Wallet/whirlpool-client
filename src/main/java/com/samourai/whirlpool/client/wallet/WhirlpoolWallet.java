@@ -416,7 +416,8 @@ public class WhirlpoolWallet {
   private Tx0Data fetchTx0Data() throws HttpException, NotifiableException {
     String url = WhirlpoolProtocol.getUrlTx0Data(config.getServer(), config.getScode());
     try {
-      Tx0DataResponse tx0Response = config.getHttpClient().getJson(url, Tx0DataResponse.class);
+      Tx0DataResponse tx0Response =
+          config.getHttpClient().getJson(url, Tx0DataResponse.class, null);
       byte[] feePayload = WhirlpoolProtocol.decodeBytes(tx0Response.feePayload64);
       Tx0Data tx0Data =
           new Tx0Data(
