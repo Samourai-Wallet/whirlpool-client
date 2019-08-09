@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.mix;
 
+import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.TxUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.handler.IPostmixHandler;
@@ -23,7 +24,9 @@ import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMix
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.ProtocolException;
 import org.bitcoinj.core.Transaction;
@@ -31,6 +34,7 @@ import org.bitcoinj.core.TransactionInput;
 import org.bitcoinj.core.TransactionOutput;
 import org.bouncycastle.crypto.params.RSABlindingParameters;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
+import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +46,7 @@ public class MixProcess {
   private IPremixHandler premixHandler;
   private IPostmixHandler postmixHandler;
   private ClientCryptoService clientCryptoService;
+  private Bech32UtilGeneric bech32Util;
 
   // hard limit for acceptable fees
   private static final long MAX_ACCEPTABLE_FEES = 100000;
@@ -77,6 +82,7 @@ public class MixProcess {
     this.premixHandler = premixHandler;
     this.postmixHandler = postmixHandler;
     this.clientCryptoService = clientCryptoService;
+    this.bech32Util = Bech32UtilGeneric.getInstance();
   }
 
   protected RegisterInputRequest registerInput(SubscribePoolResponse subscribePoolResponse)
@@ -318,7 +324,7 @@ public class MixProcess {
   }
 
   private int verifyTx(Transaction tx) throws Exception {
-    NetworkParameters networkParameters = config.getNetworkParameters();
+    NetworkParameters params = config.getNetworkParameters();
 
     // verify inputsHash
     String txInputsHash = computeInputsHash(tx.getInputs());
@@ -327,7 +333,7 @@ public class MixProcess {
     }
 
     // verify my output
-    Integer outputIndex = ClientUtils.findTxOutputIndex(this.receiveAddress, tx, networkParameters);
+    Integer outputIndex = ClientUtils.findTxOutputIndex(this.receiveAddress, tx, params);
     if (outputIndex == null) {
       throw new Exception("Output not found in tx");
     }
@@ -352,13 +358,33 @@ public class MixProcess {
       throw new Exception("Inputs size vs outputs size mismatch");
     }
 
-    // each output value should be denomination
+    // each input should have unique prev-tx
+    Set<String> uniquePrevTxs = new HashSet<String>();
+    for (TransactionInput input : tx.getInputs()) {
+      // check for prev-tx reuse
+      String prevTxid = input.getOutpoint().getHash().toString();
+      if (uniquePrevTxs.contains(prevTxid)) {
+        throw new Exception("Prev-tx reuse detected: " + prevTxid);
+      }
+      uniquePrevTxs.add(prevTxid);
+    }
+
+    Set<String> uniqueAdresses = new HashSet<String>();
     for (TransactionOutput output : tx.getOutputs()) {
+      // each output value should be denomination
       if (output.getValue().getValue() != poolDenomination) {
         log.error(
             "outputValue=" + output.getValue().getValue() + ", denomination=" + poolDenomination);
         throw new Exception("Output value mismatch");
       }
+
+      // check output-address reuse
+      String outputAddressBech32 =
+          bech32Util.getAddressFromScript(new String(Hex.encode(output.getScriptBytes())), params);
+      if (uniqueAdresses.contains(outputAddressBech32)) {
+        throw new Exception("Address reuse detected for output: " + outputAddressBech32);
+      }
+      uniqueAdresses.add(outputAddressBech32);
     }
     return inputIndex;
   }
