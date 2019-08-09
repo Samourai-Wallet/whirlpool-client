@@ -43,7 +43,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     persistHandler.setInitialized(true);
 
     String backendUrl = BackendServer.TESTNET.getBackendUrl(false);
-    this.whirlpoolWallet = computeWallet(new SamouraiApi(null, backendUrl));
+    this.whirlpoolWallet = computeWallet(new SamouraiApi(null, backendUrl, null));
   }
 
   private void reload() {
