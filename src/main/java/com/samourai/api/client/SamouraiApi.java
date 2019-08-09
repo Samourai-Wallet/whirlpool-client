@@ -4,17 +4,17 @@ import com.samourai.http.client.IHttpClient;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.wallet.pushTx.PushTxService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SamouraiApi extends BackendApi implements PushTxService {
+public class SamouraiApi extends BackendApi {
   private Logger log = LoggerFactory.getLogger(SamouraiApi.class);
 
   public SamouraiApi(IHttpClient httpClient, String urlBackend, String apiKey) {
     super(httpClient, urlBackend, apiKey);
     if (log.isDebugEnabled()) {
-      log.debug("urlBackend=" + urlBackend + ", apiKey=" + ClientUtils.maskString(apiKey));
+      String maskedApiKeyStr = apiKey != null ? ClientUtils.maskString(apiKey) : "null";
+      log.debug("urlBackend=" + urlBackend + ", apiKey=" + maskedApiKeyStr);
     }
   }
 
@@ -27,7 +27,6 @@ public class SamouraiApi extends BackendApi implements PushTxService {
     }
   }
 
-  @Override
   public boolean testConnectivity() {
     try {
       fetchFees();

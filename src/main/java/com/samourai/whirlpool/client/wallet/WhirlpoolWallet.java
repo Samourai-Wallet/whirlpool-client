@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
+import com.samourai.wallet.api.backend.SamouraiFeeTarget;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
@@ -399,7 +400,7 @@ public class WhirlpoolWallet {
       }
 
       // pushTx
-      config.getPushTxService().pushTx(ClientUtils.getTxHex(tx0.getTx()));
+      config.getSamouraiApi().pushTx(ClientUtils.getTxHex(tx0.getTx()));
 
       // refresh utxos
       ClientUtils.sleepRefreshUtxos(config.getNetworkParameters());
@@ -513,7 +514,11 @@ public class WhirlpoolWallet {
   }
 
   public int getFee(Tx0FeeTarget feeTarget) {
-    return cacheData.getFeeSatPerByte(feeTarget.getFeeTarget());
+    return getFee(feeTarget.getFeeTarget());
+  }
+
+  public int getFee(SamouraiFeeTarget feeTarget) {
+    return cacheData.getFeeSatPerByte(feeTarget);
   }
 
   public int getFeePremix() {

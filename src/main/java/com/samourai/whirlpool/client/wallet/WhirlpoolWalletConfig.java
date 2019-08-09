@@ -6,7 +6,6 @@ import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.api.backend.SamouraiFeeTarget;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
-import com.samourai.whirlpool.client.wallet.pushTx.PushTxService;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -25,7 +24,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private boolean autoMix;
 
   private SamouraiApi samouraiApi;
-  private PushTxService pushTxService;
   private int tx0Delay;
   private Integer tx0MaxOutputs;
   private int refreshUtxoDelay;
@@ -58,7 +56,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
     // technical settings
     this.samouraiApi = samouraiApi;
-    this.pushTxService = samouraiApi; // use backend as default push service
     this.tx0Delay = 30;
     this.tx0MaxOutputs = null; // spend whole utxo when possible
     this.refreshUtxoDelay = 60; // 1min
@@ -116,14 +113,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setAutoMix(boolean autoMix) {
     this.autoMix = autoMix;
-  }
-
-  public PushTxService getPushTxService() {
-    return pushTxService;
-  }
-
-  public void setPushTxService(PushTxService pushTxService) {
-    this.pushTxService = pushTxService;
   }
 
   public SamouraiApi getSamouraiApi() {
@@ -231,7 +220,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     configInfo.put(
         "server",
         "url=" + getServer() + ", network=" + getNetworkParameters().getPaymentProtocolId());
-    configInfo.put("pushtx", getPushTxService().getClass().getName());
     configInfo.put(
         "persist",
         "persistDelay="
