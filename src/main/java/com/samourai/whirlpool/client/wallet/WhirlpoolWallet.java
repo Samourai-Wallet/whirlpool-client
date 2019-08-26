@@ -877,7 +877,7 @@ public class WhirlpoolWallet {
 
     // find eligible pools for tx0
     if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())) {
-      eligiblePools = findPoolsForTx0(whirlpoolUtxo.getUtxo().value, 1, Tx0FeeTarget.DEFAULT);
+      eligiblePools = findPoolsForTx0(whirlpoolUtxo.getUtxo().value, 1, Tx0FeeTarget.MIN);
     }
 
     // find eligible pools for mix

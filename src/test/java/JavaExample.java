@@ -81,7 +81,7 @@ public class JavaExample {
 
       // find eligible pools for this utxo
       int nbOutputsMinForTx0 = 1;
-      Tx0FeeTarget feeTarget = Tx0FeeTarget.DEFAULT;
+      Tx0FeeTarget feeTarget = Tx0FeeTarget.BLOCKS_4;
 
       Collection<Pool> eligiblePools =
           whirlpoolWallet.findPoolsForTx0(
@@ -108,7 +108,7 @@ public class JavaExample {
 
       // pool for tx0
       Pool pool = whirlpoolWallet.findPoolById("0.01btc"); // provide poolId
-      Tx0FeeTarget feeTarget = Tx0FeeTarget.DEFAULT;
+      Tx0FeeTarget feeTarget = Tx0FeeTarget.BLOCKS_4;
 
       // execute tx0
       try {

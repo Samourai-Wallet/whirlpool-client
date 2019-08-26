@@ -51,7 +51,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.maxClients = 1;
     this.clientDelay = 30;
     this.autoTx0PoolId = null;
-    this.autoTx0FeeTarget = Tx0FeeTarget.DEFAULT;
+    this.autoTx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
     this.autoMix = false;
 
     // technical settings

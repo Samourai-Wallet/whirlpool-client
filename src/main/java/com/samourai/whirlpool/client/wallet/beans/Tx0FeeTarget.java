@@ -11,7 +11,7 @@ public enum Tx0FeeTarget {
 
   private SamouraiFeeTarget feeTarget;
 
-  public static final Tx0FeeTarget DEFAULT = Tx0FeeTarget.BLOCKS_4;
+  public static final Tx0FeeTarget MIN = Tx0FeeTarget.BLOCKS_24;
 
   Tx0FeeTarget(SamouraiFeeTarget feeTarget) {
     this.feeTarget = feeTarget;
