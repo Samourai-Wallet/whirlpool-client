@@ -148,6 +148,11 @@ public class WhirlpoolWallet {
     return tx0Service.findPools(nbOutputsMin, pools, utxoValue, fee, getFeePremix());
   }
 
+  private boolean isPoolApplicable(Pool pool, long utxoValue) {
+    long tx0BalanceMin = computeTx0SpendFromBalanceMin(pool, Tx0FeeTarget.MIN, 1);
+    return utxoValue >= tx0BalanceMin;
+  }
+
   public WhirlpoolUtxo findTx0SpendFrom(int nbOutputsMin, Pool pool, Tx0FeeTarget feeTarget)
       throws Exception { // throws EmptyWalletException, UnconfirmedUtxoException
     return findTx0SpendFrom(nbOutputsMin, pool, feeTarget, getFeePremix());
@@ -484,12 +489,18 @@ public class WhirlpoolWallet {
   }
 
   public void setPool(WhirlpoolUtxo whirlpoolUtxo, String poolId) throws Exception {
-    // check pool exists
+    // check pool
     Pool pool = null;
     if (poolId != null) {
+      // check pool exists
       pool = findPoolById(poolId);
       if (pool == null) {
         throw new NotifiableException("Pool not found: " + poolId);
+      }
+
+      // check pool applicable
+      if (!isPoolApplicable(pool, whirlpoolUtxo.getUtxo().value)) {
+        throw new NotifiableException("Pool not applicable for utxo: " + poolId);
       }
       poolId = pool.getPoolId();
     }
@@ -835,10 +846,21 @@ public class WhirlpoolWallet {
       }
     }
     if (utxoConfig != null && utxoConfig.getPoolId() != null) {
-      // check configured pool exists
+      // check configured pool is valid
       Pool pool = null;
       try {
+        // check pool exists
         pool = findPoolById(utxoConfig.getPoolId());
+
+        // check pool is applicable
+        if (pool != null && !isPoolApplicable(pool, utxo.value)) {
+          if (log.isDebugEnabled()) {
+            log.debug(
+                firstFetchInfo + "pool not applicable for utxo value: " + utxoConfig.getPoolId());
+          }
+          pool = null;
+        }
+
       } catch (Exception e) {
         log.error("", e);
       }
