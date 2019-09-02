@@ -35,6 +35,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
   private WhirlpoolWallet whirlpoolWallet;
   private int maxClients;
+  private int maxClientsPerPool;
   private int clientDelay;
 
   private ConcurrentHashMap<String, Mixing> mixing;
@@ -42,10 +43,15 @@ public class MixOrchestrator extends AbstractOrchestrator {
   private Map<String, Integer> mixingPerPool;
 
   public MixOrchestrator(
-      int loopDelay, WhirlpoolWallet whirlpoolWallet, int maxClients, int clientDelay) {
+      int loopDelay,
+      WhirlpoolWallet whirlpoolWallet,
+      int maxClients,
+      int maxClientsPerPool,
+      int clientDelay) {
     super(loopDelay);
     this.whirlpoolWallet = whirlpoolWallet;
     this.maxClients = maxClients;
+    this.maxClientsPerPool = maxClientsPerPool;
     this.clientDelay = clientDelay;
   }
 
@@ -230,12 +236,25 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   public boolean hasMoreMixableOrUnconfirmed() {
-    return getQueueByMixableStatus(false, MixableStatus.MIXABLE, MixableStatus.UNCONFIRMED) != null;
+    return getQueueByMixableStatus(false, MixableStatus.MIXABLE, MixableStatus.UNCONFIRMED)
+            .findFirst()
+        != null;
   }
 
   private Optional<WhirlpoolUtxo> findMixable() {
     // find highest priority utxo to mix
-    return getQueueByMixableStatus(true, MixableStatus.MIXABLE);
+    return getQueueByMixableStatus(true, MixableStatus.MIXABLE)
+        .filter(
+            new Predicate<WhirlpoolUtxo>() {
+              @Override
+              public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
+                // enforce maxClientsPerPool
+                String poolId = whirlpoolUtxo.getUtxoConfig().getPoolId();
+                Integer nbMixingInPool = mixingPerPool.get(poolId);
+                return nbMixingInPool == null || nbMixingInPool < maxClientsPerPool;
+              }
+            })
+        .findFirst();
   }
 
   private Map<String, Integer> computeMixingPerPool() {
@@ -248,12 +267,12 @@ public class MixOrchestrator extends AbstractOrchestrator {
     return mixingPerPool;
   }
 
-  private java8.util.Optional<WhirlpoolUtxo> getQueueByMixableStatus(
+  private Stream<WhirlpoolUtxo> getQueueByMixableStatus(
       final boolean filterErrorDelay, final MixableStatus... filterMixableStatuses) {
     final long lastErrorMax = System.currentTimeMillis() - (LAST_ERROR_DELAY * 1000);
 
     // find queued
-    java8.util.Optional<WhirlpoolUtxo> toMixByPriority =
+    Stream<WhirlpoolUtxo> toMixByPriority =
         getQueue()
             .filter(
                 new Predicate<WhirlpoolUtxo>() {
@@ -273,8 +292,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
                         filterMixableStatuses, whirlpoolUtxo.getMixableStatus());
                   }
                 })
-            .sorted(computeWhirlpoolUtxoPriorityComparator())
-            .findFirst();
+            .sorted(computeWhirlpoolUtxoPriorityComparator());
     return toMixByPriority;
   }
 

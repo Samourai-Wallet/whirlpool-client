@@ -102,7 +102,12 @@ public class WhirlpoolWallet {
             config.getPersistDelay() * 1000, this, config.getPersistCleanDelay() * 1000);
     int loopDelay = config.getRefreshUtxoDelay() * 1000;
     this.mixOrchestrator =
-        new MixOrchestrator(loopDelay, this, config.getMaxClients(), config.getClientDelay());
+        new MixOrchestrator(
+            loopDelay,
+            this,
+            config.getMaxClients(),
+            config.getMaxClientsPerPool(),
+            config.getClientDelay());
 
     if (config.isAutoTx0()) {
       this.autoTx0Orchestrator =

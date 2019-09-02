@@ -18,6 +18,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWalletConfig.class);
 
   private int maxClients;
+  private int maxClientsPerPool;
   private int clientDelay;
   private String autoTx0PoolId;
   private Tx0FeeTarget autoTx0FeeTarget;
@@ -49,6 +50,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
     // default settings
     this.maxClients = 1;
+    this.maxClientsPerPool = 1;
     this.clientDelay = 30;
     this.autoTx0PoolId = null;
     this.autoTx0FeeTarget = Tx0FeeTarget.BLOCKS_4;
@@ -77,6 +79,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setMaxClients(int maxClients) {
     this.maxClients = maxClients;
+  }
+
+  public int getMaxClientsPerPool() {
+    return maxClientsPerPool;
+  }
+
+  public void setMaxClientsPerPool(int maxClientsPerPool) {
+    this.maxClientsPerPool = maxClientsPerPool;
   }
 
   public int getClientDelay() {
@@ -238,6 +248,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
         "mix",
         "maxClients="
             + getMaxClients()
+            + ", maxClientsPerPool="
+            + getMaxClientsPerPool()
             + ", clientDelay="
             + getClientDelay()
             + ", tx0Delay="
