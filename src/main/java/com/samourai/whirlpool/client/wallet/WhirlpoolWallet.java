@@ -148,9 +148,20 @@ public class WhirlpoolWallet {
     return tx0Service.findPools(nbOutputsMin, pools, utxoValue, fee, getFeePremix());
   }
 
-  private boolean isPoolApplicable(Pool pool, long utxoValue) {
-    long tx0BalanceMin = computeTx0SpendFromBalanceMin(pool, Tx0FeeTarget.MIN, 1);
-    return utxoValue >= tx0BalanceMin;
+  private boolean isPoolApplicable(Pool pool, WhirlpoolUtxo whirlpoolUtxo) {
+    long utxoValue = whirlpoolUtxo.getUtxo().value;
+    if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())) {
+      long tx0BalanceMin = computeTx0SpendFromBalanceMin(pool, Tx0FeeTarget.MIN, 1);
+      return utxoValue >= tx0BalanceMin;
+    }
+    if (WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())) {
+      return pool.checkInputBalance(utxoValue, false);
+    }
+    if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())) {
+      return utxoValue == pool.getDenomination();
+    }
+    log.error("Unknown account for whirlpoolUtxo:" + whirlpoolUtxo);
+    return false;
   }
 
   public WhirlpoolUtxo findTx0SpendFrom(int nbOutputsMin, Pool pool, Tx0FeeTarget feeTarget)
@@ -164,7 +175,7 @@ public class WhirlpoolWallet {
 
     Collection<WhirlpoolUtxo> depositUtxosByPriority =
         StreamSupport.stream(getUtxosDeposit(true))
-            .sorted(new WhirlpoolUtxoPriorityComparator())
+            .sorted(getUtxoComparator())
             .collect(Collectors.<WhirlpoolUtxo>toList());
 
     int feeTx0 = getFee(feeTarget);
@@ -175,6 +186,10 @@ public class WhirlpoolWallet {
         depositUtxosByPriority,
         feeTx0,
         feePremix); // throws EmptyWalletException, UnconfirmedUtxoException
+  }
+
+  public WhirlpoolUtxoPriorityComparator getUtxoComparator() {
+    return mixOrchestrator.computeWhirlpoolUtxoPriorityComparator();
   }
 
   private WhirlpoolUtxo findTx0SpendFrom(
@@ -499,7 +514,7 @@ public class WhirlpoolWallet {
       }
 
       // check pool applicable
-      if (!isPoolApplicable(pool, whirlpoolUtxo.getUtxo().value)) {
+      if (!isPoolApplicable(pool, whirlpoolUtxo)) {
         throw new NotifiableException("Pool not applicable for utxo: " + poolId);
       }
       poolId = pool.getPoolId();
@@ -853,7 +868,7 @@ public class WhirlpoolWallet {
         pool = findPoolById(utxoConfig.getPoolId());
 
         // check pool is applicable
-        if (pool != null && !isPoolApplicable(pool, utxo.value)) {
+        if (pool != null && !isPoolApplicable(pool, whirlpoolUtxo)) {
           if (log.isDebugEnabled()) {
             log.debug(
                 firstFetchInfo + "pool not applicable for utxo value: " + utxoConfig.getPoolId());
@@ -917,9 +932,6 @@ public class WhirlpoolWallet {
           log.debug("autoAssignPool: " + whirlpoolUtxo + " -> " + poolId);
         }
         whirlpoolUtxo.getUtxoConfig().setPoolId(poolId);
-      } else {
-        log.warn("No pool for this utxo balance: " + whirlpoolUtxo.toString());
-        whirlpoolUtxo.setError("No pool for this utxo balance");
       }
     }
   }
