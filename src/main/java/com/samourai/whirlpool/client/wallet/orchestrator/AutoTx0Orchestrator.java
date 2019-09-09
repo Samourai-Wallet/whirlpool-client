@@ -4,7 +4,6 @@ import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
-import com.samourai.whirlpool.client.wallet.beans.MixOrchestratorState;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
@@ -18,11 +17,14 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
 
   private WhirlpoolWallet whirlpoolWallet;
   private int tx0Delay;
+  private String autoTx0PoolId;
 
-  public AutoTx0Orchestrator(int loopDelay, WhirlpoolWallet whirlpoolWallet, int tx0Delay) {
+  public AutoTx0Orchestrator(
+      int loopDelay, WhirlpoolWallet whirlpoolWallet, int tx0Delay, String autoTx0PoolId) {
     super(loopDelay, START_DELAY);
     this.whirlpoolWallet = whirlpoolWallet;
     this.tx0Delay = tx0Delay;
+    this.autoTx0PoolId = autoTx0PoolId;
   }
 
   @Override
@@ -60,14 +62,14 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
           break;
         } catch (EmptyWalletException e) {
           // make sure that mixOrchestrator has no more to mix
-          MixOrchestratorState mixState = whirlpoolWallet.getState().getMixState();
-          if (mixState.getNbIdle() > 0 && !whirlpoolWallet.hasMoreMixableOrUnconfirmed()) {
+          boolean hasMoreThreadForTx0 = whirlpoolWallet.hasMoreMixingThreadAvailable(autoTx0PoolId);
+          if (hasMoreThreadForTx0 && !whirlpoolWallet.hasMoreMixableOrUnconfirmed()) {
             // wallet is empty
             log.warn(" • AutoTx0: no Tx0 candidate and we have no more to mix.");
             if (log.isDebugEnabled()) {
               log.debug(
-                  "nbIdle="
-                      + mixState.getNbIdle()
+                  "hasMoreThreadForTx0="
+                      + hasMoreThreadForTx0
                       + ", hasMoreMixableOrUnconfirmed="
                       + whirlpoolWallet.hasMoreMixableOrUnconfirmed()
                       + " => empty wallet management");
@@ -82,8 +84,8 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
             // no tx0 possible yet but we may have more to mix
             if (log.isDebugEnabled()) {
               log.debug(
-                  " • AutoTx0: no Tx0 candidate yet, but we may have more to mix. nbIdle="
-                      + mixState.getNbIdle()
+                  " • AutoTx0: no Tx0 candidate yet, but we may have more to mix. hasMoreThreadForTx0="
+                      + hasMoreThreadForTx0
                       + ", hasMoreMixableOrUnconfirmed="
                       + whirlpoolWallet.hasMoreMixableOrUnconfirmed()
                       + " => no empty wallet management");

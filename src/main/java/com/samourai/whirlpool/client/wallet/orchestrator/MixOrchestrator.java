@@ -34,7 +34,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
   private static final int MIXING_SWAP_DELAY = 60 * 2; // 2min
 
   private WhirlpoolWallet whirlpoolWallet;
-  private int maxClients;
+  private Integer maxClients;
   private int maxClientsPerPool;
   private int clientDelay;
 
@@ -45,7 +45,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
   public MixOrchestrator(
       int loopDelay,
       WhirlpoolWallet whirlpoolWallet,
-      int maxClients,
+      Integer maxClients,
       int maxClientsPerPool,
       int clientDelay) {
     super(loopDelay);
@@ -84,7 +84,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
   @Override
   protected void runOrchestrator() {
     try {
-      // check idles
       while (true) {
 
         // sleep clientDelay
@@ -95,10 +94,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
         if (log.isDebugEnabled()) {
           log.debug(
-              getState().getNbMixing()
-                  + "/"
-                  + maxClients
-                  + " threads running => checking for queued utxos to mix...");
+              getState().getNbMixing() + " threads running => checking for queued utxos to mix...");
         }
 
         // find & mix
@@ -125,17 +121,24 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
     WhirlpoolUtxo mixableUtxo = mixableUtxoOpt.get();
 
-    if (computeNbIdle() == 0) {
+    if (hasMoreMixingThreadAvailable(mixableUtxo.getUtxoConfig().getPoolId())) {
+      // more threads available => start mix
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "(IDLE) Found queued utxo to mix => mix now: "
+                + mixableUtxo
+                + " ; "
+                + mixableUtxo.getUtxoConfig());
+      }
+      mix(mixableUtxo);
+      return true;
+    } else {
       // all threads running => find a lower priority mixing to swap
       Optional<Mixing> mixingToSwapOpt = findMixingToSwap(mixableUtxo);
       if (!mixingToSwapOpt.isPresent()) {
         // no mixing to swap
         if (log.isDebugEnabled()) {
-          log.debug(
-              getState().getNbMixing()
-                  + "/"
-                  + maxClients
-                  + " threads running: all threads running.");
+          log.debug(getState().getNbMixing() + " threads running: all threads running.");
         }
         return false;
       }
@@ -156,17 +159,6 @@ public class MixOrchestrator extends AbstractOrchestrator {
       mix(mixableUtxo);
       return true;
     }
-
-    // IDLE slot available => start mix
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "(IDLE) Found queued utxo to mix => mix now: "
-              + mixableUtxo
-              + " ; "
-              + mixableUtxo.getUtxoConfig());
-    }
-    mix(mixableUtxo);
-    return true;
   }
 
   private Optional<Mixing> findMixingToSwap(final WhirlpoolUtxo toMix) {
@@ -208,14 +200,8 @@ public class MixOrchestrator extends AbstractOrchestrator {
                   }
                 })
             .collect(Collectors.<WhirlpoolUtxo>toList());
-    int nbIdle = computeNbIdle();
     int nbQueued = (int) getQueue().count();
-    return new MixOrchestratorState(utxosMixing, maxClients, nbIdle, nbQueued);
-  }
-
-  private int computeNbIdle() {
-    int nbIdle = Math.max(0, maxClients - mixing.size());
-    return nbIdle;
+    return new MixOrchestratorState(utxosMixing, nbQueued);
   }
 
   private Stream<WhirlpoolUtxo> getQueue() {
@@ -239,6 +225,20 @@ public class MixOrchestrator extends AbstractOrchestrator {
     return getQueueByMixableStatus(false, MixableStatus.MIXABLE, MixableStatus.UNCONFIRMED)
             .findFirst()
         != null;
+  }
+
+  public boolean hasMoreMixingThreadAvailable(String poolId) {
+    // check maxClients
+    if (maxClients != null && mixing.size() >= maxClients) {
+      return false;
+    }
+
+    // check maxClientsPerPool
+    Integer nbMixingInPool = mixingPerPool.get(poolId);
+    if (nbMixingInPool != null && nbMixingInPool >= maxClientsPerPool) {
+      return false;
+    }
+    return true;
   }
 
   private Optional<WhirlpoolUtxo> findMixable() {

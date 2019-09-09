@@ -111,7 +111,9 @@ public class WhirlpoolWallet {
 
     if (config.isAutoTx0()) {
       this.autoTx0Orchestrator =
-          Optional.of(new AutoTx0Orchestrator(loopDelay, this, config.getTx0Delay()));
+          Optional.of(
+              new AutoTx0Orchestrator(
+                  loopDelay, this, config.getTx0Delay(), config.getAutoTx0PoolId()));
     } else {
       this.autoTx0Orchestrator = Optional.empty();
     }
@@ -981,6 +983,10 @@ public class WhirlpoolWallet {
 
   public boolean hasMoreMixableOrUnconfirmed() {
     return mixOrchestrator.hasMoreMixableOrUnconfirmed();
+  }
+
+  public boolean hasMoreMixingThreadAvailable(String poolId) {
+    return mixOrchestrator.hasMoreMixingThreadAvailable(poolId);
   }
 
   public String getZpubDeposit() {

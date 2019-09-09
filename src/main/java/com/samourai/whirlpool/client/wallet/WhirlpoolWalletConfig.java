@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWalletConfig.class);
 
-  private int maxClients;
+  private Integer maxClients;
   private int maxClientsPerPool;
   private int clientDelay;
   private String autoTx0PoolId;
@@ -49,7 +49,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     super(httpClient, stompClientService, persistHandler, server, params);
 
     // default settings
-    this.maxClients = 1;
+    this.maxClients = null;
     this.maxClientsPerPool = 1;
     this.clientDelay = 30;
     this.autoTx0PoolId = null;
@@ -73,11 +73,11 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.feeTargetPremix = SamouraiFeeTarget.BLOCKS_12;
   }
 
-  public int getMaxClients() {
+  public Integer getMaxClients() {
     return maxClients;
   }
 
-  public void setMaxClients(int maxClients) {
+  public void setMaxClients(Integer maxClients) {
     this.maxClients = maxClients;
   }
 
@@ -247,7 +247,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     configInfo.put(
         "mix",
         "maxClients="
-            + getMaxClients()
+            + (getMaxClients() != null ? getMaxClients() : "null")
             + ", maxClientsPerPool="
             + getMaxClientsPerPool()
             + ", clientDelay="
