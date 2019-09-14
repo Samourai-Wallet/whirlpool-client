@@ -5,4 +5,8 @@ import org.bitcoinj.core.NetworkParameters;
 public interface IPostmixHandler {
 
   String computeReceiveAddress(NetworkParameters params) throws Exception;
+
+  void confirmReceiveAddress();
+
+  void cancelReceiveAddress();
 }

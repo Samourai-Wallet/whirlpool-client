@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 public class Bip84Wallet {
   private static final Logger log = LoggerFactory.getLogger(Bip84Wallet.class);
-  protected static final int CHAIN_RECEIVE = 0;
+  public static final int CHAIN_RECEIVE = 0;
   protected static final int CHAIN_CHANGE = 1;
 
   protected HD_Wallet bip84w;

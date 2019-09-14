@@ -85,6 +85,7 @@ public class MixClient {
   }
 
   private void failAndExit(MixFailReason reason, String notifiableError) {
+    mixParams.getPostmixHandler().cancelReceiveAddress();
     this.listener.fail(reason, notifiableError);
     exit();
   }
@@ -199,6 +200,8 @@ public class MixClient {
         config
             .getHttpClient()
             .postJsonOverTor(registerOutputUrl, null, null, registerOutputRequest);
+
+        mixParams.getPostmixHandler().confirmReceiveAddress();
         listenerProgress(MixStep.REGISTERED_OUTPUT);
       }
 
@@ -232,6 +235,7 @@ public class MixClient {
         if (log.isDebugEnabled()) {
           log.debug("reset mixProcess");
         }
+        mixParams.getPostmixHandler().cancelReceiveAddress();
         mixProcess = computeMixProcess();
       }
     };

@@ -8,4 +8,12 @@ public interface IIndexHandler {
   int get();
 
   void set(int value);
+
+  int getUnconfirmed();
+
+  int getAndIncrementUnconfirmed();
+
+  void confirmUnconfirmed(int index);
+
+  void cancelUnconfirmed(int index);
 }

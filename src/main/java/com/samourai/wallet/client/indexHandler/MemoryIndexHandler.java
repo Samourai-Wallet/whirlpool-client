@@ -1,6 +1,6 @@
 package com.samourai.wallet.client.indexHandler;
 
-public class MemoryIndexHandler implements IIndexHandler {
+public class MemoryIndexHandler extends AbstractIndexHandler {
   private int index;
 
   public MemoryIndexHandler() {
@@ -8,23 +8,24 @@ public class MemoryIndexHandler implements IIndexHandler {
   }
 
   public MemoryIndexHandler(int defaultValue) {
+    super();
     index = defaultValue;
   }
 
   @Override
-  public int get() {
+  public synchronized int get() {
     return index;
   }
 
   @Override
-  public int getAndIncrement() {
+  public synchronized int getAndIncrement() {
     int result = index;
     index++;
     return result;
   }
 
   @Override
-  public void set(int value) {
+  public synchronized void set(int value) {
     index = value;
   }
 }

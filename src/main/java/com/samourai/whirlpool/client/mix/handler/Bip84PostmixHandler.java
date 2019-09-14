@@ -12,15 +12,20 @@ public class Bip84PostmixHandler implements IPostmixHandler {
   private Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private Bip84Wallet postmixWallet;
   private HD_Address receiveAddress;
+  private Integer receiveAddressIndex;
 
   public Bip84PostmixHandler(Bip84Wallet postmixWallet) {
     this.postmixWallet = postmixWallet;
     this.receiveAddress = null;
+    this.receiveAddressIndex = null;
   }
 
   @Override
   public synchronized String computeReceiveAddress(NetworkParameters params) throws Exception {
-    this.receiveAddress = postmixWallet.getNextAddress();
+    // use "unconfirmed" index to avoid huge index gaps on multiple mix failures
+    this.receiveAddressIndex = postmixWallet.getIndexHandler().getAndIncrementUnconfirmed();
+    this.receiveAddress =
+        postmixWallet.getAddressAt(Bip84Wallet.CHAIN_RECEIVE, this.receiveAddressIndex);
 
     String bech32Address = bech32Util.toBech32(receiveAddress, params);
     if (log.isDebugEnabled()) {
@@ -28,5 +33,17 @@ public class Bip84PostmixHandler implements IPostmixHandler {
           "receiveAddress=" + bech32Address + ", path=" + receiveAddress.toJSON().get("path"));
     }
     return bech32Address;
+  }
+
+  @Override
+  public void confirmReceiveAddress() {
+    postmixWallet.getIndexHandler().confirmUnconfirmed(receiveAddressIndex);
+  }
+
+  @Override
+  public void cancelReceiveAddress() {
+    if (receiveAddressIndex != null) {
+      postmixWallet.getIndexHandler().cancelUnconfirmed(receiveAddressIndex);
+    }
   }
 }
