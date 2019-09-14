@@ -3,7 +3,6 @@ package com.samourai.whirlpool.client.mix.handler;
 import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
-import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,11 +28,5 @@ public class Bip84PostmixHandler implements IPostmixHandler {
           "receiveAddress=" + bech32Address + ", path=" + receiveAddress.toJSON().get("path"));
     }
     return bech32Address;
-  }
-
-  @Override
-  public IPremixHandler computeNextPremixHandler(UtxoWithBalance receiveUtxo) {
-    ECKey receiveKey = receiveAddress.getECKey();
-    return new PremixHandler(receiveUtxo, receiveKey);
   }
 }

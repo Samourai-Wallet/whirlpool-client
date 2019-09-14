@@ -265,11 +265,6 @@ public class MixProcess {
     return signingRequest;
   }
 
-  protected IPremixHandler computeNextPremixHandler() {
-    UtxoWithBalance utxoWithBalance = new UtxoWithBalance(receiveUtxo, poolDenomination);
-    return postmixHandler.computeNextPremixHandler(utxoWithBalance);
-  }
-
   protected MixSuccess computeMixSuccess() {
     return new MixSuccess(this.receiveAddress, this.receiveUtxo);
   }

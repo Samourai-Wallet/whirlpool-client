@@ -127,7 +127,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
   private MixClientListener computeMixListener() {
     return new MixClientListener() {
       @Override
-      public void success(MixSuccess mixSuccess, MixParams nextMixParams) {
+      public void success(MixSuccess mixSuccess) {
         // done
         listener.success(mixSuccess);
         exit();

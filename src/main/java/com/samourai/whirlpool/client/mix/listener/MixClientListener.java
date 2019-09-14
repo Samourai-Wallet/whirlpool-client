@@ -1,9 +1,7 @@
 package com.samourai.whirlpool.client.mix.listener;
 
-import com.samourai.whirlpool.client.mix.MixParams;
-
 public interface MixClientListener {
-  void success(MixSuccess mixSuccess, MixParams nextMixParams);
+  void success(MixSuccess mixSuccess);
 
   void fail(MixFailReason reason, String notifiableError);
 

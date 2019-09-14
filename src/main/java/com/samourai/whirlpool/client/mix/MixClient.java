@@ -2,7 +2,6 @@ package com.samourai.whirlpool.client.mix;
 
 import com.samourai.whirlpool.client.mix.dialog.MixDialogListener;
 import com.samourai.whirlpool.client.mix.dialog.MixSession;
-import com.samourai.whirlpool.client.mix.handler.IPremixHandler;
 import com.samourai.whirlpool.client.mix.listener.MixClientListener;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
@@ -207,7 +206,7 @@ public class MixClient {
       public void onMixSuccess() {
         exit(); // disconnect before notifying listener to avoid reconnecting before disconnect
         listener.progress(MixStep.SUCCESS);
-        listener.success(mixProcess.computeMixSuccess(), computeNextMixParams());
+        listener.success(mixProcess.computeMixSuccess());
       }
 
       @Override
@@ -234,11 +233,6 @@ public class MixClient {
           log.debug("reset mixProcess");
         }
         mixProcess = computeMixProcess();
-      }
-
-      protected MixParams computeNextMixParams() {
-        IPremixHandler nextPremixHandler = mixProcess.computeNextPremixHandler();
-        return new MixParams(mixParams, nextPremixHandler);
       }
     };
   }
