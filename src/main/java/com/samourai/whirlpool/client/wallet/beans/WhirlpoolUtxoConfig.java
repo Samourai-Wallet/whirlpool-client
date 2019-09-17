@@ -51,7 +51,7 @@ public class WhirlpoolUtxoConfig {
   }
 
   public int getMixsTarget() {
-    return mixsTarget;
+    return Math.max(mixsTarget, whirlpoolWallet.getConfig().getMixsTarget());
   }
 
   public void setMixsTarget(int mixsTarget) {
