@@ -708,8 +708,14 @@ public class WhirlpoolWallet {
   }
 
   public void onMixFail(WhirlpoolUtxo whirlpoolUtxo, MixFailReason reason, String notifiableError) {
+    // is utxo still mixable?
+    if (whirlpoolUtxo.getUtxoConfig().getPoolId() == null) {
+      // utxo was spent in the meantime
+      return;
+    }
+
+    // retry
     try {
-      // retry
       mixQueue(whirlpoolUtxo);
     } catch (Exception e) {
       log.error("", e);
@@ -820,6 +826,9 @@ public class WhirlpoolWallet {
     }
 
     // default value
+    if (log.isDebugEnabled()) {
+      log.debug("New default UtxoConfig for utxo: " + whirlpoolUtxo);
+    }
     utxoConfig = new WhirlpoolUtxoConfig(this, config.getMixsTarget());
     if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())) {
       // POSTMIX was already mixed once (at least)
