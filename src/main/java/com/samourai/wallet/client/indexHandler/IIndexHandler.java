@@ -9,8 +9,6 @@ public interface IIndexHandler {
 
   void set(int value);
 
-  int getUnconfirmed();
-
   int getAndIncrementUnconfirmed();
 
   void confirmUnconfirmed(int index);

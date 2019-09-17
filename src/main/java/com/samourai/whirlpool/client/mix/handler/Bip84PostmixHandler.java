@@ -30,7 +30,12 @@ public class Bip84PostmixHandler implements IPostmixHandler {
     String bech32Address = bech32Util.toBech32(receiveAddress, params);
     if (log.isDebugEnabled()) {
       log.debug(
-          "receiveAddress=" + bech32Address + ", path=" + receiveAddress.toJSON().get("path"));
+          "receiveAddressIndex="
+              + receiveAddressIndex
+              + ", receiveAddress="
+              + bech32Address
+              + ", path="
+              + receiveAddress.toJSON().get("path"));
     }
     return bech32Address;
   }

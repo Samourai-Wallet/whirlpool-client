@@ -6,16 +6,19 @@ import java.util.HashSet;
 import java.util.Set;
 import java8.util.function.Consumer;
 import java8.util.stream.StreamSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractIndexHandler implements IIndexHandler {
+  private Logger log = LoggerFactory.getLogger(AbstractIndexHandler.class);
+
   private Set<Integer> unconfirmedIndexs;
 
   public AbstractIndexHandler() {
     unconfirmedIndexs = new HashSet<Integer>();
   }
 
-  @Override
-  public synchronized int getUnconfirmed() {
+  private synchronized int getUnconfirmed() {
     int current = get();
 
     if (unconfirmedIndexs.isEmpty()) {
@@ -47,6 +50,15 @@ public abstract class AbstractIndexHandler implements IIndexHandler {
                 }
               }
             });
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "confirmUnconfirmed("
+              + confirmed
+              + ") => get()="
+              + get()
+              + ", unconfirmedIndexs="
+              + unconfirmedIndexs);
+    }
   }
 
   @Override
