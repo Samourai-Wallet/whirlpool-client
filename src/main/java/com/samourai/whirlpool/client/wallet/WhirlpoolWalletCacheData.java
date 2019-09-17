@@ -239,6 +239,14 @@ public class WhirlpoolWalletCacheData {
 
           previousUtxos.get(whirlpoolAccount).clear();
           previousUtxos.get(whirlpoolAccount).putAll(result);
+
+          // refresh wallet indexs (to avoid address reuse while using mobile wallet)
+          try {
+            wallet.refreshIndexs();
+          } catch (Exception e) {
+            log.error("refreshIndexs failed", e);
+          }
+
           return result;
         } catch (Exception e) {
           // exception

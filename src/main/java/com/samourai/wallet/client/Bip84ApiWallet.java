@@ -47,61 +47,45 @@ public class Bip84ApiWallet extends Bip84Wallet {
     }
 
     if (accountIndexApi == null || changeIndexApi == null) {
-      // fetch index from API
       MultiAddrResponse.Address address = fetchAddress();
       accountIndexApi = address.account_index;
       changeIndexApi = address.change_index;
     }
+    setIndexMin(accountIndexApi, indexHandler);
+    setIndexMin(changeIndexApi, indexChangeHandler);
+  }
 
-    // account_index
-    if (indexHandler.get() < accountIndexApi) {
-      if (log.isDebugEnabled()) {
-        log.debug(
-            "wallet #"
-                + accountIndex
-                + "/account_index: apiIndex="
-                + accountIndexApi
-                + ", localIndex="
-                + indexHandler.get()
-                + " => using apiIndex");
-      }
-      indexHandler.set(accountIndexApi);
-    } else {
+  public void refreshIndexs() throws Exception {
+    MultiAddrResponse.Address address = fetchAddress();
+    setIndexMin(address.account_index, indexHandler);
+    setIndexMin(address.change_index, indexChangeHandler);
+  }
+
+  private void setIndexMin(int indexMin, IIndexHandler idxHandler) {
+    if (idxHandler.get() < indexMin) {
+      // update from indexMin
       if (log.isDebugEnabled()) {
         log.debug(
             "wallet #"
                 + accountIndex
                 + ": apiIndex="
-                + accountIndexApi
+                + indexMin
                 + ", localIndex="
-                + indexHandler.get()
-                + " => using localIndex");
+                + idxHandler.get()
+                + " => updating from apiIndex");
       }
-    }
-
-    // change_index
-    if (indexChangeHandler.get() < changeIndexApi) {
-      if (log.isDebugEnabled()) {
-        log.debug(
-            "wallet #"
-                + accountIndex
-                + "/change_index: apiIndex="
-                + changeIndexApi
-                + ", localIndex="
-                + indexChangeHandler.get()
-                + " => using apiIndex");
-      }
-      indexChangeHandler.set(changeIndexApi);
+      idxHandler.set(indexMin);
     } else {
+      // index unchanged
       if (log.isDebugEnabled()) {
         log.debug(
             "wallet #"
                 + accountIndex
-                + "/change_index: apiIndex="
-                + changeIndexApi
+                + ": apiIndex="
+                + indexMin
                 + ", localIndex="
-                + indexChangeHandler.get()
-                + " => using localIndex");
+                + idxHandler.get()
+                + " => unchanged");
       }
     }
   }
