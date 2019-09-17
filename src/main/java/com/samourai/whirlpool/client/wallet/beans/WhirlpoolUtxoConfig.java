@@ -82,7 +82,7 @@ public class WhirlpoolUtxoConfig {
     return "poolId="
         + (poolId != null ? poolId : "null")
         + ", mixsTarget="
-        + mixsTarget
+        + getMixsTarget()
         + ", mixsDone="
         + mixsDone;
   }

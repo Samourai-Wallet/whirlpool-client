@@ -124,7 +124,7 @@ public class ClientUtils {
   }
 
   public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos) {
-    String lineFormat = "| %10s | %8s | %68s | %45s | %14s | %12s | %12s | %6s |\n";
+    String lineFormat = "| %10s | %8s | %68s | %14s | %12s | %14s | %8s | %8s |\n";
     StringBuilder sb = new StringBuilder();
     sb.append(
         String.format(
@@ -132,13 +132,12 @@ public class ClientUtils {
             "BALANCE",
             "CONFIRMS",
             "UTXO",
-            "ADDRESS",
             "PATH",
             "STATUS",
             "MIXABLE",
             "POOL",
             "MIXS"));
-    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", "", "", "", ""));
+    sb.append(String.format(lineFormat, "(btc)", "", "", "", "", "", "", ""));
     Iterator var3 = utxos.iterator();
 
     while (var3.hasNext()) {
@@ -154,7 +153,6 @@ public class ClientUtils {
               ClientUtils.satToBtc(o.value),
               o.confirmations,
               utxo,
-              o.addr,
               o.getPath(),
               whirlpoolUtxo.getStatus().name(),
               mixableStatusName,
