@@ -76,5 +76,17 @@ public class IndexHandlerTest extends AbstractTest {
     indexHandler.cancelUnconfirmed(7);
     Assertions.assertEquals(7, indexHandler.getUnconfirmed());
     Assertions.assertEquals(7, indexHandler.get());
+
+    Assertions.assertEquals(7, indexHandler.getAndIncrementUnconfirmed());
+
+    Assertions.assertEquals(8, indexHandler.getAndIncrementUnconfirmed());
+
+    Assertions.assertEquals(9, indexHandler.getAndIncrementUnconfirmed());
+
+    Assertions.assertEquals(10, indexHandler.getAndIncrementUnconfirmed());
+
+    indexHandler.confirmUnconfirmed(10);
+    Assertions.assertEquals(11, indexHandler.getAndIncrementUnconfirmed());
+    Assertions.assertEquals(11, indexHandler.get());
   }
 }

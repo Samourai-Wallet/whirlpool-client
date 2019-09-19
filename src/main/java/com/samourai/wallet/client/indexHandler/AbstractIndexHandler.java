@@ -3,6 +3,7 @@ package com.samourai.wallet.client.indexHandler;
 import com.google.common.primitives.Ints;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java8.util.function.Consumer;
 import java8.util.stream.StreamSupport;
@@ -18,7 +19,7 @@ public abstract class AbstractIndexHandler implements IIndexHandler {
     unconfirmedIndexs = new HashSet<Integer>();
   }
 
-  private synchronized int getUnconfirmed() {
+  protected synchronized int getUnconfirmed() {
     int current = get();
 
     if (unconfirmedIndexs.isEmpty()) {
@@ -40,16 +41,14 @@ public abstract class AbstractIndexHandler implements IIndexHandler {
     if (confirmed >= get()) {
       set(confirmed + 1);
     }
-    StreamSupport.stream(unconfirmedIndexs)
-        .forEach(
-            new Consumer<Integer>() {
-              @Override
-              public void accept(Integer value) {
-                if (value <= confirmed) {
-                  unconfirmedIndexs.remove(value);
-                }
-              }
-            });
+
+    Iterator<Integer> it = unconfirmedIndexs.iterator();
+    while (it.hasNext()) {
+      int unconfirmedIndex = it.next();
+      if (unconfirmedIndex <= confirmed) {
+        it.remove();
+      }
+    }
     if (log.isDebugEnabled()) {
       log.debug(
           "confirmUnconfirmed("
