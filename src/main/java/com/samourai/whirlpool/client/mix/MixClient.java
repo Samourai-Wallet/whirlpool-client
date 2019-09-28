@@ -197,7 +197,8 @@ public class MixClient {
           log.debug(
               "POST " + registerOutputUrl + ": " + ClientUtils.toJsonString(registerOutputRequest));
         }
-        // confirm receive address even when REGISTER_OUTPUT fails, to avoid 'ouput already registered'
+        // confirm receive address even when REGISTER_OUTPUT fails, to avoid 'ouput already
+        // registered'
         mixParams.getPostmixHandler().confirmReceiveAddress();
         config
             .getHttpClient()

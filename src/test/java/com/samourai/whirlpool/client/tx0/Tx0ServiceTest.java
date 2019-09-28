@@ -4,14 +4,13 @@ import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutPoint;
+import org.bitcoinj.core.*;
 import org.bouncycastle.util.encoders.Hex;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,12 +18,21 @@ import org.slf4j.LoggerFactory;
 public class Tx0ServiceTest extends AbstractTest {
   private Logger log = LoggerFactory.getLogger(Tx0ServiceTest.class);
 
-  private static final long FEE_VALUE = 10000; // TODO
+  private static final long FEE_VALUE = 10000;
 
-  private Tx0Service tx0Service = new Tx0Service(params);
+  private Tx0Service tx0Service;
+
+  @BeforeEach
+  public void setup() {
+    WhirlpoolServer server = WhirlpoolServer.LOCAL_TESTNET;
+    WhirlpoolWalletConfig config =
+        new WhirlpoolWalletConfig(
+            null, null, null, server.getServerUrlClear(), server.getParams(), null);
+    tx0Service = new Tx0Service(config);
+  }
 
   @Test
-  public void tx0_5premix_withChange() throws Exception {
+  public void tx0_5premix_withChange_scode_noFee() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
     String passphrase = "whirlpool";
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
@@ -50,7 +58,13 @@ public class Tx0ServiceTest extends AbstractTest {
     int feeSatPerByte = 1;
     byte[] feePayload = new byte[] {1, 2};
     Tx0Data tx0Data =
-        new Tx0Data(feePaymentCode, feePayload, "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym", 0);
+        new Tx0Data(
+            feePaymentCode,
+            0,
+            FEE_VALUE,
+            feePayload,
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+            0);
 
     Tx0 tx0 =
         tx0Service.tx0(
@@ -61,7 +75,6 @@ public class Tx0ServiceTest extends AbstractTest {
             feeSatPerByte,
             nbOutputsPreferred,
             premixValue,
-            FEE_VALUE,
             tx0Data);
 
     Transaction tx = tx0.getTx();
@@ -104,7 +117,13 @@ public class Tx0ServiceTest extends AbstractTest {
     int feeSatPerByte = 1;
     byte[] feePayload = new byte[] {1, 2};
     Tx0Data tx0Data =
-        new Tx0Data(feePaymentCode, feePayload, "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym", 0);
+        new Tx0Data(
+            feePaymentCode,
+            0,
+            FEE_VALUE,
+            feePayload,
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+            0);
 
     Tx0 tx0 =
         tx0Service.tx0(
@@ -115,7 +134,6 @@ public class Tx0ServiceTest extends AbstractTest {
             feeSatPerByte,
             null,
             premixValue,
-            FEE_VALUE,
             tx0Data);
 
     Transaction tx = tx0.getTx();
@@ -188,7 +206,7 @@ public class Tx0ServiceTest extends AbstractTest {
   }*/
 
   @Test
-  public void tx0_1premix_withChange() throws Exception {
+  public void tx0_1premix_withChange_scode_nofee() throws Exception {
     String seedWords = "all all all all all all all all all all all all";
     String passphrase = "whirlpool";
     byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
@@ -213,8 +231,16 @@ public class Tx0ServiceTest extends AbstractTest {
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
     byte[] feePayload = new byte[] {1, 2};
+
+    // SCODE 0% => deposit
     Tx0Data tx0Data =
-        new Tx0Data(feePaymentCode, feePayload, "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym", 0);
+        new Tx0Data(
+            feePaymentCode,
+            0,
+            FEE_VALUE,
+            feePayload,
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+            0);
 
     Tx0 tx0 =
         tx0Service.tx0(
@@ -225,7 +251,6 @@ public class Tx0ServiceTest extends AbstractTest {
             feeSatPerByte,
             nbOutputsPreferred,
             premixValue,
-            FEE_VALUE,
             tx0Data);
 
     Transaction tx = tx0.getTx();
@@ -239,6 +264,124 @@ public class Tx0ServiceTest extends AbstractTest {
         "c347f1bac5689cd5efb372171d63425807c4577859f06060c0ace8bd8ae84758", tx0Hash);
     Assertions.assertEquals(
         "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000426a409ae6649a7b1fc8a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f6859171027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164dc2a0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d024830450221009ee239d12266c531fad5e503b22a78ec5481144bc8105754416664f7b4d3d6f7022068cd726d10b94294bf0b9921594391b759b8f1a67605c488d7b1f670a286b0e501210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
+        tx0Hex);
+  }
+
+  @Test
+  public void tx0_1premix_withChange_scode_fee() throws Exception {
+    String seedWords = "all all all all all all all all all all all all";
+    String passphrase = "whirlpool";
+    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
+    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
+
+    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    TransactionOutPoint spendFromOutpoint =
+        new TransactionOutPoint(
+            params,
+            1,
+            Sha256Hash.wrap("cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae"),
+            Coin.valueOf(1021397)); // balance with 11000 change
+    Bip84Wallet depositWallet =
+        new Bip84Wallet(bip84w, 0, new MemoryIndexHandler(), new MemoryIndexHandler());
+    Bip84Wallet premixWallet =
+        new Bip84Wallet(
+            bip84w, Integer.MAX_VALUE - 2, new MemoryIndexHandler(), new MemoryIndexHandler());
+    int nbOutputsPreferred = 5;
+    int nbOutputsExpected = 1;
+    long premixValue = 1000150;
+    String feePaymentCode =
+        "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
+    int feeSatPerByte = 1;
+    byte[] feePayload = new byte[] {1, 2};
+
+    // SCODE 50% => samouraiFee
+    Tx0Data tx0Data =
+        new Tx0Data(
+            feePaymentCode,
+            FEE_VALUE / 2,
+            0,
+            feePayload,
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+            0);
+
+    Tx0 tx0 =
+        tx0Service.tx0(
+            spendFromKey.getPrivKeyBytes(),
+            spendFromOutpoint,
+            depositWallet,
+            premixWallet,
+            feeSatPerByte,
+            nbOutputsPreferred,
+            premixValue,
+            tx0Data);
+
+    Transaction tx = tx0.getTx();
+    Assertions.assertEquals(
+        nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee (no change)
+
+    String tx0Hash = tx.getHashAsString();
+    String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
+    log.info(tx0.getTx().toString());
+    Assertions.assertEquals(
+        "b7f819b71b7869325bc58fc6dd4477c5db563cd540746c379f9db652e7c13eab", tx0Hash);
+    Assertions.assertEquals(
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000426a409ae6649a7b1fc8a917f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f68591788130000000000001600149747d7abc760e033a19d477d2091582f76b4308b643e000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d0247304402202e27fba4546e10027f55510c20d055fed20712d48c2fab9917e77b91fead8ffd02206c4c1589a9645861fa13743294cbd5fe8e3a7dc91e8760c556fd192cbca11a9001210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
+        tx0Hex);
+  }
+
+  @Test
+  public void tx0_1premix_withChange_noScode() throws Exception {
+    String seedWords = "all all all all all all all all all all all all";
+    String passphrase = "whirlpool";
+    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
+    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
+
+    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    TransactionOutPoint spendFromOutpoint =
+        new TransactionOutPoint(
+            params,
+            1,
+            Sha256Hash.wrap("cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae"),
+            Coin.valueOf(1021397)); // balance with 11000 change
+    Bip84Wallet depositWallet =
+        new Bip84Wallet(bip84w, 0, new MemoryIndexHandler(), new MemoryIndexHandler());
+    Bip84Wallet premixWallet =
+        new Bip84Wallet(
+            bip84w, Integer.MAX_VALUE - 2, new MemoryIndexHandler(), new MemoryIndexHandler());
+    int nbOutputsPreferred = 5;
+    int nbOutputsExpected = 1;
+    long premixValue = 1000150;
+    String feePaymentCode =
+        "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
+    int feeSatPerByte = 1;
+
+    // no SCODE => samouraiFee
+    Tx0Data tx0Data =
+        new Tx0Data(
+            feePaymentCode, 0, FEE_VALUE, null, "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym", 0);
+
+    Tx0 tx0 =
+        tx0Service.tx0(
+            spendFromKey.getPrivKeyBytes(),
+            spendFromOutpoint,
+            depositWallet,
+            premixWallet,
+            feeSatPerByte,
+            nbOutputsPreferred,
+            premixValue,
+            tx0Data);
+
+    Transaction tx = tx0.getTx();
+    Assertions.assertEquals(
+        nbOutputsExpected + 3, tx.getOutputs().size()); // opReturn + fee (no change)
+
+    String tx0Hash = tx.getHashAsString();
+    String tx0Hex = new String(Hex.encode(tx.bitcoinSerialize()));
+    log.info(tx0.getTx().toString());
+    Assertions.assertEquals(
+        "30d2719436341ff85229d0dac1ec7836b67ab56c675a48eeb666ea19563bd527", tx0Hash);
+    Assertions.assertEquals(
+        "01000000000101ae24e3f5dbcee7971ae0e5b83fcb1eb67057901f2d371ca494f868b3dc8c58cc0100000000ffffffff040000000000000000426a409ae6649a7b1fc9ab17f408cbf7b41e27f3a5484650aafdf5167852bd348afa8aa8213dda856188683ab187a902923e7ec3b672a6fbb637a4063c71879f6859171027000000000000160014f6a884f18f4d7e78a4167c3e56773c3ae58e0164dc2a0000000000001600141bd05eb7c9cb516fddd8187cecb2e0cb4e21ac87d6420f00000000001600141dffe6e395c95927e4a16e8e6bd6d05604447e4d02483045022100b4e442ac93ad4335e163418f3d21a41abfe924b75375ce6c3610c7d83d96a55d022053351fd0600f6b7d3c854f68b3f815fa2a64d5b3d3b3237d787aac5172de2aed01210349baf197181fe53937d225d0e7bd14d8b5f921813c038a95d7c2648500c119b000000000",
         tx0Hex);
   }
 }

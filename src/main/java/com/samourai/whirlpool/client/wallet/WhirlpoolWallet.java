@@ -1,7 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.wallet.api.backend.SamouraiFeeTarget;
-import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84ApiWallet;
@@ -25,13 +24,10 @@ import com.samourai.whirlpool.client.wallet.orchestrator.MixOrchestrator;
 import com.samourai.whirlpool.client.wallet.orchestrator.PersistOrchestrator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
-import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientListener;
 import com.samourai.whirlpool.client.whirlpool.listener.UtxoWhirlpoolClientListener;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
-import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
-import com.samourai.whirlpool.protocol.rest.Tx0DataResponse;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -385,23 +381,6 @@ public class WhirlpoolWallet {
           "Insufficient utxo value for Tx0: " + spendFromValue + " < " + spendFromBalanceMin);
     }
 
-    // fetch fresh Tx0Data
-    Tx0Data tx0Data = fetchTx0Data();
-    log.info(
-        " • Tx0: spendFrom="
-            + spendFromOutpoint
-            + ", feeTx0="
-            + feeTx0
-            + ", feePremix="
-            + feePremix
-            + ", poolId="
-            + pool.getPoolId()
-            + ", maxOutputs="
-            + (maxOutputs != null ? maxOutputs : "*")
-            + ", tx0Data=["
-            + tx0Data
-            + "]");
-
     // run tx0
     int initialPremixIndex = premixWallet.getIndexHandler().get();
     try {
@@ -414,8 +393,7 @@ public class WhirlpoolWallet {
               feeTx0,
               feePremix,
               pool,
-              maxOutputs,
-              tx0Data);
+              maxOutputs);
 
       log.info(
           " • Tx0 result: txid="
@@ -437,28 +415,6 @@ public class WhirlpoolWallet {
     } catch (Exception e) {
       // revert index
       premixWallet.getIndexHandler().set(initialPremixIndex);
-      throw e;
-    }
-  }
-
-  private Tx0Data fetchTx0Data() throws HttpException, NotifiableException {
-    String url = WhirlpoolProtocol.getUrlTx0Data(config.getServer(), config.getScode());
-    try {
-      Tx0DataResponse tx0Response =
-          config.getHttpClient().getJson(url, Tx0DataResponse.class, null);
-      byte[] feePayload = WhirlpoolProtocol.decodeBytes(tx0Response.feePayload64);
-      Tx0Data tx0Data =
-          new Tx0Data(
-              tx0Response.feePaymentCode,
-              feePayload,
-              tx0Response.feeAddress,
-              tx0Response.feeIndice);
-      return tx0Data;
-    } catch (HttpException e) {
-      String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
-      if (restErrorResponseMessage != null) {
-        throw new NotifiableException(restErrorResponseMessage);
-      }
       throw e;
     }
   }

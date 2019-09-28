@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.persist;
 
 import com.samourai.api.client.BackendServer;
 import com.samourai.api.client.SamouraiApi;
+import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84ApiWallet;
 import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
@@ -59,12 +60,22 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     UnspentOutput utxoFoo = new UnspentOutput();
     utxoFoo.tx_output_n = 1;
     utxoFoo.tx_hash = "foo";
+    utxoFoo.value = 1234;
+    utxoFoo.confirmations = 9999;
+    utxoFoo.addr = "foo";
+    utxoFoo.xpub = new UnspentResponse.UnspentOutput.Xpub();
+    utxoFoo.xpub.path = "foo";
     WhirlpoolUtxo foo = new WhirlpoolUtxo(utxoFoo, null, null, whirlpoolWallet);
     foo.getUtxoConfig().setMixsTarget(1);
 
     UnspentOutput utxoBar = new UnspentOutput();
     utxoBar.tx_output_n = 2;
     utxoBar.tx_hash = "bar";
+    utxoBar.value = 5678;
+    utxoBar.confirmations = 8888;
+    utxoBar.addr = "bar";
+    utxoBar.xpub = new UnspentResponse.UnspentOutput.Xpub();
+    utxoBar.xpub.path = "bar";
     WhirlpoolUtxo bar = new WhirlpoolUtxo(utxoBar, null, null, whirlpoolWallet);
     bar.getUtxoConfig().setMixsTarget(2);
 

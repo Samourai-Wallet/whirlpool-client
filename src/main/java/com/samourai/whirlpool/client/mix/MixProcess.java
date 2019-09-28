@@ -134,12 +134,7 @@ public class MixProcess {
     String signature = premixHandler.signMessage(poolId);
     RegisterInputRequest registerInputRequest =
         new RegisterInputRequest(
-            poolId,
-            utxo.getHash(),
-            utxo.getIndex(),
-            signature,
-            this.liquidity,
-            config.isTestMode());
+            poolId, utxo.getHash(), utxo.getIndex(), signature, this.liquidity);
 
     registeredInput = true;
     return registerInputRequest;

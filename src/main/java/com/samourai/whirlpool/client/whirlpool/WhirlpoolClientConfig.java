@@ -14,7 +14,6 @@ public class WhirlpoolClientConfig {
   private NetworkParameters networkParameters;
   private int reconnectDelay;
   private int reconnectUntil;
-  private boolean testMode;
   private String scode;
 
   public WhirlpoolClientConfig(
@@ -23,16 +22,7 @@ public class WhirlpoolClientConfig {
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters networkParameters) {
-    this(
-        httpClient,
-        stompClientService,
-        persistHandler,
-        server,
-        networkParameters,
-        null,
-        5,
-        500,
-        false);
+    this(httpClient, stompClientService, persistHandler, server, networkParameters, null, 5, 500);
   }
 
   public WhirlpoolClientConfig(
@@ -43,8 +33,7 @@ public class WhirlpoolClientConfig {
       NetworkParameters networkParameters,
       String scode,
       int reconnectDelay,
-      int reconnectUntil,
-      boolean testMode) {
+      int reconnectUntil) {
     this.httpClient = httpClient;
     this.stompClientService = stompClientService;
     this.persistHandler = persistHandler;
@@ -52,7 +41,6 @@ public class WhirlpoolClientConfig {
     this.networkParameters = networkParameters;
     this.reconnectDelay = reconnectDelay;
     this.reconnectUntil = reconnectUntil;
-    this.testMode = testMode;
     this.scode = scode;
   }
 
@@ -102,14 +90,6 @@ public class WhirlpoolClientConfig {
 
   public void setReconnectUntil(int reconnectUntil) {
     this.reconnectUntil = reconnectUntil;
-  }
-
-  public void setTestMode(boolean testMode) {
-    this.testMode = testMode;
-  }
-
-  public boolean isTestMode() {
-    return testMode;
   }
 
   public String getScode() {

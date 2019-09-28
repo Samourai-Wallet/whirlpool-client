@@ -103,7 +103,7 @@ public class WhirlpoolWalletService {
       }
     }
 
-    Tx0Service tx0Service = new Tx0Service(config.getNetworkParameters());
+    Tx0Service tx0Service = new Tx0Service(config);
     Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
     WhirlpoolClient whirlpoolClient = WhirlpoolClientImpl.newClient(config);
 

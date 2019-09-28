@@ -1,14 +1,20 @@
 package com.samourai.whirlpool.client.tx0;
 
+import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
 import com.samourai.wallet.client.Bip84Wallet;
 import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.FeeUtil;
+import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.utils.ClientUtils;
+import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.fee.WhirlpoolFee;
+import com.samourai.whirlpool.protocol.rest.Tx0DataResponse;
 import java.util.*;
 import org.bitcoinj.core.*;
 import org.bitcoinj.script.Script;
@@ -26,10 +32,10 @@ public class Tx0Service {
   private final WhirlpoolFee whirlpoolFee = WhirlpoolFee.getInstance();
   private final FeeUtil feeUtil = FeeUtil.getInstance();
 
-  private NetworkParameters params;
+  private WhirlpoolWalletConfig config;
 
-  public Tx0Service(NetworkParameters params) {
-    this.params = params;
+  public Tx0Service(WhirlpoolWalletConfig config) {
+    this.config = config;
   }
 
   private long computePremixValue(Pool pool, int feePremix) {
@@ -149,9 +155,50 @@ public class Tx0Service {
       int feeTx0,
       int feePremix,
       Pool pool,
+      Integer maxOutputs)
+      throws Exception {
+
+    // fetch fresh Tx0Data
+    Tx0Data tx0Data = fetchTx0Data(pool.getPoolId());
+
+    return tx0(
+        spendFromPrivKey,
+        depositSpendFrom,
+        depositWallet,
+        premixWallet,
+        feeTx0,
+        feePremix,
+        pool,
+        maxOutputs,
+        tx0Data);
+  }
+
+  public Tx0 tx0(
+      byte[] spendFromPrivKey,
+      TransactionOutPoint depositSpendFrom,
+      Bip84Wallet depositWallet,
+      Bip84Wallet premixWallet,
+      int feeTx0,
+      int feePremix,
+      Pool pool,
       Integer maxOutputs,
       Tx0Data tx0Data)
       throws Exception {
+
+    log.info(
+        " • Tx0: spendFrom="
+            + depositSpendFrom
+            + ", feeTx0="
+            + feeTx0
+            + ", feePremix="
+            + feePremix
+            + ", poolId="
+            + pool.getPoolId()
+            + ", maxOutputs="
+            + (maxOutputs != null ? maxOutputs : "*")
+            + ", tx0Data=["
+            + tx0Data
+            + "]");
 
     // compute premixValue for pool
     long premixValue = computePremixValue(pool, feePremix);
@@ -164,7 +211,6 @@ public class Tx0Service {
         feeTx0,
         maxOutputs,
         premixValue,
-        pool.getFeeValue(),
         tx0Data);
   }
 
@@ -176,27 +222,40 @@ public class Tx0Service {
       int feeTx0,
       Integer maxOutputs,
       long premixValue,
-      long samouraiFee,
       Tx0Data tx0Data)
       throws Exception {
+    NetworkParameters params = config.getNetworkParameters();
 
     // compute opReturnValue for feePaymentCode and feePayload
     byte[] feePayload = tx0Data.getFeePayload();
     int feeIndice;
     String feeAddressBech32;
-    if (feePayload == null) {
+    long samouraiFee;
+    if (tx0Data.getFeeValue() > 0) {
       // pay to fee
       feeIndice = tx0Data.getFeeIndice();
       feeAddressBech32 = tx0Data.getFeeAddress();
+      samouraiFee = tx0Data.getFeeValue();
       if (log.isDebugEnabled()) {
-        log.debug("feeAddressDestination: feeAddress");
+        log.debug(
+            "feeAddressDestination: samourai => feeAddress="
+                + feeAddressBech32
+                + ", feeIndice="
+                + feeIndice
+                + ", samouraiFee="
+                + samouraiFee);
       }
     } else {
       // pay to deposit
       feeIndice = 0;
       feeAddressBech32 = bech32Util.toBech32(depositWallet.getNextChangeAddress(), params);
+      samouraiFee = tx0Data.getFeeChange();
       if (log.isDebugEnabled()) {
-        log.debug("feeAddressDestination: deposit");
+        log.debug(
+            "feeAddressDestination: deposit => feeAddress="
+                + feeAddressBech32
+                + ", samouraiFee="
+                + samouraiFee);
       }
     }
     String feePaymentCode = tx0Data.getFeePaymentCode();
@@ -210,7 +269,6 @@ public class Tx0Service {
               + ", feePayloadHex="
               + (feePayload != null ? Hex.toHexString(feePayload) : "null"));
     }
-
     return tx0(
         spendFromPrivKey,
         depositSpendFrom,
@@ -236,6 +294,10 @@ public class Tx0Service {
       byte[] opReturnValue,
       String feeAddressBech32)
       throws Exception {
+
+    if (samouraiFee <= 0) {
+      throw new IllegalArgumentException("samouraiFee should be > 0");
+    }
 
     long spendFromBalance = depositSpendFrom.getValue().getValue();
 
@@ -276,6 +338,7 @@ public class Tx0Service {
     // OP_RETURN
     //
     List<TransactionOutput> outputs = new ArrayList<TransactionOutput>();
+    NetworkParameters params = config.getNetworkParameters();
     Transaction tx = new Transaction(params);
 
     //
@@ -440,5 +503,30 @@ public class Tx0Service {
               + feePremix);
     }
     return (utxoValue >= balanceMin);
+  }
+
+  private Tx0Data fetchTx0Data(String poolId) throws HttpException, NotifiableException {
+    String url = WhirlpoolProtocol.getUrlTx0Data(config.getServer(), poolId, config.getScode());
+    try {
+      Tx0DataResponse tx0Response =
+          config.getHttpClient().getJson(url, Tx0DataResponse.class, null);
+      byte[] feePayload = WhirlpoolProtocol.decodeBytes(tx0Response.feePayload64);
+      Tx0Data tx0Data =
+          new Tx0Data(
+              tx0Response.feePaymentCode,
+              tx0Response.feeValue,
+              tx0Response.feeChange,
+              // tx0Response.message,
+              feePayload,
+              tx0Response.feeAddress,
+              tx0Response.feeIndice);
+      return tx0Data;
+    } catch (HttpException e) {
+      String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
+      if (restErrorResponseMessage != null) {
+        throw new NotifiableException(restErrorResponseMessage);
+      }
+      throw e;
+    }
   }
 }
