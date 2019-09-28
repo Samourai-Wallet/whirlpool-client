@@ -26,6 +26,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   private SamouraiApi samouraiApi;
   private int tx0Delay;
+  private int tx0MinConfirmations;
   private Integer tx0MaxOutputs;
   private int refreshUtxoDelay;
   private int refreshFeeDelay;
@@ -59,6 +60,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     // technical settings
     this.samouraiApi = samouraiApi;
     this.tx0Delay = 30;
+    this.tx0MinConfirmations = 1;
     this.tx0MaxOutputs = null; // spend whole utxo when possible
     this.refreshUtxoDelay = 60; // 1min
     this.refreshFeeDelay = 300; // 5min
@@ -135,6 +137,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setTx0Delay(int tx0Delay) {
     this.tx0Delay = tx0Delay;
+  }
+
+  public int getTx0MinConfirmations() {
+    return tx0MinConfirmations;
+  }
+
+  public void setTx0MinConfirmations(int tx0MinConfirmations) {
+    this.tx0MinConfirmations = tx0MinConfirmations;
   }
 
   public Integer getTx0MaxOutputs() {

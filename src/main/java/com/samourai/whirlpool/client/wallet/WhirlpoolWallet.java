@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 
 public class WhirlpoolWallet {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWallet.class);
-  public static final int TX0_MIN_CONFIRMATIONS = 1;
   public static final int MIX_MIN_CONFIRMATIONS = 1;
 
   private WhirlpoolWalletConfig config;
@@ -216,7 +215,7 @@ public class WhirlpoolWallet {
       if (!eligiblePools.isEmpty()) {
 
         // check confirmation
-        if (whirlpoolUtxo.getUtxo().confirmations >= TX0_MIN_CONFIRMATIONS) {
+        if (whirlpoolUtxo.getUtxo().confirmations >= config.getTx0MinConfirmations()) {
 
           // set pool
           whirlpoolUtxo.getUtxoConfig().setPoolId(pool.getPoolId());
@@ -299,9 +298,10 @@ public class WhirlpoolWallet {
     UnspentOutput utxoSpendFrom = whirlpoolUtxoSpendFrom.getUtxo();
 
     // check confirmations
-    if (utxoSpendFrom.confirmations < TX0_MIN_CONFIRMATIONS) {
+    if (utxoSpendFrom.confirmations < config.getTx0MinConfirmations()) {
       whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, true, 0);
-      whirlpoolUtxoSpendFrom.setError("Minimum confirmation(s) for tx0: " + TX0_MIN_CONFIRMATIONS);
+      whirlpoolUtxoSpendFrom.setError(
+          "Minimum confirmation(s) for tx0: " + config.getTx0MinConfirmations());
       throw new UnconfirmedUtxoException(utxoSpendFrom);
     }
 
@@ -922,7 +922,7 @@ public class WhirlpoolWallet {
 
     // notify autoTx0Orchestrator on TX0_MIN_CONFIRMATIONS
     if (autoTx0Orchestrator.isPresent()
-        && wasConfirmed(TX0_MIN_CONFIRMATIONS, oldConfirmations, freshConfirmations)) {
+        && wasConfirmed(config.getTx0MinConfirmations(), oldConfirmations, freshConfirmations)) {
       autoTx0Orchestrator.get().onUtxoConfirmed(whirlpoolUtxo);
     }
 
