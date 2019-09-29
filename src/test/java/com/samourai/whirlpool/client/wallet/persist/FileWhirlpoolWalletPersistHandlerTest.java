@@ -1,7 +1,7 @@
 package com.samourai.whirlpool.client.wallet.persist;
 
-import com.samourai.api.client.BackendServer;
 import com.samourai.api.client.SamouraiApi;
+import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84ApiWallet;
