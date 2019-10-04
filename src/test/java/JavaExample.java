@@ -3,6 +3,9 @@ import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.whirlpool.client.mix.listener.MixFailReason;
+import com.samourai.whirlpool.client.mix.listener.MixStep;
+import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
@@ -16,6 +19,8 @@ import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandle
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import java.io.File;
 import java.util.Collection;
+
+import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.TransactionOutPoint;
 
@@ -33,8 +38,7 @@ public class JavaExample {
 
     boolean onion = true;
     String serverUrl = whirlpoolServer.getServerUrl(onion);
-    String backendUrl = BackendServer
-            .TESTNET.getBackendUrl(onion);
+    String backendUrl = BackendServer.TESTNET.getBackendUrl(onion);
     SamouraiApi samouraiApi = new SamouraiApi(httpClient, backendUrl, null);
 
     NetworkParameters params = whirlpoolServer.getParams();
@@ -42,11 +46,13 @@ public class JavaExample {
         new WhirlpoolWalletConfig(
             httpClient, stompClientService, persistHandler, serverUrl, params, samouraiApi);
 
+    whirlpoolWalletConfig.setAutoTx0PoolId(null); // disable auto-tx0
+    whirlpoolWalletConfig.setAutoMix(false); // disable auto-mix
+
     // configure optional settings (or don't set anything for using default values)
     whirlpoolWalletConfig.setScode("foo");
     whirlpoolWalletConfig.setMaxClients(1);
     whirlpoolWalletConfig.setClientDelay(15);
-    whirlpoolWalletConfig.setAutoMix(false);
 
     return whirlpoolWalletConfig;
   }
@@ -60,7 +66,7 @@ public class JavaExample {
 
     WhirlpoolWallet whirlpoolWallet = new WhirlpoolWalletService().openWallet(config, bip84w);
 
-    // start wallet
+    // start whirlpool wallet
     whirlpoolWallet.start();
 
     // get state
@@ -72,7 +78,7 @@ public class JavaExample {
     // find pool by poolId
     Pool pool05btc = whirlpoolWallet.findPoolById("0.5btc");
 
-    // tx0 spending a whirlpool-managed utxo
+    // tx0 method 1: spending a whirlpool-managed utxo
     {
       // whirlpool utxo for tx0
       String utxoHash = "6517ece36402a89d76d075c60a8d3d0e051e4e5efa42a01c9033328707631b61";
@@ -81,15 +87,13 @@ public class JavaExample {
       if (whirlpoolUtxo == null) {} // utxo not found
 
       // find eligible pools for this utxo
-      int nbOutputsMinForTx0 = 1;
       Tx0FeeTarget feeTarget = Tx0FeeTarget.BLOCKS_4;
-
       Collection<Pool> eligiblePools =
           whirlpoolWallet.findPoolsForTx0(
-              whirlpoolUtxo.getUtxo().value, nbOutputsMinForTx0, feeTarget);
+              whirlpoolUtxo.getUtxo().value, 1, feeTarget);
 
-      // set pool for utxo
-      whirlpoolWallet.setPool(whirlpoolUtxo, "0.5btc");
+      // choose pool
+      whirlpoolWallet.setPool(whirlpoolUtxo, "0.01btc");
 
       // execute tx0
       try {
@@ -100,7 +104,7 @@ public class JavaExample {
       }
     }
 
-    // tx0 spending an external utxo
+    // tx0 method 2: spending an external utxo
     {
       // external utxo for tx0
       TransactionOutPoint spendFromOutpoint = null; // provide utxo outpoint
@@ -121,5 +125,34 @@ public class JavaExample {
         // tx0 failed
       }
     }
+
+    // list premix utxos
+    Collection<WhirlpoolUtxo> utxosPremix = whirlpoolWallet.getUtxosPremix();
+
+    // mix specific utxo
+    WhirlpoolUtxo whirlpoolUtxo = utxosPremix.iterator().next();
+    WhirlpoolClientListener listener = new WhirlpoolClientListener() {
+      @Override
+      public void success(MixSuccess mixSuccess) {
+        // mix success
+      }
+
+      @Override
+      public void fail(MixFailReason reason, String notifiableError) {
+        // mix failed
+      }
+
+      @Override
+      public void progress(MixStep step) {
+        // mix progress
+      }
+    };
+    whirlpoolWallet.mix(whirlpoolUtxo, listener);
+
+    // stop mixing specific utxo
+    whirlpoolWallet.mixStop(whirlpoolUtxo);
+
+    // get global mix state
+    WhirlpoolWalletState whirlpoolState = whirlpoolWallet.getState();
   }
 }
