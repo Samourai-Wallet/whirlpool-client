@@ -6,7 +6,6 @@ import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.WhirlpoolClient;
-import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletAccount;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
@@ -103,19 +102,12 @@ public class WhirlpoolWalletService {
       }
     }
 
-    Tx0Service tx0Service = new Tx0Service(config);
     Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
     WhirlpoolClient whirlpoolClient = WhirlpoolClientImpl.newClient(config);
 
     WhirlpoolWallet whirlpoolWallet =
         new WhirlpoolWallet(
-            config,
-            tx0Service,
-            bech32Util,
-            whirlpoolClient,
-            depositWallet,
-            premixWallet,
-            postmixWallet);
+            config, bech32Util, whirlpoolClient, depositWallet, premixWallet, postmixWallet);
 
     // log zpubs
     if (log.isDebugEnabled()) {

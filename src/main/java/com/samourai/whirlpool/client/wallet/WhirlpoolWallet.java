@@ -15,7 +15,6 @@ import com.samourai.whirlpool.client.mix.handler.*;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
-import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.orchestrator.AutoMixOrchestrator;
@@ -45,7 +44,6 @@ public class WhirlpoolWallet {
 
   private WhirlpoolWalletConfig config;
 
-  private Tx0Service tx0Service;
   private Bech32UtilGeneric bech32Util;
 
   private WhirlpoolClient whirlpoolClient;
@@ -64,7 +62,6 @@ public class WhirlpoolWallet {
   protected WhirlpoolWallet(WhirlpoolWallet whirlpoolWallet) {
     this(
         whirlpoolWallet.config,
-        whirlpoolWallet.tx0Service,
         whirlpoolWallet.bech32Util,
         whirlpoolWallet.whirlpoolClient,
         whirlpoolWallet.depositWallet,
@@ -74,7 +71,6 @@ public class WhirlpoolWallet {
 
   public WhirlpoolWallet(
       WhirlpoolWalletConfig config,
-      Tx0Service tx0Service,
       Bech32UtilGeneric bech32Util,
       WhirlpoolClient whirlpoolClient,
       Bip84ApiWallet depositWallet,
@@ -82,7 +78,6 @@ public class WhirlpoolWallet {
       Bip84ApiWallet postmixWallet) {
     this.config = config;
 
-    this.tx0Service = tx0Service;
     this.bech32Util = bech32Util;
 
     this.whirlpoolClient = whirlpoolClient;
@@ -146,7 +141,7 @@ public class WhirlpoolWallet {
     // find eligible pools
     Collection<Pool> pools = getPools();
     int fee = getFee(feeTarget);
-    return tx0Service.findPools(nbOutputsMin, pools, utxoValue, fee, getFeePremix());
+    return config.getTx0Service().findPools(nbOutputsMin, pools, utxoValue, fee, getFeePremix());
   }
 
   private boolean isPoolApplicable(Pool pool, WhirlpoolUtxo whirlpoolUtxo) {
@@ -208,8 +203,10 @@ public class WhirlpoolWallet {
     WhirlpoolUtxo unconfirmedUtxo = null;
     for (WhirlpoolUtxo whirlpoolUtxo : depositUtxosByPriority) {
       Collection<Pool> eligiblePools =
-          tx0Service.findPools(
-              nbOutputsMin, Lists.of(pool), whirlpoolUtxo.getUtxo().value, feeTx0, feePremix);
+          config
+              .getTx0Service()
+              .findPools(
+                  nbOutputsMin, Lists.of(pool), whirlpoolUtxo.getUtxo().value, feeTx0, feePremix);
       // check pool
       if (!eligiblePools.isEmpty()) {
 
@@ -236,13 +233,15 @@ public class WhirlpoolWallet {
 
     // no eligible deposit UTXO found
     long requiredBalance =
-        tx0Service.computeSpendFromBalanceMin(pool, feeTx0, feePremix, nbOutputsMin);
+        config.getTx0Service().computeSpendFromBalanceMin(pool, feeTx0, feePremix, nbOutputsMin);
     throw new EmptyWalletException("No UTXO found to spend TX0 from", requiredBalance);
   }
 
   public long computeTx0SpendFromBalanceMin(Pool pool, Tx0FeeTarget feeTarget, int nbPremix) {
     int feeTx0 = getFee(feeTarget);
-    return tx0Service.computeSpendFromBalanceMin(pool, feeTx0, getFeePremix(), nbPremix);
+    return config
+        .getTx0Service()
+        .computeSpendFromBalanceMin(pool, feeTx0, getFeePremix(), nbPremix);
   }
 
   public Tx0 autoTx0() throws Exception { // throws UnconfirmedUtxoException, EmptyWalletException
@@ -365,7 +364,7 @@ public class WhirlpoolWallet {
 
     // check balance min
     final long spendFromBalanceMin =
-        tx0Service.computeSpendFromBalanceMin(pool, feeTx0, feePremix, 1);
+        config.getTx0Service().computeSpendFromBalanceMin(pool, feeTx0, feePremix, 1);
     if (spendFromValue < spendFromBalanceMin) {
       throw new NotifiableException(
           "Insufficient utxo value for Tx0: " + spendFromValue + " < " + spendFromBalanceMin);
@@ -375,15 +374,17 @@ public class WhirlpoolWallet {
     int initialPremixIndex = premixWallet.getIndexHandler().get();
     try {
       Tx0 tx0 =
-          tx0Service.tx0(
-              spendFromPrivKey,
-              Lists.of(spendFromOutpoint),
-              depositWallet,
-              premixWallet,
-              feeTx0,
-              feePremix,
-              pool,
-              maxOutputs);
+          config
+              .getTx0Service()
+              .tx0(
+                  spendFromPrivKey,
+                  Lists.of(spendFromOutpoint),
+                  depositWallet,
+                  premixWallet,
+                  feeTx0,
+                  feePremix,
+                  pool,
+                  maxOutputs);
 
       log.info(
           " • Tx0 result: txid="

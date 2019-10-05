@@ -4,6 +4,7 @@ import com.samourai.api.client.SamouraiApi;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.api.backend.SamouraiFeeTarget;
+import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
@@ -40,6 +41,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int feeFallback;
   private SamouraiFeeTarget feeTargetPremix;
 
+  private Tx0Service tx0Service;
+
   public WhirlpoolWalletConfig(
       IHttpClient httpClient,
       IStompClientService stompClientService,
@@ -73,6 +76,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.feeMax = 510;
     this.feeFallback = 75;
     this.feeTargetPremix = SamouraiFeeTarget.BLOCKS_12;
+
+    this.tx0Service = new Tx0Service(this);
   }
 
   public Integer getMaxClients() {
@@ -233,6 +238,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setFeeTargetPremix(SamouraiFeeTarget feeTargetPremix) {
     this.feeTargetPremix = feeTargetPremix;
+  }
+
+  public Tx0Service getTx0Service() {
+    return tx0Service;
+  }
+
+  public void setTx0Service(Tx0Service tx0Service) {
+    this.tx0Service = tx0Service;
   }
 
   public Map<String, String> getConfigInfo() {

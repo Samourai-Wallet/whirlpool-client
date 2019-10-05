@@ -244,7 +244,7 @@ public class Tx0ServiceTest extends AbstractTest {
     Tx0 tx0 =
         tx0Service.tx0(
             spendFromKey.getPrivKeyBytes(),
-                Lists.of(spendFrom),
+            Lists.of(spendFrom),
             depositWallet,
             premixWallet,
             feeSatPerByte,
@@ -305,7 +305,7 @@ public class Tx0ServiceTest extends AbstractTest {
     Tx0 tx0 =
         tx0Service.tx0(
             spendFromKey.getPrivKeyBytes(),
-                Lists.of(spendFrom),
+            Lists.of(spendFrom),
             depositWallet,
             premixWallet,
             feeSatPerByte,
@@ -360,7 +360,7 @@ public class Tx0ServiceTest extends AbstractTest {
     Tx0 tx0 =
         tx0Service.tx0(
             spendFromKey.getPrivKeyBytes(),
-                Lists.of(spendFrom),
+            Lists.of(spendFrom),
             depositWallet,
             premixWallet,
             feeSatPerByte,
