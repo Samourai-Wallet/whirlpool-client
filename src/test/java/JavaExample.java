@@ -17,10 +17,9 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletState;
 import com.samourai.whirlpool.client.wallet.persist.FileWhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import java.io.File;
 import java.util.Collection;
-
-import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.core.TransactionOutPoint;
 
@@ -89,8 +88,7 @@ public class JavaExample {
       // find eligible pools for this utxo
       Tx0FeeTarget feeTarget = Tx0FeeTarget.BLOCKS_4;
       Collection<Pool> eligiblePools =
-          whirlpoolWallet.findPoolsForTx0(
-              whirlpoolUtxo.getUtxo().value, 1, feeTarget);
+          whirlpoolWallet.findPoolsForTx0(whirlpoolUtxo.getUtxo().value, 1, feeTarget);
 
       // choose pool
       whirlpoolWallet.setPool(whirlpoolUtxo, "0.01btc");
@@ -131,22 +129,23 @@ public class JavaExample {
 
     // mix specific utxo
     WhirlpoolUtxo whirlpoolUtxo = utxosPremix.iterator().next();
-    WhirlpoolClientListener listener = new WhirlpoolClientListener() {
-      @Override
-      public void success(MixSuccess mixSuccess) {
-        // mix success
-      }
+    WhirlpoolClientListener listener =
+        new WhirlpoolClientListener() {
+          @Override
+          public void success(MixSuccess mixSuccess) {
+            // mix success
+          }
 
-      @Override
-      public void fail(MixFailReason reason, String notifiableError) {
-        // mix failed
-      }
+          @Override
+          public void fail(MixFailReason reason, String notifiableError) {
+            // mix failed
+          }
 
-      @Override
-      public void progress(MixStep step) {
-        // mix progress
-      }
-    };
+          @Override
+          public void progress(MixStep step) {
+            // mix progress
+          }
+        };
     whirlpoolWallet.mix(whirlpoolUtxo, listener);
 
     // stop mixing specific utxo

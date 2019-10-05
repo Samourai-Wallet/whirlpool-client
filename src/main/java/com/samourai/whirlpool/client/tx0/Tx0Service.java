@@ -299,8 +299,6 @@ public class Tx0Service {
       throw new IllegalArgumentException("samouraiFee should be > 0");
     }
 
-    long spendFromBalance = depositSpendFrom.getValue().getValue();
-
     // compute nbPremix
     int nbPremix =
         computeNbPremixMax(
@@ -312,6 +310,8 @@ public class Tx0Service {
       nbPremix = Math.min(maxOutputs, nbPremix); // cap with maxOutputs
     }
     nbPremix = Math.min(NB_PREMIX_MAX, nbPremix); // cap with UTXO NB_PREMIX_MAX
+
+    long spendFromBalance = depositSpendFrom.getValue().getValue();
 
     // at least 1 nbPremix
     if (nbPremix < 1) {
@@ -325,6 +325,62 @@ public class Tx0Service {
               + ", premixValue="
               + premixValue);
     }
+
+    // fee selection
+    long tx0MinerFee = computeTx0MinerFee(nbPremix, feeTx0, depositSpendFrom);
+
+    long spendValue = computeTx0SpendValue(premixValue, nbPremix, samouraiFee, tx0MinerFee);
+    long changeValue = spendFromBalance - spendValue;
+
+    //
+    // tx0
+    //
+
+    Transaction tx = buildTx0(spendFromPrivKey,
+     depositSpendFrom,
+     depositWallet,
+     premixWallet,
+     premixValue,
+     samouraiFee,
+     opReturnValue,
+     feeAddressBech32,
+     nbPremix,
+     tx0MinerFee,
+     changeValue);
+
+    final String hexTx = new String(Hex.encode(tx.bitcoinSerialize()));
+    final String strTxHash = tx.getHashAsString();
+
+    tx.verify();
+    // System.out.println(tx);
+    if (log.isDebugEnabled()) {
+      log.debug("Tx0 hash: " + strTxHash);
+      log.debug("Tx0 hex: " + hexTx);
+      long feePrice = tx0MinerFee / tx.getVirtualTransactionSize();
+      log.debug("Tx0 size: " + tx.getVirtualTransactionSize() + "b, feePrice=" + feePrice + "s/b");
+    }
+
+    List<Utxo> premixUtxos = new ArrayList<Utxo>();
+    for (TransactionOutput to : tx.getOutputs()) {
+      Utxo utxo = new Utxo(strTxHash, to.getIndex());
+      premixUtxos.add(utxo);
+    }
+    return new Tx0(tx, premixUtxos);
+  }
+
+  protected Transaction buildTx0(
+          byte[] spendFromPrivKey,
+          TransactionOutPoint depositSpendFrom,
+          Bip84Wallet depositWallet,
+          Bip84Wallet premixWallet,
+          long premixValue,
+          long samouraiFee,
+          byte[] opReturnValue,
+          String feeAddressBech32,
+          int nbPremix,
+          long tx0MinerFee,
+          long changeValue)
+          throws Exception {
 
     //
     // tx0
@@ -350,26 +406,20 @@ public class Tx0Service {
       String toAddressBech32 = bech32Util.toBech32(toAddress, params);
       if (log.isDebugEnabled()) {
         log.debug(
-            "Tx0 out (premix): address="
-                + toAddressBech32
-                + ", path="
-                + toAddress.toJSON().get("path")
-                + " ("
-                + premixValue
-                + " sats)");
+                "Tx0 out (premix): address="
+                        + toAddressBech32
+                        + ", path="
+                        + toAddress.toJSON().get("path")
+                        + " ("
+                        + premixValue
+                        + " sats)");
       }
 
       TransactionOutput txOutSpend =
-          bech32Util.getTransactionOutput(toAddressBech32, premixValue, params);
+              bech32Util.getTransactionOutput(toAddressBech32, premixValue, params);
       outputs.add(txOutSpend);
     }
 
-    // fee selection
-    long tx0MinerFee = computeTx0MinerFee(nbPremix, feeTx0, depositSpendFrom);
-
-    // change
-    long spendValue = computeTx0SpendValue(premixValue, nbPremix, samouraiFee, tx0MinerFee);
-    long changeValue = spendFromBalance - spendValue;
     if (changeValue > 0) {
       //
       // 1 change output
@@ -377,17 +427,17 @@ public class Tx0Service {
       HD_Address changeAddress = depositWallet.getNextChangeAddress();
       String changeAddressBech32 = bech32Util.toBech32(changeAddress, params);
       TransactionOutput txChange =
-          bech32Util.getTransactionOutput(changeAddressBech32, changeValue, params);
+              bech32Util.getTransactionOutput(changeAddressBech32, changeValue, params);
       outputs.add(txChange);
       if (log.isDebugEnabled()) {
         log.debug(
-            "Tx0 out (change): address="
-                + changeAddressBech32
-                + ", path="
-                + changeAddress.toJSON().get("path")
-                + " ("
-                + changeValue
-                + " sats)");
+                "Tx0 out (change): address="
+                        + changeAddressBech32
+                        + ", path="
+                        + changeAddress.toJSON().get("path")
+                        + " ("
+                        + changeValue
+                        + " sats)");
       }
     } else {
       if (log.isDebugEnabled()) {
@@ -395,16 +445,16 @@ public class Tx0Service {
       }
       if (changeValue < 0) {
         throw new Exception(
-            "Negative change detected, please report this bug. changeValue="
-                + changeValue
-                + ", tx0MinerFee="
-                + tx0MinerFee);
+                "Negative change detected, please report this bug. changeValue="
+                        + changeValue
+                        + ", tx0MinerFee="
+                        + tx0MinerFee);
       }
     }
 
     // samourai fee
     TransactionOutput txSWFee =
-        bech32Util.getTransactionOutput(feeAddressBech32, samouraiFee, params);
+            bech32Util.getTransactionOutput(feeAddressBech32, samouraiFee, params);
     outputs.add(txSWFee);
     if (log.isDebugEnabled()) {
       log.debug("Tx0 out (fee): feeAddress=" + feeAddressBech32 + " (" + samouraiFee + " sats)");
@@ -412,19 +462,19 @@ public class Tx0Service {
 
     // add OP_RETURN output
     Script op_returnOutputScript =
-        new ScriptBuilder().op(ScriptOpCodes.OP_RETURN).data(opReturnValue).build();
+            new ScriptBuilder().op(ScriptOpCodes.OP_RETURN).data(opReturnValue).build();
     TransactionOutput txFeeOutput =
-        new TransactionOutput(params, null, Coin.valueOf(0L), op_returnOutputScript.getProgram());
+            new TransactionOutput(params, null, Coin.valueOf(0L), op_returnOutputScript.getProgram());
     outputs.add(txFeeOutput);
     if (log.isDebugEnabled()) {
       log.debug("Tx0 out (OP_RETURN): " + opReturnValue.length + " bytes");
     }
     if (opReturnValue.length != WhirlpoolFee.FEE_LENGTH) {
       throw new Exception(
-          "Invalid opReturnValue length detected, please report this bug. opReturnValue="
-              + opReturnValue
-              + " vs "
-              + WhirlpoolFee.FEE_LENGTH);
+              "Invalid opReturnValue length detected, please report this bug. opReturnValue="
+                      + opReturnValue
+                      + " vs "
+                      + WhirlpoolFee.FEE_LENGTH);
     }
 
     // all outputs
@@ -440,32 +490,15 @@ public class Tx0Service {
     tx.addSignedInput(depositSpendFrom, segwitPubkeyScript, spendFromKey);
     if (log.isDebugEnabled()) {
       log.debug(
-          "Tx0 in: utxo="
-              + depositSpendFrom
-              + " ("
-              + depositSpendFrom.getValue().getValue()
-              + " sats)");
+              "Tx0 in: utxo="
+                      + depositSpendFrom
+                      + " ("
+                      + depositSpendFrom.getValue().getValue()
+                      + " sats)");
       log.debug("Tx0 fee: " + tx0MinerFee + " sats");
     }
-
-    final String hexTx = new String(Hex.encode(tx.bitcoinSerialize()));
-    final String strTxHash = tx.getHashAsString();
-
     tx.verify();
-    // System.out.println(tx);
-    if (log.isDebugEnabled()) {
-      log.debug("Tx0 hash: " + strTxHash);
-      log.debug("Tx0 hex: " + hexTx);
-      long feePrice = tx0MinerFee / tx.getVirtualTransactionSize();
-      log.debug("Tx0 size: " + tx.getVirtualTransactionSize() + "b, feePrice=" + feePrice + "s/b");
-    }
-
-    List<Utxo> premixUtxos = new ArrayList<Utxo>();
-    for (TransactionOutput to : tx.getOutputs()) {
-      Utxo utxo = new Utxo(strTxHash, to.getIndex());
-      premixUtxos.add(utxo);
-    }
-    return new Tx0(tx, premixUtxos);
+    return tx;
   }
 
   public Collection<Pool> findPools(
