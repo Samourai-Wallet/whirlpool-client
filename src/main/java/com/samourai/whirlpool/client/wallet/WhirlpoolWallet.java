@@ -36,7 +36,6 @@ import java8.util.Optional;
 import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.TransactionOutPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -307,8 +306,6 @@ public class WhirlpoolWallet {
 
     whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0, true, 50);
     try {
-      TransactionOutPoint spendFromOutpoint =
-          utxoSpendFrom.computeOutpoint(config.getNetworkParameters());
       byte[] spendFromPrivKey =
           depositWallet.getAddressAt(utxoSpendFrom).getECKey().getPrivKeyBytes();
       long spendFromValue = whirlpoolUtxoSpendFrom.getUtxo().value;
@@ -319,14 +316,7 @@ public class WhirlpoolWallet {
       }
       int feePremix = getFeePremix();
       Tx0 tx0 =
-          tx0(
-              spendFromOutpoint,
-              spendFromPrivKey,
-              spendFromValue,
-              pool,
-              feeTx0,
-              feePremix,
-              maxOutputs);
+          tx0(utxoSpendFrom, spendFromPrivKey, spendFromValue, pool, feeTx0, feePremix, maxOutputs);
 
       // success
       whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_SUCCESS, true, 100);
@@ -346,7 +336,7 @@ public class WhirlpoolWallet {
   }
 
   public Tx0 tx0(
-      TransactionOutPoint spendFromOutpoint,
+      UnspentOutput spendFromOutpoint,
       byte[] spendFromPrivKey,
       long spendFromValue,
       Pool pool,
@@ -364,7 +354,7 @@ public class WhirlpoolWallet {
   }
 
   public Tx0 tx0(
-      TransactionOutPoint spendFromOutpoint,
+      UnspentOutput spendFromOutpoint,
       byte[] spendFromPrivKey,
       long spendFromValue,
       Pool pool,
@@ -387,7 +377,7 @@ public class WhirlpoolWallet {
       Tx0 tx0 =
           tx0Service.tx0(
               spendFromPrivKey,
-              spendFromOutpoint,
+              Lists.of(spendFromOutpoint),
               depositWallet,
               premixWallet,
               feeTx0,
