@@ -2,6 +2,7 @@ import com.samourai.api.client.SamouraiApi;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.api.backend.BackendServer;
+import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
@@ -105,7 +106,7 @@ public class JavaExample {
     // tx0 method 2: spending an external utxo
     {
       // external utxo for tx0
-      TransactionOutPoint spendFromOutpoint = null; // provide utxo outpoint
+      UnspentResponse.UnspentOutput spendFrom = null; // provide utxo outpoint
       byte[] spendFromPrivKey = null; // provide utxo private key
       long spendFromValue = 12345678; // provide utxo value
 
@@ -117,7 +118,7 @@ public class JavaExample {
       try {
         Tx0 tx0 =
             whirlpoolWallet.tx0(
-                spendFromOutpoint, spendFromPrivKey, spendFromValue, pool, feeTarget);
+                    spendFrom, spendFromPrivKey, spendFromValue, pool, feeTarget);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed
