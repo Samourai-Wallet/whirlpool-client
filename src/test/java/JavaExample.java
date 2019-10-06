@@ -21,6 +21,7 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import java.io.File;
 import java.util.Collection;
+import java8.util.Lists;
 import org.bitcoinj.core.NetworkParameters;
 
 public class JavaExample {
@@ -115,7 +116,9 @@ public class JavaExample {
 
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(spendFrom, spendFromPrivKey, spendFromValue, pool, feeTarget);
+        Tx0 tx0 =
+            whirlpoolWallet.tx0(
+                Lists.of(spendFrom), spendFromPrivKey, spendFromValue, pool, feeTarget);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed

@@ -315,7 +315,14 @@ public class WhirlpoolWallet {
       }
       int feePremix = getFeePremix();
       Tx0 tx0 =
-          tx0(utxoSpendFrom, spendFromPrivKey, spendFromValue, pool, feeTx0, feePremix, maxOutputs);
+          tx0(
+              Lists.of(utxoSpendFrom),
+              spendFromPrivKey,
+              spendFromValue,
+              pool,
+              feeTx0,
+              feePremix,
+              maxOutputs);
 
       // success
       whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_SUCCESS, true, 100);
@@ -335,7 +342,7 @@ public class WhirlpoolWallet {
   }
 
   public Tx0 tx0(
-      UnspentOutput spendFromOutpoint,
+      Collection<UnspentOutput> spendFromOutpoints,
       byte[] spendFromPrivKey,
       long spendFromValue,
       Pool pool,
@@ -343,7 +350,7 @@ public class WhirlpoolWallet {
       throws Exception {
     int feeTx0 = getFee(feeTarget);
     return tx0(
-        spendFromOutpoint,
+        spendFromOutpoints,
         spendFromPrivKey,
         spendFromValue,
         pool,
@@ -353,7 +360,7 @@ public class WhirlpoolWallet {
   }
 
   public Tx0 tx0(
-      UnspentOutput spendFromOutpoint,
+      Collection<UnspentOutput> spendFromOutpoints,
       byte[] spendFromPrivKey,
       long spendFromValue,
       Pool pool,
@@ -378,7 +385,7 @@ public class WhirlpoolWallet {
               .getTx0Service()
               .tx0(
                   spendFromPrivKey,
-                  Lists.of(spendFromOutpoint),
+                  spendFromOutpoints,
                   depositWallet,
                   premixWallet,
                   feeTx0,
