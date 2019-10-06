@@ -4,6 +4,8 @@ import com.samourai.api.client.SamouraiApi;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.api.backend.SamouraiFeeTarget;
+import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
+import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
@@ -42,6 +44,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private SamouraiFeeTarget feeTargetPremix;
 
   private Tx0Service tx0Service;
+  private ISecretPointFactory secretPointFactory;
 
   public WhirlpoolWalletConfig(
       IHttpClient httpClient,
@@ -78,6 +81,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.feeTargetPremix = SamouraiFeeTarget.BLOCKS_12;
 
     this.tx0Service = new Tx0Service(this);
+    this.secretPointFactory = SecretPointFactoryJava.getInstance();
   }
 
   public Integer getMaxClients() {
@@ -246,6 +250,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setTx0Service(Tx0Service tx0Service) {
     this.tx0Service = tx0Service;
+  }
+
+  public ISecretPointFactory getSecretPointFactory() {
+    return secretPointFactory;
+  }
+
+  public void setSecretPointFactory(ISecretPointFactory secretPointFactory) {
+    this.secretPointFactory = secretPointFactory;
   }
 
   public Map<String, String> getConfigInfo() {

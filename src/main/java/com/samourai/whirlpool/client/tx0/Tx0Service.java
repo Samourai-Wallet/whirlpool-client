@@ -32,13 +32,14 @@ public class Tx0Service {
   protected static final int NB_PREMIX_MAX = 600;
 
   private final Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
-  private final WhirlpoolFee whirlpoolFee = WhirlpoolFee.getInstance();
+  private final WhirlpoolFee whirlpoolFee;
   private final FeeUtil feeUtil = FeeUtil.getInstance();
 
   private WhirlpoolWalletConfig config;
 
   public Tx0Service(WhirlpoolWalletConfig config) {
     this.config = config;
+    whirlpoolFee = WhirlpoolFee.getInstance(config.getSecretPointFactory());
   }
 
   private long computePremixValue(Pool pool, int feePremix) {
@@ -160,7 +161,7 @@ public class Tx0Service {
 
   /** Generate maxOutputs premixes outputs max. */
   public Tx0 tx0(
-          Collection<byte[]> spendFromPrivKeys,
+      Collection<byte[]> spendFromPrivKeys,
       Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
@@ -186,7 +187,7 @@ public class Tx0Service {
   }
 
   public Tx0 tx0(
-          Collection<byte[]> spendFromPrivKeys,
+      Collection<byte[]> spendFromPrivKeys,
       Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
@@ -214,12 +215,12 @@ public class Tx0Service {
 
     // check balance min
     final long spendFromBalanceMin =
-            config.getTx0Service().computeSpendFromBalanceMin(pool, feeTx0, feePremix, 1);
+        config.getTx0Service().computeSpendFromBalanceMin(pool, feeTx0, feePremix, 1);
 
     long spendFromBalance = computeSpendFromBalance(depositSpendFroms);
     if (spendFromBalance < spendFromBalanceMin) {
       throw new NotifiableException(
-              "Insufficient utxo value for Tx0: " + spendFromBalance + " < " + spendFromBalanceMin);
+          "Insufficient utxo value for Tx0: " + spendFromBalance + " < " + spendFromBalanceMin);
     }
 
     // compute premixValue for pool
@@ -237,7 +238,7 @@ public class Tx0Service {
   }
 
   protected Tx0 tx0(
-          Collection<byte[]> spendFromPrivKeys,
+      Collection<byte[]> spendFromPrivKeys,
       Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
@@ -249,7 +250,8 @@ public class Tx0Service {
     NetworkParameters params = config.getNetworkParameters();
 
     if (spendFromPrivKeys.size() != depositSpendFroms.size()) {
-      throw new IllegalArgumentException("spendFromPrivKeys count vs depositSpendFroms count mismatch");
+      throw new IllegalArgumentException(
+          "spendFromPrivKeys count vs depositSpendFroms count mismatch");
     }
 
     // compute opReturnValue for feePaymentCode and feePayload
@@ -314,7 +316,7 @@ public class Tx0Service {
   }
 
   protected Tx0 tx0(
-          Collection<byte[]> spendFromPrivKeys,
+      Collection<byte[]> spendFromPrivKeys,
       Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,

@@ -316,7 +316,7 @@ public class WhirlpoolWallet {
       Tx0 tx0 =
           tx0(
               Lists.of(utxoSpendFrom),
-                  Lists.of(spendFromPrivKey),
+              Lists.of(spendFromPrivKey),
               pool,
               feeTx0,
               feePremix,
