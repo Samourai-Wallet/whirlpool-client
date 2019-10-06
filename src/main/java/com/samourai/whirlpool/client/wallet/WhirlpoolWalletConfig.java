@@ -43,8 +43,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int feeFallback;
   private SamouraiFeeTarget feeTargetPremix;
 
-  private Tx0Service tx0Service;
   private ISecretPointFactory secretPointFactory;
+  private Tx0Service tx0Service;
 
   public WhirlpoolWalletConfig(
       IHttpClient httpClient,
@@ -80,8 +80,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.feeFallback = 75;
     this.feeTargetPremix = SamouraiFeeTarget.BLOCKS_12;
 
-    this.tx0Service = new Tx0Service(this);
     this.secretPointFactory = SecretPointFactoryJava.getInstance();
+    this.tx0Service = new Tx0Service(this);
   }
 
   public Integer getMaxClients() {
@@ -244,20 +244,20 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.feeTargetPremix = feeTargetPremix;
   }
 
-  public Tx0Service getTx0Service() {
-    return tx0Service;
-  }
-
-  public void setTx0Service(Tx0Service tx0Service) {
-    this.tx0Service = tx0Service;
-  }
-
   public ISecretPointFactory getSecretPointFactory() {
     return secretPointFactory;
   }
 
   public void setSecretPointFactory(ISecretPointFactory secretPointFactory) {
     this.secretPointFactory = secretPointFactory;
+  }
+
+  public Tx0Service getTx0Service() {
+    return tx0Service;
+  }
+
+  public void setTx0Service(Tx0Service tx0Service) {
+    this.tx0Service = tx0Service;
   }
 
   public Map<String, String> getConfigInfo() {
