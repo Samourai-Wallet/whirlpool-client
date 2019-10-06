@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWalletConfig.class);
 
+
   private Integer maxClients;
   private int maxClientsPerPool;
   private int clientDelay;
