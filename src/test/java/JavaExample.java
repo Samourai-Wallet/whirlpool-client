@@ -21,6 +21,8 @@ import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import java.io.File;
 import java.util.Collection;
+import java.util.List;
+
 import java8.util.Lists;
 import org.bitcoinj.core.NetworkParameters;
 
@@ -108,7 +110,6 @@ public class JavaExample {
       // external utxo for tx0
       UnspentResponse.UnspentOutput spendFrom = null; // provide utxo outpoint
       byte[] spendFromPrivKey = null; // provide utxo private key
-      long spendFromValue = 12345678; // provide utxo value
 
       // pool for tx0
       Pool pool = whirlpoolWallet.findPoolById("0.01btc"); // provide poolId
@@ -118,7 +119,7 @@ public class JavaExample {
       try {
         Tx0 tx0 =
             whirlpoolWallet.tx0(
-                Lists.of(spendFrom), spendFromPrivKey, spendFromValue, pool, feeTarget);
+                Lists.of(spendFrom), Lists.of(spendFromPrivKey), pool, feeTarget);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed

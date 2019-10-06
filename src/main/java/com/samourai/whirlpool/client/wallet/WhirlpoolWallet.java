@@ -307,7 +307,6 @@ public class WhirlpoolWallet {
     try {
       byte[] spendFromPrivKey =
           depositWallet.getAddressAt(utxoSpendFrom).getECKey().getPrivKeyBytes();
-      long spendFromValue = whirlpoolUtxoSpendFrom.getUtxo().value;
 
       int feeTx0 = getFee(feeTarget);
       if (log.isDebugEnabled()) {
@@ -317,8 +316,7 @@ public class WhirlpoolWallet {
       Tx0 tx0 =
           tx0(
               Lists.of(utxoSpendFrom),
-              spendFromPrivKey,
-              spendFromValue,
+                  Lists.of(spendFromPrivKey),
               pool,
               feeTx0,
               feePremix,
@@ -343,16 +341,14 @@ public class WhirlpoolWallet {
 
   public Tx0 tx0(
       Collection<UnspentOutput> spendFromOutpoints,
-      byte[] spendFromPrivKey,
-      long spendFromValue,
+      Collection<byte[]> spendFromPrivKeys,
       Pool pool,
       Tx0FeeTarget feeTarget)
       throws Exception {
     int feeTx0 = getFee(feeTarget);
     return tx0(
         spendFromOutpoints,
-        spendFromPrivKey,
-        spendFromValue,
+        spendFromPrivKeys,
         pool,
         feeTx0,
         getFeePremix(),
@@ -361,21 +357,12 @@ public class WhirlpoolWallet {
 
   public Tx0 tx0(
       Collection<UnspentOutput> spendFromOutpoints,
-      byte[] spendFromPrivKey,
-      long spendFromValue,
+      Collection<byte[]> spendFromPrivKeys,
       Pool pool,
       int feeTx0,
       int feePremix,
       Integer maxOutputs)
       throws Exception {
-
-    // check balance min
-    final long spendFromBalanceMin =
-        config.getTx0Service().computeSpendFromBalanceMin(pool, feeTx0, feePremix, 1);
-    if (spendFromValue < spendFromBalanceMin) {
-      throw new NotifiableException(
-          "Insufficient utxo value for Tx0: " + spendFromValue + " < " + spendFromBalanceMin);
-    }
 
     // run tx0
     int initialPremixIndex = premixWallet.getIndexHandler().get();
@@ -384,7 +371,7 @@ public class WhirlpoolWallet {
           config
               .getTx0Service()
               .tx0(
-                  spendFromPrivKey,
+                  spendFromPrivKeys,
                   spendFromOutpoints,
                   depositWallet,
                   premixWallet,

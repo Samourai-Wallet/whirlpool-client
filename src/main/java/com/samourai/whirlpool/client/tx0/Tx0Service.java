@@ -160,7 +160,7 @@ public class Tx0Service {
 
   /** Generate maxOutputs premixes outputs max. */
   public Tx0 tx0(
-      byte[] spendFromPrivKey,
+          Collection<byte[]> spendFromPrivKeys,
       Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
@@ -174,7 +174,7 @@ public class Tx0Service {
     Tx0Data tx0Data = fetchTx0Data(pool.getPoolId());
 
     return tx0(
-        spendFromPrivKey,
+        spendFromPrivKeys,
         depositSpendFroms,
         depositWallet,
         premixWallet,
@@ -186,7 +186,7 @@ public class Tx0Service {
   }
 
   public Tx0 tx0(
-      byte[] spendFromPrivKey,
+          Collection<byte[]> spendFromPrivKeys,
       Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
@@ -212,11 +212,21 @@ public class Tx0Service {
             + tx0Data
             + "]");
 
+    // check balance min
+    final long spendFromBalanceMin =
+            config.getTx0Service().computeSpendFromBalanceMin(pool, feeTx0, feePremix, 1);
+
+    long spendFromBalance = computeSpendFromBalance(depositSpendFroms);
+    if (spendFromBalance < spendFromBalanceMin) {
+      throw new NotifiableException(
+              "Insufficient utxo value for Tx0: " + spendFromBalance + " < " + spendFromBalanceMin);
+    }
+
     // compute premixValue for pool
     long premixValue = computePremixValue(pool, feePremix);
 
     return tx0(
-        spendFromPrivKey,
+        spendFromPrivKeys,
         depositSpendFroms,
         depositWallet,
         premixWallet,
@@ -227,7 +237,7 @@ public class Tx0Service {
   }
 
   protected Tx0 tx0(
-      byte[] spendFromPrivKey,
+          Collection<byte[]> spendFromPrivKeys,
       Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
@@ -237,6 +247,10 @@ public class Tx0Service {
       Tx0Data tx0Data)
       throws Exception {
     NetworkParameters params = config.getNetworkParameters();
+
+    if (spendFromPrivKeys.size() != depositSpendFroms.size()) {
+      throw new IllegalArgumentException("spendFromPrivKeys count vs depositSpendFroms count mismatch");
+    }
 
     // compute opReturnValue for feePaymentCode and feePayload
     byte[] feePayload = tx0Data.getFeePayload();
@@ -277,7 +291,7 @@ public class Tx0Service {
             feePayload,
             feePaymentCode,
             params,
-            spendFromPrivKey,
+            spendFromPrivKeys.iterator().next(),
             depositSpendFroms.iterator().next().computeOutpoint(params));
     if (log.isDebugEnabled()) {
       log.debug(
@@ -287,7 +301,7 @@ public class Tx0Service {
               + (feePayload != null ? Hex.toHexString(feePayload) : "null"));
     }
     return tx0(
-        spendFromPrivKey,
+        spendFromPrivKeys,
         depositSpendFroms,
         depositWallet,
         premixWallet,
@@ -300,7 +314,7 @@ public class Tx0Service {
   }
 
   protected Tx0 tx0(
-      byte[] spendFromPrivKey,
+          Collection<byte[]> spendFromPrivKeys,
       Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
@@ -359,7 +373,7 @@ public class Tx0Service {
 
     Transaction tx =
         buildTx0(
-            spendFromPrivKey,
+            spendFromPrivKeys,
             depositSpendFroms,
             depositWallet,
             premixWallet,
@@ -407,7 +421,7 @@ public class Tx0Service {
   }
 
   protected Transaction buildTx0(
-      byte[] spendFromPrivKey,
+      Collection<byte[]> spendFromPrivKeys,
       Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
@@ -522,9 +536,8 @@ public class Tx0Service {
     }
 
     // input
-    ECKey spendFromKey = ECKey.fromPrivate(spendFromPrivKey);
-
-    // TODO handle multiple depositSpendFroms
+    // TODO handle multiple depositSpendFroms & spendFromPrivKeys
+    ECKey spendFromKey = ECKey.fromPrivate(spendFromPrivKeys.iterator().next());
     TransactionOutPoint depositSpendFrom =
         depositSpendFroms.iterator().next().computeOutpoint(params);
     final Script segwitPubkeyScript = ScriptBuilder.createP2WPKHOutputScript(spendFromKey);
