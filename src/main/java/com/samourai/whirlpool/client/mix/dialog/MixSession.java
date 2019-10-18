@@ -212,20 +212,12 @@ public class MixSession {
     return new IStompTransportListener() {
 
       @Override
-      public synchronized void onTransportConnected(String stompUsername) {
+      public synchronized void onTransportConnected() {
         if (log.isDebugEnabled()) {
           long elapsedTime = (System.currentTimeMillis() - connectBeginTime) / 1000;
           log.debug("Connected in " + elapsedTime + "s");
         }
         connectBeginTime = null;
-
-        if (stompUsername == null) {
-          // no way to get stompUsername on Android?
-          stompUsername = "android";
-        }
-        if (log.isDebugEnabled()) {
-          log.debug("connected => stompUsername=" + stompUsername);
-        }
 
         // will get SubscribePoolResponse and start dialog
         subscribe();

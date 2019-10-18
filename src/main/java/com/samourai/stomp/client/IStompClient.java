@@ -7,7 +7,7 @@ public interface IStompClient {
   void connect(
       String url,
       Map<String, String> stompHeaders,
-      MessageErrorListener<IStompMessage, Throwable> onConnectOnDisconnectListener);
+      MessageErrorListener<Void, Throwable> onConnectOnDisconnectListener);
 
   void subscribe(
       Map<String, String> stompHeaders,

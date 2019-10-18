@@ -2,7 +2,7 @@ package com.samourai.stomp.client;
 
 public interface IStompTransportListener {
 
-  void onTransportConnected(String stompUsername);
+  void onTransportConnected();
 
   void onTransportDisconnected(Throwable exception);
 }

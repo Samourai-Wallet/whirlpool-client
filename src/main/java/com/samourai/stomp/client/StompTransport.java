@@ -33,19 +33,12 @@ public class StompTransport {
     stompClient.connect(
         wsUrl,
         connectHeaders,
-        new MessageErrorListener<IStompMessage, Throwable>() {
+        new MessageErrorListener<Void, Throwable>() {
           // onConnect
           @Override
-          public void onMessage(IStompMessage connectedHeaders) {
+          public void onMessage(Void foo) {
             if (!done) {
-              String stompUsername = null;
-              if (connectedHeaders != null) { // no way to get connectedHeaders on Android?
-                stompUsername = connectedHeaders.getStompHeader(HEADER_USERNAME);
-              }
-              if (log.isDebugEnabled()) {
-                log.debug("stompUsername=" + (stompUsername != null ? stompUsername : "null"));
-              }
-              listener.onTransportConnected(stompUsername);
+              listener.onTransportConnected();
             } else {
               if (log.isDebugEnabled()) {
                 log.debug("onMessage: message ignored (done=true)");
