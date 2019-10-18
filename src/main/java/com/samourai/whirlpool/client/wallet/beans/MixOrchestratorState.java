@@ -13,6 +13,11 @@ public class MixOrchestratorState {
     this.nbQueued = nbQueued;
   }
 
+  @Override
+  public String toString() {
+    return nbQueued + " queued, " + nbMixing + " mixing: " + utxosMixing;
+  }
+
   public Collection<WhirlpoolUtxo> getUtxosMixing() {
     return utxosMixing;
   }
