@@ -28,7 +28,7 @@ public class StompTransport {
     this.listener = listener;
   }
 
-  public String connect(String wsUrl, Map<String, String> connectHeaders) {
+  public void connect(String wsUrl, Map<String, String> connectHeaders) {
     done = false;
     stompClient.connect(
         wsUrl,
@@ -66,9 +66,6 @@ public class StompTransport {
             }
           }
         });
-
-    String stompSessionId = stompClient.getSessionId();
-    return stompSessionId;
   }
 
   public void subscribe(

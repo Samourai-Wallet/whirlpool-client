@@ -9,8 +9,6 @@ public interface IStompClient {
       Map<String, String> stompHeaders,
       MessageErrorListener<IStompMessage, Throwable> onConnectOnDisconnectListener);
 
-  String getSessionId();
-
   void subscribe(
       Map<String, String> stompHeaders,
       MessageErrorListener<IStompMessage, String> onMessageOnErrorListener);
