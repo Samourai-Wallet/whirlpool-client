@@ -1,23 +1,30 @@
 package com.samourai.whirlpool.client.tx0;
 
-import com.samourai.whirlpool.protocol.beans.Utxo;
 import java.util.List;
 import org.bitcoinj.core.Transaction;
+import org.bitcoinj.core.TransactionOutput;
 
 public class Tx0 {
   private Transaction tx;
-  private List<Utxo> premixUtxos;
+  private List<TransactionOutput> premixOutputs;
+  private TransactionOutput changeOutput;
 
-  public Tx0(Transaction tx, List<Utxo> premixUtxos) {
+  public Tx0(
+      Transaction tx, List<TransactionOutput> premixOutputs, TransactionOutput changeOutput) {
     this.tx = tx;
-    this.premixUtxos = premixUtxos;
+    this.premixOutputs = premixOutputs;
+    this.changeOutput = changeOutput;
   }
 
   public Transaction getTx() {
     return tx;
   }
 
-  public List<Utxo> getPremixUtxos() {
-    return premixUtxos;
+  public List<TransactionOutput> getPremixOutputs() {
+    return premixOutputs;
+  }
+
+  public TransactionOutput getChangeOutput() {
+    return changeOutput;
   }
 }

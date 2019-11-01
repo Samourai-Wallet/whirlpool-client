@@ -384,7 +384,7 @@ public class WhirlpoolWallet {
           " • Tx0 result: txid="
               + tx0.getTx().getHashAsString()
               + ", nbPremixs="
-              + tx0.getPremixUtxos().size());
+              + tx0.getPremixOutputs().size());
       if (log.isDebugEnabled()) {
         log.debug(tx0.getTx().toString());
       }

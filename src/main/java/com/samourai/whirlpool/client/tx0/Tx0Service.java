@@ -13,7 +13,6 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.beans.Utxo;
 import com.samourai.whirlpool.protocol.fee.WhirlpoolFee;
 import com.samourai.whirlpool.protocol.rest.Tx0DataResponse;
 import java.util.*;
@@ -373,7 +372,7 @@ public class Tx0Service {
     // tx0
     //
 
-    Transaction tx =
+    Tx0 tx0 =
         buildTx0(
             spendFromPrivKeys,
             depositSpendFroms,
@@ -388,6 +387,7 @@ public class Tx0Service {
             tx0MinerFee,
             changeValue);
 
+    Transaction tx = tx0.getTx();
     final String hexTx = new String(Hex.encode(tx.bitcoinSerialize()));
     final String strTxHash = tx.getHashAsString();
 
@@ -399,13 +399,7 @@ public class Tx0Service {
       long feePrice = tx0MinerFee / tx.getVirtualTransactionSize();
       log.debug("Tx0 size: " + tx.getVirtualTransactionSize() + "b, feePrice=" + feePrice + "s/b");
     }
-
-    List<Utxo> premixUtxos = new ArrayList<Utxo>();
-    for (TransactionOutput to : tx.getOutputs()) {
-      Utxo utxo = new Utxo(strTxHash, to.getIndex());
-      premixUtxos.add(utxo);
-    }
-    return new Tx0(tx, premixUtxos);
+    return tx0;
   }
 
   protected long computeSpendFromBalance(Collection<UnspentResponse.UnspentOutput> spendFroms) {
@@ -422,7 +416,7 @@ public class Tx0Service {
     return balance;
   }
 
-  protected Transaction buildTx0(
+  protected Tx0 buildTx0(
       Collection<byte[]> spendFromPrivKeys,
       Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
       Bip84Wallet depositWallet,
@@ -454,6 +448,7 @@ public class Tx0Service {
     //
     // premix outputs
     //
+    List<TransactionOutput> premixOutputs = new ArrayList<TransactionOutput>();
     for (int j = 0; j < nbPremix; j++) {
       // send to PREMIX
       HD_Address toAddress = premixWallet.getNextAddress();
@@ -472,17 +467,18 @@ public class Tx0Service {
       TransactionOutput txOutSpend =
           bech32Util.getTransactionOutput(toAddressBech32, premixValue, params);
       outputs.add(txOutSpend);
+      premixOutputs.add(txOutSpend);
     }
 
+    TransactionOutput changeOutput = null;
     if (changeValue > 0) {
       //
       // 1 change output
       //
       HD_Address changeAddress = depositWallet.getNextChangeAddress();
       String changeAddressBech32 = bech32Util.toBech32(changeAddress, params);
-      TransactionOutput txChange =
-          bech32Util.getTransactionOutput(changeAddressBech32, changeValue, params);
-      outputs.add(txChange);
+      changeOutput = bech32Util.getTransactionOutput(changeAddressBech32, changeValue, params);
+      outputs.add(changeOutput);
       if (log.isDebugEnabled()) {
         log.debug(
             "Tx0 out (change): address="
@@ -554,7 +550,9 @@ public class Tx0Service {
       log.debug("Tx0 fee: " + tx0MinerFee + " sats");
     }
     tx.verify();
-    return tx;
+
+    Tx0 tx0 = new Tx0(tx, premixOutputs, changeOutput);
+    return tx0;
   }
 
   public Collection<Pool> findPools(
