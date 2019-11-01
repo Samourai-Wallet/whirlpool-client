@@ -7,17 +7,9 @@ import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
-import com.samourai.whirlpool.client.wallet.beans.MixOrchestratorState;
-import com.samourai.whirlpool.client.wallet.beans.MixableStatus;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoPriorityComparator;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
+import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java8.util.Optional;
 import java8.util.function.Function;
 import java8.util.function.Predicate;
@@ -27,6 +19,9 @@ import java8.util.stream.StreamSupport;
 import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MixOrchestrator extends AbstractOrchestrator {
   private final Logger log = LoggerFactory.getLogger(MixOrchestrator.class);
@@ -71,10 +66,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
   public synchronized void stopMixingClients() {
     for (Mixing oneMixing : mixing.values()) {
-      if (log.isDebugEnabled()) {
-        log.debug("Stopping mixing client: " + oneMixing.getUtxo());
-      }
-      oneMixing.getWhirlpoolClient().exit();
+      mixStop(oneMixing);
     }
     mixing.clear();
     mixingHashs.clear();
@@ -381,8 +373,26 @@ public class MixOrchestrator extends AbstractOrchestrator {
     Mixing myMixing = mixing.get(key);
     if (myMixing != null) {
       // already mixing
-      myMixing.getWhirlpoolClient().exit();
+      mixStop(myMixing);
+    } else {
+      log.warn("mixStop ignored: not mixing");
     }
+  }
+
+  protected void mixStop(final Mixing mixing) {
+    if (log.isDebugEnabled()) {
+      log.debug("Stopping mixing client: " + mixing);
+    }
+    final WhirlpoolUtxo whirlpoolUtxo = mixing.getUtxo();
+
+    // stop in new thread for faster response
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        mixing.getWhirlpoolClient().exit();
+      }
+    }, "whirlpoolClient-stop-"+whirlpoolUtxo);
+
     removeMixing(whirlpoolUtxo);
     whirlpoolUtxo.setStatus(WhirlpoolUtxoStatus.READY, false);
   }
@@ -520,6 +530,11 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
     public long getSince() {
       return since;
+    }
+
+    @Override
+    public String toString() {
+      return "poolId="+poolId+", utxo=["+utxo+"]";
     }
   }
 }
