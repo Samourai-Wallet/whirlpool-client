@@ -60,7 +60,7 @@ public class FileWhirlpoolUtxoConfigHandler {
     return (lastSet > lastWrite);
   }
 
-  public void loadUtxoConfigs(final WhirlpoolWallet whirlpoolWallet) {
+  public synchronized void loadUtxoConfigs(final WhirlpoolWallet whirlpoolWallet) {
     try {
       utxoConfigs.clear();
       if (file.exists() && file.length() > 0) {
@@ -129,7 +129,7 @@ public class FileWhirlpoolUtxoConfigHandler {
     }
   }
 
-  private void write() throws Exception {
+  private synchronized void write() throws Exception {
     if (log.isDebugEnabled()) {
       log.debug("write");
     }

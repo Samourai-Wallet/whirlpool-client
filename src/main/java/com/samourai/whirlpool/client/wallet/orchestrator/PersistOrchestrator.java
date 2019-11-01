@@ -22,6 +22,17 @@ public class PersistOrchestrator extends AbstractOrchestrator {
   }
 
   @Override
+  public synchronized void stop() {
+    super.stop();
+
+    try {
+      persist();
+    } catch (Exception e) {
+      log.error("", e);
+    }
+  }
+
+  @Override
   protected void runOrchestrator() {
     try {
       long now = System.currentTimeMillis();
