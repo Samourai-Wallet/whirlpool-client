@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.api.client.WhirlpoolBackendApi;
+import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.client.Bip84ApiWallet;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Wallet;
@@ -41,7 +41,7 @@ public class WhirlpoolWalletService {
 
   public WhirlpoolWallet openWallet(WhirlpoolWalletConfig config, HD_Wallet bip84w)
       throws Exception {
-    WhirlpoolBackendApi backendApi = config.getBackendApi();
+    BackendApi backendApi = config.getBackendApi();
 
     WhirlpoolWalletPersistHandler walletPersistHandler = config.getPersistHandler();
 

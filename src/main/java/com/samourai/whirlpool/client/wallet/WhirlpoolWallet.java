@@ -390,7 +390,12 @@ public class WhirlpoolWallet {
       }
 
       // pushTx
-      config.getBackendApi().pushTx(ClientUtils.getTxHex(tx0.getTx()));
+      try {
+        config.getBackendApi().pushTx(ClientUtils.getTxHex(tx0.getTx()));
+      } catch (Exception e) {
+        // preserve pushTx message
+        throw new NotifiableException(e.getMessage());
+      }
 
       // refresh utxos
       ClientUtils.sleepRefreshUtxos(config.getNetworkParameters());

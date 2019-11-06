@@ -1,6 +1,6 @@
-import com.samourai.api.client.WhirlpoolBackendApi;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClientService;
+import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.hd.HD_Wallet;
@@ -39,7 +39,7 @@ public class JavaExample {
     boolean onion = true;
     String serverUrl = whirlpoolServer.getServerUrl(onion);
     String backendUrl = BackendServer.TESTNET.getBackendUrl(onion);
-    WhirlpoolBackendApi backendApi = new WhirlpoolBackendApi(httpClient, backendUrl, null);
+    BackendApi backendApi = new BackendApi(httpClient, backendUrl, null);
 
     NetworkParameters params = whirlpoolServer.getParams();
     WhirlpoolWalletConfig whirlpoolWalletConfig =

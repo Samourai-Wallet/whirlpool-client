@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.persist;
 
-import com.samourai.api.client.WhirlpoolBackendApi;
+import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
@@ -44,7 +44,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     persistHandler.setInitialized(true);
 
     String backendUrl = BackendServer.TESTNET.getBackendUrl(false);
-    this.whirlpoolWallet = computeWallet(new WhirlpoolBackendApi(null, backendUrl, null));
+    this.whirlpoolWallet = computeWallet(new BackendApi(null, backendUrl, null));
   }
 
   private void reload() {
@@ -132,7 +132,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     Assertions.assertEquals(5, persistHandler.getUtxoConfig("foo", 1).getMixsTarget());
   }
 
-  private WhirlpoolWallet computeWallet(WhirlpoolBackendApi backendApi) throws Exception {
+  private WhirlpoolWallet computeWallet(BackendApi backendApi) throws Exception {
     byte[] seed =
         hdWalletFactory.computeSeedFromWords("all all all all all all all all all all all all");
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, "foo", params);

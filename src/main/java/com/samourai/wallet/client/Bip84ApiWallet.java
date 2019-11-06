@@ -1,6 +1,6 @@
 package com.samourai.wallet.client;
 
-import com.samourai.api.client.WhirlpoolBackendApi;
+import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.beans.MultiAddrResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
@@ -16,14 +16,14 @@ public class Bip84ApiWallet extends Bip84Wallet {
   private static final Logger log = LoggerFactory.getLogger(Bip84ApiWallet.class);
   private static final int INIT_BIP84_RETRY = 3;
   private static final int INIT_BIP84_RETRY_TIMEOUT = 5000;
-  private WhirlpoolBackendApi backendApi;
+  private BackendApi backendApi;
 
   public Bip84ApiWallet(
       HD_Wallet bip84w,
       int accountIndex,
       IIndexHandler indexHandler,
       IIndexHandler indexChangeHandler,
-      WhirlpoolBackendApi backendApi,
+      BackendApi backendApi,
       boolean init)
       throws Exception {
     this(bip84w, accountIndex, indexHandler, indexChangeHandler, backendApi, init, null, null);
@@ -34,7 +34,7 @@ public class Bip84ApiWallet extends Bip84Wallet {
       int accountIndex,
       IIndexHandler indexHandler,
       IIndexHandler indexChangeHandler,
-      WhirlpoolBackendApi backendApi,
+      BackendApi backendApi,
       boolean init,
       Integer accountIndexApi,
       Integer changeIndexApi)

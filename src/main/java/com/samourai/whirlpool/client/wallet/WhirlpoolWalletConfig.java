@@ -1,8 +1,8 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.api.client.WhirlpoolBackendApi;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClientService;
+import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
@@ -27,7 +27,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private Tx0FeeTarget autoTx0FeeTarget;
   private boolean autoMix;
 
-  private WhirlpoolBackendApi backendApi;
+  private BackendApi backendApi;
   private int tx0Delay;
   private int tx0MinConfirmations;
   private Integer tx0MaxOutputs;
@@ -52,7 +52,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters params,
-      WhirlpoolBackendApi backendApi) {
+      BackendApi backendApi) {
     super(httpClient, stompClientService, persistHandler, server, params);
 
     // default settings
@@ -136,7 +136,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.autoMix = autoMix;
   }
 
-  public WhirlpoolBackendApi getBackendApi() {
+  public BackendApi getBackendApi() {
     return backendApi;
   }
 
