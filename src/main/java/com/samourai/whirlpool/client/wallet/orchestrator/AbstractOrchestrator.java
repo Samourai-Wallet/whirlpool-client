@@ -51,9 +51,7 @@ public abstract class AbstractOrchestrator {
                 }
                 while (started) {
                   lastRunSetInLoop = false;
-                  log.debug("run." + started);
                   runOrchestrator();
-                  log.debug("runned." + started);
 
                   // orchestrator may have been stopped in the meantime, as function is not
                   // synchronized
