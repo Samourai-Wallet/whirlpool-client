@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.wallet.api.backend.SamouraiFeeTarget;
+import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84ApiWallet;
@@ -390,7 +390,7 @@ public class WhirlpoolWallet {
       }
 
       // pushTx
-      config.getSamouraiApi().pushTx(ClientUtils.getTxHex(tx0.getTx()));
+      config.getBackendApi().pushTx(ClientUtils.getTxHex(tx0.getTx()));
 
       // refresh utxos
       ClientUtils.sleepRefreshUtxos(config.getNetworkParameters());
@@ -404,7 +404,7 @@ public class WhirlpoolWallet {
     }
   }
 
-  public void start() {
+  public synchronized void start() {
     if (isStarted()) {
       log.warn("NOT starting WhirlpoolWallet: already started");
       return;
@@ -432,7 +432,7 @@ public class WhirlpoolWallet {
     }
   }
 
-  public void stop() {
+  public synchronized void stop() {
     if (!isStarted()) {
       log.warn("NOT stopping WhirlpoolWallet: not started");
       return;
@@ -491,7 +491,7 @@ public class WhirlpoolWallet {
     return getFee(feeTarget.getFeeTarget());
   }
 
-  public int getFee(SamouraiFeeTarget feeTarget) {
+  public int getFee(MinerFeeTarget feeTarget) {
     return cacheData.getFeeSatPerByte(feeTarget);
   }
 

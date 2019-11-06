@@ -1,6 +1,6 @@
 package com.samourai.wallet.client;
 
-import com.samourai.api.client.SamouraiApi;
+import com.samourai.api.client.WhirlpoolBackendApi;
 import com.samourai.wallet.api.backend.beans.MultiAddrResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
@@ -16,17 +16,17 @@ public class Bip84ApiWallet extends Bip84Wallet {
   private static final Logger log = LoggerFactory.getLogger(Bip84ApiWallet.class);
   private static final int INIT_BIP84_RETRY = 3;
   private static final int INIT_BIP84_RETRY_TIMEOUT = 5000;
-  private SamouraiApi samouraiApi;
+  private WhirlpoolBackendApi backendApi;
 
   public Bip84ApiWallet(
       HD_Wallet bip84w,
       int accountIndex,
       IIndexHandler indexHandler,
       IIndexHandler indexChangeHandler,
-      SamouraiApi samouraiApi,
+      WhirlpoolBackendApi backendApi,
       boolean init)
       throws Exception {
-    this(bip84w, accountIndex, indexHandler, indexChangeHandler, samouraiApi, init, null, null);
+    this(bip84w, accountIndex, indexHandler, indexChangeHandler, backendApi, init, null, null);
   }
 
   public Bip84ApiWallet(
@@ -34,13 +34,13 @@ public class Bip84ApiWallet extends Bip84Wallet {
       int accountIndex,
       IIndexHandler indexHandler,
       IIndexHandler indexChangeHandler,
-      SamouraiApi samouraiApi,
+      WhirlpoolBackendApi backendApi,
       boolean init,
       Integer accountIndexApi,
       Integer changeIndexApi)
       throws Exception {
     super(bip84w, accountIndex, indexHandler, indexChangeHandler);
-    this.samouraiApi = samouraiApi;
+    this.backendApi = backendApi;
 
     if (init) {
       initBip84();
@@ -92,12 +92,12 @@ public class Bip84ApiWallet extends Bip84Wallet {
 
   public List<UnspentOutput> fetchUtxos() throws Exception {
     String zpub = getZpub();
-    return samouraiApi.fetchUtxos(zpub);
+    return backendApi.fetchUtxos(zpub);
   }
 
   private MultiAddrResponse.Address fetchAddress() throws Exception {
     String zpub = getZpub();
-    MultiAddrResponse.Address address = samouraiApi.fetchAddress(zpub);
+    MultiAddrResponse.Address address = backendApi.fetchAddress(zpub);
     if (address == null) {
       throw new Exception("Address not found");
     }
@@ -108,7 +108,7 @@ public class Bip84ApiWallet extends Bip84Wallet {
     for (int i = 0; i < INIT_BIP84_RETRY; i++) {
       log.info(" • Initializing bip84 wallet: " + accountIndex);
       try {
-        samouraiApi.initBip84(getZpub());
+        backendApi.initBip84(getZpub());
         return; // success
       } catch (Exception e) {
         if (log.isDebugEnabled()) {

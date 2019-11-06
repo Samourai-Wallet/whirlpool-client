@@ -2,8 +2,8 @@ package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
-import com.samourai.wallet.api.backend.SamouraiFee;
-import com.samourai.wallet.api.backend.SamouraiFeeTarget;
+import com.samourai.wallet.api.backend.MinerFee;
+import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84ApiWallet;
 import com.samourai.whirlpool.client.WhirlpoolClient;
@@ -35,7 +35,7 @@ public class WhirlpoolWalletCacheData {
   private WhirlpoolClient whirlpoolClient;
 
   // fee
-  private Supplier<Throwing<SamouraiFee, Exception>> samouraiFee;
+  private Supplier<Throwing<MinerFee, Exception>> minerFee;
 
   // pools
   private Supplier<Throwing<Pools, Exception>> poolsResponse;
@@ -56,7 +56,7 @@ public class WhirlpoolWalletCacheData {
     this.whirlpoolClient = whirlpoolClient;
 
     // fee
-    this.samouraiFee =
+    this.minerFee =
         Suppliers.memoizeWithExpiration(
             initFeeSatPerByte().attempts(ATTEMPTS), config.getRefreshFeeDelay(), TimeUnit.SECONDS);
 
@@ -74,10 +74,10 @@ public class WhirlpoolWalletCacheData {
   }
 
   // FEES
-  public int getFeeSatPerByte(SamouraiFeeTarget feeTarget) {
+  public int getFeeSatPerByte(MinerFeeTarget feeTarget) {
     int fee;
     try {
-      fee = samouraiFee.get().getOrThrow().get(feeTarget);
+      fee = minerFee.get().getOrThrow().get(feeTarget);
     } catch (Exception e) {
       log.error("Could not fetch fee/b => fallback to " + config.getFeeFallback());
       fee = config.getFeeFallback();
@@ -97,14 +97,14 @@ public class WhirlpoolWalletCacheData {
     return fee;
   }
 
-  private ThrowingSupplier<SamouraiFee, Exception> initFeeSatPerByte() {
-    return new LastValueFallbackSupplier<SamouraiFee, Exception>() {
+  private ThrowingSupplier<MinerFee, Exception> initFeeSatPerByte() {
+    return new LastValueFallbackSupplier<MinerFee, Exception>() {
       @Override
-      public SamouraiFee getOrThrow() throws Exception {
+      public MinerFee getOrThrow() throws Exception {
         if (log.isDebugEnabled()) {
-          log.debug("fetching samouraiFee");
+          log.debug("fetching minerFee");
         }
-        return config.getSamouraiApi().fetchFees();
+        return config.getBackendApi().fetchMinerFee();
       }
     };
   }

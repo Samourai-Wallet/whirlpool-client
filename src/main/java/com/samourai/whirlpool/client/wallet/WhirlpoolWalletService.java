@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.api.client.SamouraiApi;
+import com.samourai.api.client.WhirlpoolBackendApi;
 import com.samourai.wallet.client.Bip84ApiWallet;
 import com.samourai.wallet.client.indexHandler.IIndexHandler;
 import com.samourai.wallet.hd.HD_Wallet;
@@ -41,7 +41,7 @@ public class WhirlpoolWalletService {
 
   public WhirlpoolWallet openWallet(WhirlpoolWalletConfig config, HD_Wallet bip84w)
       throws Exception {
-    SamouraiApi samouraiApi = config.getSamouraiApi();
+    WhirlpoolBackendApi backendApi = config.getBackendApi();
 
     WhirlpoolWalletPersistHandler walletPersistHandler = config.getPersistHandler();
 
@@ -63,7 +63,7 @@ public class WhirlpoolWalletService {
             WhirlpoolWalletAccount.DEPOSIT.getAccountIndex(),
             depositIndexHandler,
             depositChangeIndexHandler,
-            samouraiApi,
+            backendApi,
             init);
     Bip84ApiWallet premixWallet =
         new Bip84ApiWallet(
@@ -71,7 +71,7 @@ public class WhirlpoolWalletService {
             WhirlpoolWalletAccount.PREMIX.getAccountIndex(),
             premixIndexHandler,
             premixChangeIndexHandler,
-            samouraiApi,
+            backendApi,
             init);
     Bip84ApiWallet postmixWallet =
         new Bip84ApiWallet(
@@ -79,7 +79,7 @@ public class WhirlpoolWalletService {
             WhirlpoolWalletAccount.POSTMIX.getAccountIndex(),
             postmixIndexHandler,
             postmixChangeIndexHandler,
-            samouraiApi,
+            backendApi,
             init);
 
     if (init) {

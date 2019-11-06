@@ -1,9 +1,9 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.api.client.SamouraiApi;
+import com.samourai.api.client.WhirlpoolBackendApi;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClientService;
-import com.samourai.wallet.api.backend.SamouraiFeeTarget;
+import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.bip47.rpc.java.SecretPointFactoryJava;
 import com.samourai.wallet.bip47.rpc.secretPoint.ISecretPointFactory;
 import com.samourai.whirlpool.client.tx0.Tx0Service;
@@ -27,7 +27,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private Tx0FeeTarget autoTx0FeeTarget;
   private boolean autoMix;
 
-  private SamouraiApi samouraiApi;
+  private WhirlpoolBackendApi backendApi;
   private int tx0Delay;
   private int tx0MinConfirmations;
   private Integer tx0MaxOutputs;
@@ -41,7 +41,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int feeMin;
   private int feeMax;
   private int feeFallback;
-  private SamouraiFeeTarget feeTargetPremix;
+  private MinerFeeTarget feeTargetPremix;
 
   private ISecretPointFactory secretPointFactory;
   private Tx0Service tx0Service;
@@ -52,7 +52,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters params,
-      SamouraiApi samouraiApi) {
+      WhirlpoolBackendApi backendApi) {
     super(httpClient, stompClientService, persistHandler, server, params);
 
     // default settings
@@ -64,7 +64,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.autoMix = false;
 
     // technical settings
-    this.samouraiApi = samouraiApi;
+    this.backendApi = backendApi;
     this.tx0Delay = 30;
     this.tx0MinConfirmations = 1;
     this.tx0MaxOutputs = null; // spend whole utxo when possible
@@ -72,13 +72,13 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.refreshFeeDelay = 300; // 5min
     this.refreshPoolsDelay = 300; // 5min
     this.mixsTarget = 1;
-    this.persistDelay = 2; // 2s
+    this.persistDelay = 4; // 4s
     this.persistCleanDelay = 300; // 5min
 
     this.feeMin = 1;
     this.feeMax = 510;
     this.feeFallback = 75;
-    this.feeTargetPremix = SamouraiFeeTarget.BLOCKS_12;
+    this.feeTargetPremix = MinerFeeTarget.BLOCKS_12;
 
     this.secretPointFactory = SecretPointFactoryJava.getInstance();
     this.tx0Service = new Tx0Service(this);
@@ -136,8 +136,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.autoMix = autoMix;
   }
 
-  public SamouraiApi getSamouraiApi() {
-    return samouraiApi;
+  public WhirlpoolBackendApi getBackendApi() {
+    return backendApi;
   }
 
   public int getTx0Delay() {
@@ -236,11 +236,11 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.feeFallback = feeFallback;
   }
 
-  public SamouraiFeeTarget getFeeTargetPremix() {
+  public MinerFeeTarget getFeeTargetPremix() {
     return feeTargetPremix;
   }
 
-  public void setFeeTargetPremix(SamouraiFeeTarget feeTargetPremix) {
+  public void setFeeTargetPremix(MinerFeeTarget feeTargetPremix) {
     this.feeTargetPremix = feeTargetPremix;
   }
 

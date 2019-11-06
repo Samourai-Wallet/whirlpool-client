@@ -7,20 +7,23 @@ public abstract class AbstractOrchestrator {
   private Logger log;
   private final int LOOP_DELAY;
   private final int START_DELAY;
+  private final Integer LAST_RUN_DELAY;
 
   private boolean started;
   protected Thread myThread;
   private boolean dontDisturb;
   private long lastRun;
+  private boolean lastRunSetInLoop;
 
   public AbstractOrchestrator(int loopDelay) {
-    this(loopDelay, 0);
+    this(loopDelay, 0, null);
   }
 
-  public AbstractOrchestrator(int loopDelay, int startDelay) {
+  public AbstractOrchestrator(int loopDelay, int startDelay, Integer lastRunDelay) {
     this.log = LoggerFactory.getLogger(getClass().getName());
     this.LOOP_DELAY = loopDelay;
     this.START_DELAY = startDelay;
+    this.LAST_RUN_DELAY = lastRunDelay;
     resetOrchestrator();
   }
 
@@ -47,11 +50,21 @@ public abstract class AbstractOrchestrator {
                   doSleep(START_DELAY);
                 }
                 while (started) {
+                  lastRunSetInLoop = false;
+                  log.debug("run." + started);
                   runOrchestrator();
+                  log.debug("runned." + started);
 
                   // orchestrator may have been stopped in the meantime, as function is not
                   // synchronized
-                  doSleep(LOOP_DELAY);
+                  if (lastRunSetInLoop && LAST_RUN_DELAY != null) {
+                    // wait for lastRunDelay if we did run in this loop
+                    waitForLastRunDelay(LAST_RUN_DELAY);
+                  } else {
+                    doSleep(LOOP_DELAY);
+                  }
+
+                  lastRunSetInLoop = false;
                 }
 
                 // thread exiting
@@ -68,6 +81,10 @@ public abstract class AbstractOrchestrator {
 
   protected abstract void runOrchestrator();
 
+  public void quickStop() {
+    this.started = false;
+  }
+
   public synchronized void stop() {
     if (!isStarted()) {
       log.error("Cannot stop: not started");
@@ -76,9 +93,15 @@ public abstract class AbstractOrchestrator {
     if (log.isDebugEnabled()) {
       log.debug("Ending...");
     }
+    this.started = false;
+    if (log.isDebugEnabled()) {
+      log.debug("Ended.");
+    }
     synchronized (myThread) {
-      this.started = false;
       myThread.notify();
+    }
+    if (log.isDebugEnabled()) {
+      log.debug("Ended notified.");
     }
   }
 
@@ -94,7 +117,7 @@ public abstract class AbstractOrchestrator {
     }
   }
 
-  protected synchronized void sleepOrchestrator(long timeToWait, boolean withDontDisturb) {
+  protected void sleepOrchestrator(long timeToWait, boolean withDontDisturb) {
     if (withDontDisturb) {
       dontDisturb = true;
     }
@@ -119,11 +142,11 @@ public abstract class AbstractOrchestrator {
     return timeToWait;
   }
 
-  protected boolean waitForLastRunDelay(int delay, String logMessage) {
+  private boolean waitForLastRunDelay(int delay) {
     long timeToWait = computeWaitForLastRunDelay(delay);
     if (timeToWait > 0) {
       if (log.isDebugEnabled()) {
-        log.debug(logMessage + " (" + (timeToWait / 1000) + "s to wait)");
+        log.debug("Sleeping for lastRunDelay (" + (timeToWait / 1000) + "s to wait)");
       }
       sleepOrchestrator(timeToWait, true);
       return true;
@@ -133,6 +156,7 @@ public abstract class AbstractOrchestrator {
 
   protected void setLastRun() {
     this.lastRun = System.currentTimeMillis();
+    this.lastRunSetInLoop = true;
   }
 
   public boolean isStarted() {

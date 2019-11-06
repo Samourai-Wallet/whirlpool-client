@@ -15,7 +15,7 @@ public class PersistOrchestrator extends AbstractOrchestrator {
   private long lastClean;
 
   public PersistOrchestrator(int loopDelay, WhirlpoolWallet whirlpoolWallet, int cleanDelay) {
-    super(loopDelay);
+    super(loopDelay, 0, loopDelay);
     this.whirlpoolWallet = whirlpoolWallet;
     this.cleanDelay = cleanDelay;
     this.lastClean = 0;
@@ -27,6 +27,7 @@ public class PersistOrchestrator extends AbstractOrchestrator {
 
     try {
       persist();
+      setLastRun();
     } catch (Exception e) {
       log.error("", e);
     }

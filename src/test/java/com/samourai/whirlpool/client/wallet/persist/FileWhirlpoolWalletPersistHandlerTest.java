@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.persist;
 
-import com.samourai.api.client.SamouraiApi;
+import com.samourai.api.client.WhirlpoolBackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
@@ -44,7 +44,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     persistHandler.setInitialized(true);
 
     String backendUrl = BackendServer.TESTNET.getBackendUrl(false);
-    this.whirlpoolWallet = computeWallet(new SamouraiApi(null, backendUrl, null));
+    this.whirlpoolWallet = computeWallet(new WhirlpoolBackendApi(null, backendUrl, null));
   }
 
   private void reload() {
@@ -132,7 +132,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     Assertions.assertEquals(5, persistHandler.getUtxoConfig("foo", 1).getMixsTarget());
   }
 
-  private WhirlpoolWallet computeWallet(SamouraiApi samouraiApi) throws Exception {
+  private WhirlpoolWallet computeWallet(WhirlpoolBackendApi backendApi) throws Exception {
     byte[] seed =
         hdWalletFactory.computeSeedFromWords("all all all all all all all all all all all all");
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, "foo", params);
@@ -142,7 +142,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
             WhirlpoolWalletAccount.DEPOSIT.getAccountIndex(),
             new MemoryIndexHandler(1),
             new MemoryIndexHandler(1),
-            samouraiApi,
+            backendApi,
             false,
             1,
             1);
@@ -152,7 +152,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
             WhirlpoolWalletAccount.PREMIX.getAccountIndex(),
             new MemoryIndexHandler(1),
             new MemoryIndexHandler(1),
-            samouraiApi,
+            backendApi,
             false,
             1,
             1);
@@ -162,7 +162,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
             WhirlpoolWalletAccount.POSTMIX.getAccountIndex(),
             new MemoryIndexHandler(1),
             new MemoryIndexHandler(1),
-            samouraiApi,
+            backendApi,
             false,
             1,
             1);
@@ -173,7 +173,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
             persistHandler,
             WhirlpoolServer.LOCAL_TESTNET.getServerUrl(false),
             WhirlpoolServer.LOCAL_TESTNET.getParams(),
-            samouraiApi);
+            backendApi);
     return new WhirlpoolWalletService()
         .openWallet(config, depositWallet, premixWallet, postmixWallet);
   }

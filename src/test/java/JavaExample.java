@@ -1,4 +1,4 @@
-import com.samourai.api.client.SamouraiApi;
+import com.samourai.api.client.WhirlpoolBackendApi;
 import com.samourai.http.client.IHttpClient;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.api.backend.BackendServer;
@@ -39,12 +39,12 @@ public class JavaExample {
     boolean onion = true;
     String serverUrl = whirlpoolServer.getServerUrl(onion);
     String backendUrl = BackendServer.TESTNET.getBackendUrl(onion);
-    SamouraiApi samouraiApi = new SamouraiApi(httpClient, backendUrl, null);
+    WhirlpoolBackendApi backendApi = new WhirlpoolBackendApi(httpClient, backendUrl, null);
 
     NetworkParameters params = whirlpoolServer.getParams();
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
-            httpClient, stompClientService, persistHandler, serverUrl, params, samouraiApi);
+            httpClient, stompClientService, persistHandler, serverUrl, params, backendApi);
 
     whirlpoolWalletConfig.setAutoTx0PoolId(null); // disable auto-tx0
     whirlpoolWalletConfig.setAutoMix(false); // disable auto-mix
