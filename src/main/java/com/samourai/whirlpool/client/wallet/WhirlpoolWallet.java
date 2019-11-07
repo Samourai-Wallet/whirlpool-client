@@ -15,6 +15,7 @@ import com.samourai.whirlpool.client.mix.handler.*;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
+import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.orchestrator.AutoMixOrchestrator;
@@ -313,14 +314,10 @@ public class WhirlpoolWallet {
         log.debug("Tx0 fee: feeTarget=" + feeTarget + " => " + feeTx0);
       }
       int feePremix = getFeePremix();
-      Tx0 tx0 =
-          tx0(
-              Lists.of(utxoSpendFrom),
-              Lists.of(spendFromPrivKey),
-              pool,
-              feeTx0,
-              feePremix,
-              maxOutputs);
+
+      UnspentOutputWithKey spendFrom = new UnspentOutputWithKey(utxoSpendFrom, spendFromPrivKey);
+      Collection<UnspentOutputWithKey> spendFroms = Lists.of(spendFrom);
+      Tx0 tx0 = tx0(spendFroms, pool, feeTx0, feePremix, maxOutputs);
 
       // success
       whirlpoolUtxoSpendFrom.setStatus(WhirlpoolUtxoStatus.TX0_SUCCESS, true, 100);
@@ -339,25 +336,14 @@ public class WhirlpoolWallet {
     }
   }
 
-  public Tx0 tx0(
-      Collection<UnspentOutput> spendFromOutpoints,
-      Collection<byte[]> spendFromPrivKeys,
-      Pool pool,
-      Tx0FeeTarget feeTarget)
+  public Tx0 tx0(Collection<UnspentOutputWithKey> spendFroms, Pool pool, Tx0FeeTarget feeTarget)
       throws Exception {
     int feeTx0 = getFee(feeTarget);
-    return tx0(
-        spendFromOutpoints,
-        spendFromPrivKeys,
-        pool,
-        feeTx0,
-        getFeePremix(),
-        config.getTx0MaxOutputs());
+    return tx0(spendFroms, pool, feeTx0, getFeePremix(), config.getTx0MaxOutputs());
   }
 
   public Tx0 tx0(
-      Collection<UnspentOutput> spendFromOutpoints,
-      Collection<byte[]> spendFromPrivKeys,
+      Collection<UnspentOutputWithKey> spendFroms,
       Pool pool,
       int feeTx0,
       int feePremix,
@@ -370,15 +356,7 @@ public class WhirlpoolWallet {
       Tx0 tx0 =
           config
               .getTx0Service()
-              .tx0(
-                  spendFromPrivKeys,
-                  spendFromOutpoints,
-                  depositWallet,
-                  premixWallet,
-                  feeTx0,
-                  feePremix,
-                  pool,
-                  maxOutputs);
+              .tx0(spendFroms, depositWallet, premixWallet, feeTx0, feePremix, pool, maxOutputs);
 
       log.info(
           " • Tx0 result: txid="

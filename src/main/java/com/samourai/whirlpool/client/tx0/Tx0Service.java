@@ -8,6 +8,7 @@ import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.FeeUtil;
 import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.utils.BIP69InputComparatorUnspentOutput;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
@@ -78,10 +79,10 @@ public class Tx0Service {
 
   private int computeNbPremixMax(
       long premixValue,
-      Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
+      Collection<? extends UnspentResponse.UnspentOutput> spendFrom,
       long samouraiFee,
       int feeTx0) {
-    long spendFromBalance = computeSpendFromBalance(depositSpendFroms);
+    long spendFromBalance = computeSpendFromBalance(spendFrom);
 
     // compute nbPremix ignoring TX0 fee
     int nbPremixInitial = (int) Math.ceil(spendFromBalance / premixValue);
@@ -90,7 +91,7 @@ public class Tx0Service {
     int nbPremix = nbPremixInitial;
     while (true) {
       // estimate TX0 fee for nbPremix
-      long tx0MinerFee = computeTx0MinerFee(nbPremix, feeTx0, depositSpendFroms);
+      long tx0MinerFee = computeTx0MinerFee(nbPremix, feeTx0, spendFrom);
       long spendValue = computeTx0SpendValue(premixValue, nbPremix, samouraiFee, tx0MinerFee);
       if (log.isDebugEnabled()) {
         log.debug(
@@ -121,7 +122,7 @@ public class Tx0Service {
   }
 
   protected long computeTx0MinerFee(
-      int nbPremix, long feeTx0, Collection<UnspentResponse.UnspentOutput> spendFroms) {
+      int nbPremix, long feeTx0, Collection<? extends UnspentResponse.UnspentOutput> spendFroms) {
     int nbOutputsNonOpReturn = nbPremix + 2; // outputs + change + fee
 
     // spendFroms can be NULL (for fee simulation)
@@ -160,8 +161,7 @@ public class Tx0Service {
 
   /** Generate maxOutputs premixes outputs max. */
   public Tx0 tx0(
-      Collection<byte[]> spendFromPrivKeys,
-      Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
+      Collection<UnspentOutputWithKey> spendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
       int feeTx0,
@@ -174,20 +174,11 @@ public class Tx0Service {
     Tx0Data tx0Data = fetchTx0Data(pool.getPoolId());
 
     return tx0(
-        spendFromPrivKeys,
-        depositSpendFroms,
-        depositWallet,
-        premixWallet,
-        feeTx0,
-        feePremix,
-        pool,
-        maxOutputs,
-        tx0Data);
+        spendFroms, depositWallet, premixWallet, feeTx0, feePremix, pool, maxOutputs, tx0Data);
   }
 
   public Tx0 tx0(
-      Collection<byte[]> spendFromPrivKeys,
-      Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
+      Collection<UnspentOutputWithKey> spendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
       int feeTx0,
@@ -199,7 +190,7 @@ public class Tx0Service {
 
     log.info(
         " • Tx0: spendFrom="
-            + depositSpendFroms
+            + spendFroms
             + ", feeTx0="
             + feeTx0
             + ", feePremix="
@@ -216,7 +207,7 @@ public class Tx0Service {
     final long spendFromBalanceMin =
         config.getTx0Service().computeSpendFromBalanceMin(pool, feeTx0, feePremix, 1);
 
-    long spendFromBalance = computeSpendFromBalance(depositSpendFroms);
+    long spendFromBalance = computeSpendFromBalance(spendFroms);
     if (spendFromBalance < spendFromBalanceMin) {
       throw new NotifiableException(
           "Insufficient utxo value for Tx0: " + spendFromBalance + " < " + spendFromBalanceMin);
@@ -225,20 +216,11 @@ public class Tx0Service {
     // compute premixValue for pool
     long premixValue = computePremixValue(pool, feePremix);
 
-    return tx0(
-        spendFromPrivKeys,
-        depositSpendFroms,
-        depositWallet,
-        premixWallet,
-        feeTx0,
-        maxOutputs,
-        premixValue,
-        tx0Data);
+    return tx0(spendFroms, depositWallet, premixWallet, feeTx0, maxOutputs, premixValue, tx0Data);
   }
 
   protected Tx0 tx0(
-      Collection<byte[]> spendFromPrivKeys,
-      Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
+      Collection<UnspentOutputWithKey> spendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
       int feeTx0,
@@ -247,11 +229,6 @@ public class Tx0Service {
       Tx0Data tx0Data)
       throws Exception {
     NetworkParameters params = config.getNetworkParameters();
-
-    if (spendFromPrivKeys.size() != depositSpendFroms.size()) {
-      throw new IllegalArgumentException(
-          "spendFromPrivKeys count vs depositSpendFroms count mismatch");
-    }
 
     // compute opReturnValue for feePaymentCode and feePayload
     byte[] feePayload = tx0Data.getFeePayload();
@@ -285,6 +262,13 @@ public class Tx0Service {
                 + samouraiFee);
       }
     }
+
+    // sort inputs now, we need to know the first input for OP_RETURN encode
+    List<UnspentOutputWithKey> sortedSpendFroms = new LinkedList<UnspentOutputWithKey>();
+    sortedSpendFroms.addAll(spendFroms);
+    Collections.sort(sortedSpendFroms, new BIP69InputComparatorUnspentOutput());
+
+    UnspentOutputWithKey firstInput = sortedSpendFroms.get(0);
     String feePaymentCode = tx0Data.getFeePaymentCode();
     byte[] opReturnValue =
         whirlpoolFee.encode(
@@ -292,8 +276,8 @@ public class Tx0Service {
             feePayload,
             feePaymentCode,
             params,
-            spendFromPrivKeys.iterator().next(),
-            depositSpendFroms.iterator().next().computeOutpoint(params));
+            firstInput.getKey(),
+            firstInput.computeOutpoint(params));
     if (log.isDebugEnabled()) {
       log.debug(
           "computing opReturnValue for feeIndice="
@@ -302,8 +286,7 @@ public class Tx0Service {
               + (feePayload != null ? Hex.toHexString(feePayload) : "null"));
     }
     return tx0(
-        spendFromPrivKeys,
-        depositSpendFroms,
+        sortedSpendFroms,
         depositWallet,
         premixWallet,
         feeTx0,
@@ -315,8 +298,7 @@ public class Tx0Service {
   }
 
   protected Tx0 tx0(
-      Collection<byte[]> spendFromPrivKeys,
-      Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
+      List<UnspentOutputWithKey> sortedSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
       int feeTx0,
@@ -327,8 +309,8 @@ public class Tx0Service {
       String feeAddressBech32)
       throws Exception {
 
-    if (depositSpendFroms.size() <= 0) {
-      throw new IllegalArgumentException("depositSpendFroms should be > 0");
+    if (sortedSpendFroms.size() <= 0) {
+      throw new IllegalArgumentException("spendFroms should be > 0");
     }
 
     if (samouraiFee <= 0) {
@@ -339,7 +321,7 @@ public class Tx0Service {
     int nbPremix =
         computeNbPremixMax(
             premixValue,
-            depositSpendFroms,
+            sortedSpendFroms,
             samouraiFee,
             feeTx0); // cap with balance and tx0 minerFee
     if (maxOutputs != null) {
@@ -347,7 +329,7 @@ public class Tx0Service {
     }
     nbPremix = Math.min(NB_PREMIX_MAX, nbPremix); // cap with UTXO NB_PREMIX_MAX
 
-    long spendFromBalance = computeSpendFromBalance(depositSpendFroms);
+    long spendFromBalance = computeSpendFromBalance(sortedSpendFroms);
 
     // at least 1 nbPremix
     if (nbPremix < 1) {
@@ -363,7 +345,7 @@ public class Tx0Service {
     }
 
     // fee selection
-    long tx0MinerFee = computeTx0MinerFee(nbPremix, feeTx0, depositSpendFroms);
+    long tx0MinerFee = computeTx0MinerFee(nbPremix, feeTx0, sortedSpendFroms);
 
     long spendValue = computeTx0SpendValue(premixValue, nbPremix, samouraiFee, tx0MinerFee);
     long changeValue = spendFromBalance - spendValue;
@@ -374,8 +356,7 @@ public class Tx0Service {
 
     Tx0 tx0 =
         buildTx0(
-            spendFromPrivKeys,
-            depositSpendFroms,
+            sortedSpendFroms,
             depositWallet,
             premixWallet,
             premixValue,
@@ -402,14 +383,15 @@ public class Tx0Service {
     return tx0;
   }
 
-  protected long computeSpendFromBalance(Collection<UnspentResponse.UnspentOutput> spendFroms) {
+  protected long computeSpendFromBalance(
+      Collection<? extends UnspentResponse.UnspentOutput> spendFroms) {
     long balance =
         StreamSupport.stream(spendFroms)
             .mapToLong(
                 new ToLongFunction<UnspentResponse.UnspentOutput>() {
                   @Override
-                  public long applyAsLong(UnspentResponse.UnspentOutput transactionOutPoint) {
-                    return transactionOutPoint.value;
+                  public long applyAsLong(UnspentResponse.UnspentOutput unspentOutput) {
+                    return unspentOutput.value;
                   }
                 })
             .sum();
@@ -417,8 +399,7 @@ public class Tx0Service {
   }
 
   protected Tx0 buildTx0(
-      Collection<byte[]> spendFromPrivKeys,
-      Collection<UnspentResponse.UnspentOutput> depositSpendFroms,
+      Collection<UnspentOutputWithKey> sortedSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
       long premixValue,
@@ -533,26 +514,27 @@ public class Tx0Service {
       tx.addOutput(to);
     }
 
-    // input
-    // TODO handle multiple depositSpendFroms & spendFromPrivKeys
-    ECKey spendFromKey = ECKey.fromPrivate(spendFromPrivKeys.iterator().next());
-    TransactionOutPoint depositSpendFrom =
-        depositSpendFroms.iterator().next().computeOutpoint(params);
-    final Script segwitPubkeyScript = ScriptBuilder.createP2WPKHOutputScript(spendFromKey);
-    tx.addSignedInput(depositSpendFrom, segwitPubkeyScript, spendFromKey);
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "Tx0 in: utxo="
-              + depositSpendFrom
-              + " ("
-              + depositSpendFrom.getValue().getValue()
-              + " sats)");
-      log.debug("Tx0 fee: " + tx0MinerFee + " sats");
+    // all inputs
+    for (UnspentOutputWithKey spendFrom : sortedSpendFroms) {
+      buildTx0Input(tx, spendFrom, params);
+      if (log.isDebugEnabled()) {
+        log.debug("Tx0 in: utxo=" + spendFrom);
+      }
     }
+
+    log.debug("Tx0 fee: " + tx0MinerFee + " sats");
     tx.verify();
 
     Tx0 tx0 = new Tx0(tx, premixOutputs, changeOutput);
     return tx0;
+  }
+
+  protected void buildTx0Input(
+      Transaction tx, UnspentOutputWithKey input, NetworkParameters params) {
+    ECKey spendFromKey = ECKey.fromPrivate(input.getKey());
+    TransactionOutPoint depositSpendFrom = input.computeOutpoint(params);
+    final Script segwitPubkeyScript = ScriptBuilder.createP2WPKHOutputScript(spendFromKey);
+    tx.addSignedInput(depositSpendFrom, segwitPubkeyScript, spendFromKey);
   }
 
   public Collection<Pool> findPools(

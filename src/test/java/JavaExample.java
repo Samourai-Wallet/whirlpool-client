@@ -8,6 +8,7 @@ import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
+import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
@@ -116,7 +117,7 @@ public class JavaExample {
       // execute tx0
       try {
         Tx0 tx0 =
-            whirlpoolWallet.tx0(Lists.of(spendFrom), Lists.of(spendFromPrivKey), pool, feeTarget);
+            whirlpoolWallet.tx0(Lists.of(new UnspentOutputWithKey(spendFrom,spendFromPrivKey)), pool, feeTarget);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed

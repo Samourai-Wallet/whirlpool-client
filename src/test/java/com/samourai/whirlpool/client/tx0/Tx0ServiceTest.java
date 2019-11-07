@@ -41,10 +41,7 @@ public class Tx0ServiceTest extends AbstractTest {
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
     ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
-    UnspentResponse.UnspentOutput spendFrom = new UnspentResponse.UnspentOutput();
-    spendFrom.tx_hash = "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae";
-    spendFrom.tx_output_n = 1;
-    spendFrom.value = 500000000;
+    UnspentResponse.UnspentOutput spendFrom = newUnspentOutput("cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 500000000);
 
     Bip84Wallet depositWallet =
         new Bip84Wallet(bip84w, 0, new MemoryIndexHandler(), new MemoryIndexHandler());
@@ -69,8 +66,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0 tx0 =
         tx0Service.tx0(
-            Lists.of(spendFromKey.getPrivKeyBytes()),
-            Lists.of(spendFrom),
+                Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
             depositWallet,
             premixWallet,
             feeSatPerByte,
@@ -100,10 +96,7 @@ public class Tx0ServiceTest extends AbstractTest {
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
     ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
-    UnspentResponse.UnspentOutput spendFrom = new UnspentResponse.UnspentOutput();
-    spendFrom.tx_hash = "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae";
-    spendFrom.tx_output_n = 1;
-    spendFrom.value = 900000000; // large balance
+    UnspentResponse.UnspentOutput spendFrom = newUnspentOutput("cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 900000000); // large balance
 
     Bip84Wallet depositWallet =
         new Bip84Wallet(bip84w, 0, new MemoryIndexHandler(), new MemoryIndexHandler());
@@ -127,8 +120,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0 tx0 =
         tx0Service.tx0(
-            Lists.of(spendFromKey.getPrivKeyBytes()),
-            Lists.of(spendFrom),
+                Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
             depositWallet,
             premixWallet,
             feeSatPerByte,
@@ -213,10 +205,7 @@ public class Tx0ServiceTest extends AbstractTest {
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
     ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
-    UnspentResponse.UnspentOutput spendFrom = new UnspentResponse.UnspentOutput();
-    spendFrom.tx_hash = "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae";
-    spendFrom.tx_output_n = 1;
-    spendFrom.value = 1021397; // balance with 11000 change
+    UnspentResponse.UnspentOutput spendFrom = newUnspentOutput("cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 1021397); // balance with 11000 change
 
     Bip84Wallet depositWallet =
         new Bip84Wallet(bip84w, 0, new MemoryIndexHandler(), new MemoryIndexHandler());
@@ -243,8 +232,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0 tx0 =
         tx0Service.tx0(
-            Lists.of(spendFromKey.getPrivKeyBytes()),
-            Lists.of(spendFrom),
+                Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
             depositWallet,
             premixWallet,
             feeSatPerByte,
@@ -274,10 +262,7 @@ public class Tx0ServiceTest extends AbstractTest {
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
     ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
-    UnspentResponse.UnspentOutput spendFrom = new UnspentResponse.UnspentOutput();
-    spendFrom.tx_hash = "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae";
-    spendFrom.tx_output_n = 1;
-    spendFrom.value = 1021397; // balance with 11000 change
+    UnspentResponse.UnspentOutput spendFrom = newUnspentOutput("cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 1021397); // balance with 11000 change
 
     Bip84Wallet depositWallet =
         new Bip84Wallet(bip84w, 0, new MemoryIndexHandler(), new MemoryIndexHandler());
@@ -304,8 +289,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0 tx0 =
         tx0Service.tx0(
-            Lists.of(spendFromKey.getPrivKeyBytes()),
-            Lists.of(spendFrom),
+                Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
             depositWallet,
             premixWallet,
             feeSatPerByte,
@@ -335,10 +319,7 @@ public class Tx0ServiceTest extends AbstractTest {
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
 
     ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
-    UnspentResponse.UnspentOutput spendFrom = new UnspentResponse.UnspentOutput();
-    spendFrom.tx_hash = "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae";
-    spendFrom.tx_output_n = 1;
-    spendFrom.value = 1021397; // balance with 11000 change
+    UnspentResponse.UnspentOutput spendFrom = newUnspentOutput("cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 1021397); // balance with 11000 change
 
     Bip84Wallet depositWallet =
         new Bip84Wallet(bip84w, 0, new MemoryIndexHandler(), new MemoryIndexHandler());
@@ -359,8 +340,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0 tx0 =
         tx0Service.tx0(
-            Lists.of(spendFromKey.getPrivKeyBytes()),
-            Lists.of(spendFrom),
+                Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
             depositWallet,
             premixWallet,
             feeSatPerByte,
