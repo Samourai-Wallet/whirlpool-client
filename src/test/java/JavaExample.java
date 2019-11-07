@@ -117,7 +117,8 @@ public class JavaExample {
       // execute tx0
       try {
         Tx0 tx0 =
-            whirlpoolWallet.tx0(Lists.of(new UnspentOutputWithKey(spendFrom,spendFromPrivKey)), pool, feeTarget);
+            whirlpoolWallet.tx0(
+                Lists.of(new UnspentOutputWithKey(spendFrom, spendFromPrivKey)), pool, feeTarget);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed
