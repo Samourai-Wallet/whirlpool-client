@@ -1,11 +1,12 @@
 package com.samourai.whirlpool.client.wallet.persist;
 
+import com.samourai.http.client.IHttpClient;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
+import com.samourai.wallet.api.backend.beans.HttpException;
+import com.samourai.wallet.api.backend.beans.MultiAddrResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
-import com.samourai.wallet.client.Bip84ApiWallet;
-import com.samourai.wallet.client.indexHandler.MemoryIndexHandler;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
@@ -13,9 +14,10 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletAccount;
 import java.io.File;
 import java.util.List;
+import java.util.Map;
+
 import java8.util.Lists;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,8 +45,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     this.persistHandler = new FileWhirlpoolWalletPersistHandler(fileState, fileUtxos);
     persistHandler.setInitialized(true);
 
-    String backendUrl = BackendServer.TESTNET.getBackendUrl(false);
-    this.whirlpoolWallet = computeWallet(new BackendApi(null, backendUrl, null));
+    this.whirlpoolWallet = computeWallet();
   }
 
   private void reload() {
@@ -132,49 +133,27 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     Assertions.assertEquals(5, persistHandler.getUtxoConfig("foo", 1).getMixsTarget());
   }
 
-  private WhirlpoolWallet computeWallet(BackendApi backendApi) throws Exception {
+  private WhirlpoolWallet computeWallet() throws Exception {
+    String backendUrl = BackendServer.TESTNET.getBackendUrl(false);
+    BackendApi backendApi = new BackendApi(null, backendUrl, null){
+      @Override
+      public MultiAddrResponse.Address fetchAddress(String zpub) throws Exception {
+        // MOCK
+        return new MultiAddrResponse.Address();
+      }
+    };
     byte[] seed =
         hdWalletFactory.computeSeedFromWords("all all all all all all all all all all all all");
     HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, "foo", params);
-    Bip84ApiWallet depositWallet =
-        new Bip84ApiWallet(
-            bip84w,
-            WhirlpoolWalletAccount.DEPOSIT.getAccountIndex(),
-            new MemoryIndexHandler(1),
-            new MemoryIndexHandler(1),
-            backendApi,
-            false,
-            1,
-            1);
-    Bip84ApiWallet premixWallet =
-        new Bip84ApiWallet(
-            bip84w,
-            WhirlpoolWalletAccount.PREMIX.getAccountIndex(),
-            new MemoryIndexHandler(1),
-            new MemoryIndexHandler(1),
-            backendApi,
-            false,
-            1,
-            1);
-    Bip84ApiWallet postmixWallet =
-        new Bip84ApiWallet(
-            bip84w,
-            WhirlpoolWalletAccount.POSTMIX.getAccountIndex(),
-            new MemoryIndexHandler(1),
-            new MemoryIndexHandler(1),
-            backendApi,
-            false,
-            1,
-            1);
+
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(
-            null,
-            null,
-            persistHandler,
-            WhirlpoolServer.LOCAL_TESTNET.getServerUrl(false),
-            WhirlpoolServer.LOCAL_TESTNET.getParams(),
-            backendApi);
-    return new WhirlpoolWalletService()
-        .openWallet(config, depositWallet, premixWallet, postmixWallet);
+                null,
+                null,
+                persistHandler,
+                WhirlpoolServer.LOCAL_TESTNET.getServerUrl(false),
+                WhirlpoolServer.LOCAL_TESTNET.getParams(),
+                backendApi);
+    return new WhirlpoolWalletService().openWallet(config, bip84w);
   }
 }

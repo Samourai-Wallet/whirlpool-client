@@ -60,12 +60,13 @@ public class JavaExample {
 
   public void example() throws Exception {
     // configure whirlpool
+    WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
 
     // configure wallet
     HD_Wallet bip84w = null; // provide your wallet here
 
-    WhirlpoolWallet whirlpoolWallet = new WhirlpoolWalletService().openWallet(config, bip84w);
+    WhirlpoolWallet whirlpoolWallet = whirlpoolWalletService.openWallet(config, bip84w);
 
     // start whirlpool wallet
     whirlpoolWallet.start();
@@ -154,5 +155,8 @@ public class JavaExample {
 
     // get global mix state
     WhirlpoolWalletState whirlpoolState = whirlpoolWallet.getState();
+
+    // stop Whirlpool
+    whirlpoolWalletService.closeWallet();
   }
 }

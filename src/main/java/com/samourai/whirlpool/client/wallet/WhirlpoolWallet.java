@@ -44,6 +44,7 @@ public class WhirlpoolWallet {
   public static final int MIX_MIN_CONFIRMATIONS = 1;
 
   private WhirlpoolWalletConfig config;
+  private WhirlpoolDataService dataService;
 
   private Bech32UtilGeneric bech32Util;
 
@@ -53,8 +54,6 @@ public class WhirlpoolWallet {
   private Bip84ApiWallet premixWallet;
   private Bip84ApiWallet postmixWallet;
 
-  private WhirlpoolWalletCacheData cacheData;
-
   private PersistOrchestrator persistOrchestrator;
   protected MixOrchestrator mixOrchestrator;
   private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
@@ -63,6 +62,7 @@ public class WhirlpoolWallet {
   protected WhirlpoolWallet(WhirlpoolWallet whirlpoolWallet) {
     this(
         whirlpoolWallet.config,
+        whirlpoolWallet.dataService,
         whirlpoolWallet.bech32Util,
         whirlpoolWallet.whirlpoolClient,
         whirlpoolWallet.depositWallet,
@@ -72,12 +72,14 @@ public class WhirlpoolWallet {
 
   public WhirlpoolWallet(
       WhirlpoolWalletConfig config,
+      WhirlpoolDataService dataService,
       Bech32UtilGeneric bech32Util,
       WhirlpoolClient whirlpoolClient,
       Bip84ApiWallet depositWallet,
       Bip84ApiWallet premixWallet,
       Bip84ApiWallet postmixWallet) {
     this.config = config;
+    this.dataService = dataService;
 
     this.bech32Util = bech32Util;
 
@@ -119,11 +121,11 @@ public class WhirlpoolWallet {
   }
 
   public void clearCache() {
-    this.cacheData = new WhirlpoolWalletCacheData(this, config, whirlpoolClient);
+    dataService.clear();
   }
 
   public void clearCache(WhirlpoolAccount account) {
-    this.cacheData.clearUtxos(account);
+    dataService.clearUtxos(account);
   }
 
   public Collection<Pool> findPoolsForTx0(long utxoValue, int nbOutputsMin, Tx0FeeTarget feeTarget)
@@ -136,7 +138,7 @@ public class WhirlpoolWallet {
       throws Exception {
     // clear cache
     if (clearCache) {
-      cacheData.clearPools();
+      dataService.clearPools();
     }
 
     // find eligible pools
@@ -475,11 +477,11 @@ public class WhirlpoolWallet {
   }
 
   public int getFee(MinerFeeTarget feeTarget) {
-    return cacheData.getFeeSatPerByte(feeTarget);
+    return dataService.getFeeSatPerByte(feeTarget);
   }
 
   public int getFeePremix() {
-    return cacheData.getFeeSatPerByte(config.getFeeTargetPremix());
+    return dataService.getFeeSatPerByte(config.getFeeTargetPremix());
   }
 
   protected Pools getPoolsResponse() throws Exception {
@@ -488,9 +490,9 @@ public class WhirlpoolWallet {
 
   protected Pools getPoolsResponse(boolean clearCache) throws Exception {
     if (clearCache) {
-      cacheData.clearPools();
+      dataService.clearPools();
     }
-    return cacheData.getPoolsResponse();
+    return dataService.getPoolsResponse();
   }
 
   public Collection<Pool> getPools() throws Exception {
@@ -499,9 +501,9 @@ public class WhirlpoolWallet {
 
   public Collection<Pool> getPools(boolean clearCache) throws Exception {
     if (clearCache) {
-      cacheData.clearPools();
+      dataService.clearPools();
     }
-    return cacheData.getPools();
+    return dataService.getPools();
   }
 
   public Pool findPoolById(String poolId) throws Exception {
@@ -528,7 +530,7 @@ public class WhirlpoolWallet {
       throws Exception {
     // clear cache
     if (clearCache) {
-      cacheData.clearPools();
+      dataService.clearPools();
     }
 
     // find eligible pools
@@ -695,12 +697,12 @@ public class WhirlpoolWallet {
   }
 
   public WhirlpoolUtxo findUtxo(String utxoHash, int utxoIndex) throws Exception {
-    return cacheData.findUtxo(utxoHash, utxoIndex, WhirlpoolAccount.values());
+    return dataService.findUtxo(utxoHash, utxoIndex, WhirlpoolAccount.values());
   }
 
   public WhirlpoolUtxo findUtxo(String utxoHash, int utxoIndex, WhirlpoolAccount... accounts)
       throws Exception {
-    return cacheData.findUtxo(utxoHash, utxoIndex, accounts);
+    return dataService.findUtxo(utxoHash, utxoIndex, accounts);
   }
 
   public Collection<WhirlpoolUtxo> getUtxos(boolean clearCache, WhirlpoolAccount... accounts)
@@ -708,7 +710,7 @@ public class WhirlpoolWallet {
     if (accounts.length == 0) {
       accounts = WhirlpoolAccount.values();
     }
-    return cacheData.getUtxos(clearCache, accounts);
+    return dataService.getUtxos(clearCache, accounts);
   }
 
   public boolean isStarted() {

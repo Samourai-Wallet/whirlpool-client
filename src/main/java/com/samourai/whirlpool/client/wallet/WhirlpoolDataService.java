@@ -4,9 +4,10 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.samourai.wallet.api.backend.MinerFee;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
+import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84ApiWallet;
-import com.samourai.whirlpool.client.WhirlpoolClient;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
@@ -14,12 +15,16 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import com.samourai.whirlpool.protocol.rest.PoolInfo;
+import com.samourai.whirlpool.protocol.rest.PoolsResponse;
 import com.zeroleak.throwingsupplier.LastValueFallbackSupplier;
 import com.zeroleak.throwingsupplier.Throwing;
 import com.zeroleak.throwingsupplier.ThrowingSupplier;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java8.util.Optional;
 import java8.util.function.Consumer;
 import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
@@ -27,12 +32,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Thread-safe cache data for WhirlpooWallet. */
-public class WhirlpoolWalletCacheData {
-  private final Logger log = LoggerFactory.getLogger(WhirlpoolWalletCacheData.class);
+public class WhirlpoolDataService {
+  private final Logger log = LoggerFactory.getLogger(WhirlpoolDataService.class);
 
-  private WhirlpoolWallet whirlpoolWallet;
   private WhirlpoolWalletConfig config;
-  private WhirlpoolClient whirlpoolClient;
+  private WhirlpoolWalletService whirlpoolWalletService;
 
   // fee
   private Supplier<Throwing<MinerFee, Exception>> minerFee;
@@ -47,33 +51,27 @@ public class WhirlpoolWalletCacheData {
 
   private static final int ATTEMPTS = 2;
 
-  public WhirlpoolWalletCacheData(
-      WhirlpoolWallet whirlpoolWallet,
-      WhirlpoolWalletConfig config,
-      WhirlpoolClient whirlpoolClient) {
-    this.whirlpoolWallet = whirlpoolWallet;
+  public WhirlpoolDataService(
+      WhirlpoolWalletConfig config, WhirlpoolWalletService whirlpoolWalletService) {
     this.config = config;
-    this.whirlpoolClient = whirlpoolClient;
+    this.whirlpoolWalletService = whirlpoolWalletService;
 
-    // fee
-    this.minerFee =
-        Suppliers.memoizeWithExpiration(
-            initFeeSatPerByte().attempts(ATTEMPTS), config.getRefreshFeeDelay(), TimeUnit.SECONDS);
+    clear();
+  }
 
-    // pools
+  public void clear() {
+    clearMinerFee();
     clearPools();
-
-    // utxos
-    this.utxos =
-        new ConcurrentHashMap<
-            WhirlpoolAccount, Supplier<Throwing<Map<String, WhirlpoolUtxo>, Exception>>>();
-    this.previousUtxos = new ConcurrentHashMap<WhirlpoolAccount, Map<String, WhirlpoolUtxo>>();
-    for (WhirlpoolAccount whirlpoolAccount : WhirlpoolAccount.values()) {
-      clearUtxos(whirlpoolAccount);
-    }
+    clearUtxos();
   }
 
   // FEES
+  public void clearMinerFee() {
+    this.minerFee =
+        Suppliers.memoizeWithExpiration(
+            initMinerFee().attempts(ATTEMPTS), config.getRefreshFeeDelay(), TimeUnit.SECONDS);
+  }
+
   public int getFeeSatPerByte(MinerFeeTarget feeTarget) {
     int fee;
     try {
@@ -97,16 +95,20 @@ public class WhirlpoolWalletCacheData {
     return fee;
   }
 
-  private ThrowingSupplier<MinerFee, Exception> initFeeSatPerByte() {
+  private ThrowingSupplier<MinerFee, Exception> initMinerFee() {
     return new LastValueFallbackSupplier<MinerFee, Exception>() {
       @Override
       public MinerFee getOrThrow() throws Exception {
         if (log.isDebugEnabled()) {
           log.debug("fetching minerFee");
         }
-        return config.getBackendApi().fetchMinerFee();
+        return fetchMinerFee();
       }
     };
+  }
+
+  protected MinerFee fetchMinerFee() throws Exception {
+    return config.getBackendApi().fetchMinerFee();
   }
 
   // POOLS
@@ -134,9 +136,47 @@ public class WhirlpoolWalletCacheData {
         if (log.isDebugEnabled()) {
           log.debug("fetching poolsResponse");
         }
-        return whirlpoolClient.fetchPools();
+        return fetchPools();
       }
     };
+  }
+
+  protected Pools fetchPools() throws Exception {
+    String url = WhirlpoolProtocol.getUrlFetchPools(config.getServer());
+    try {
+      PoolsResponse poolsResponse = config.getHttpClient().getJson(url, PoolsResponse.class, null);
+      return computePools(poolsResponse);
+    } catch (HttpException e) {
+      String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
+      if (restErrorResponseMessage != null) {
+        throw new NotifiableException(restErrorResponseMessage);
+      }
+      throw e;
+    }
+  }
+
+  private Pools computePools(PoolsResponse poolsResponse) {
+    List<Pool> listPools = new ArrayList<Pool>();
+    for (PoolInfo poolInfo : poolsResponse.pools) {
+      Pool pool = new Pool();
+      pool.setPoolId(poolInfo.poolId);
+      pool.setDenomination(poolInfo.denomination);
+      pool.setFeeValue(poolInfo.feeValue);
+      pool.setMustMixBalanceMin(poolInfo.mustMixBalanceMin);
+      pool.setMustMixBalanceCap(poolInfo.mustMixBalanceCap);
+      pool.setMustMixBalanceMax(poolInfo.mustMixBalanceMax);
+      pool.setMinAnonymitySet(poolInfo.minAnonymitySet);
+      pool.setMinMustMix(poolInfo.minMustMix);
+      pool.setNbRegistered(poolInfo.nbRegistered);
+
+      pool.setMixAnonymitySet(poolInfo.mixAnonymitySet);
+      pool.setMixStatus(poolInfo.mixStatus);
+      pool.setElapsedTime(poolInfo.elapsedTime);
+      pool.setNbConfirmed(poolInfo.nbConfirmed);
+      listPools.add(pool);
+    }
+    Pools pools = new Pools(listPools);
+    return pools;
   }
 
   public Collection<Pool> getPools() throws Exception {
@@ -166,6 +206,16 @@ public class WhirlpoolWalletCacheData {
   }
 
   // UTXOS
+
+  public void clearUtxos() {
+    this.utxos =
+        new ConcurrentHashMap<
+            WhirlpoolAccount, Supplier<Throwing<Map<String, WhirlpoolUtxo>, Exception>>>();
+    this.previousUtxos = new ConcurrentHashMap<WhirlpoolAccount, Map<String, WhirlpoolUtxo>>();
+    for (WhirlpoolAccount whirlpoolAccount : WhirlpoolAccount.values()) {
+      clearUtxos(whirlpoolAccount);
+    }
+  }
 
   public void clearUtxos(WhirlpoolAccount whirlpoolAccount) {
     if (log.isDebugEnabled()) {
@@ -209,9 +259,13 @@ public class WhirlpoolWalletCacheData {
     return new LastValueFallbackSupplier<Map<String, WhirlpoolUtxo>, Exception>() {
       @Override
       public Map<String, WhirlpoolUtxo> getOrThrow() throws Exception {
+        Optional<WhirlpoolWallet> whirlpoolWalletOpt = whirlpoolWalletService.getWhirlpoolWallet();
+        if (!whirlpoolWalletOpt.isPresent()) {
+          throw new Exception("no WhirlpoolWallet opened");
+        }
+        WhirlpoolWallet whirlpoolWallet = whirlpoolWalletOpt.get();
         try {
-          Bip84ApiWallet wallet = whirlpoolWallet.getWallet(whirlpoolAccount);
-          List<UnspentOutput> fetchedUtxos = wallet.fetchUtxos();
+          List<UnspentOutput> fetchedUtxos = fetchUtxos(whirlpoolAccount, whirlpoolWallet);
           if (log.isDebugEnabled()) {
             log.debug(
                 "Fetching utxos from "
@@ -235,18 +289,10 @@ public class WhirlpoolWalletCacheData {
           }
           Map<String, WhirlpoolUtxo> oldUtxos = previousUtxos.get(whirlpoolAccount);
           Map<String, WhirlpoolUtxo> result =
-              replaceUtxos(whirlpoolAccount, oldUtxos, freshUtxos, isFirstFetch);
+              replaceUtxos(whirlpoolAccount, whirlpoolWallet, oldUtxos, freshUtxos, isFirstFetch);
 
           previousUtxos.get(whirlpoolAccount).clear();
           previousUtxos.get(whirlpoolAccount).putAll(result);
-
-          // refresh wallet indexs (to avoid address reuse while using mobile wallet)
-          try {
-            wallet.refreshIndexs();
-          } catch (Exception e) {
-            log.error("refreshIndexs failed", e);
-          }
-
           return result;
         } catch (Exception e) {
           // exception
@@ -255,6 +301,21 @@ public class WhirlpoolWalletCacheData {
         }
       }
     };
+  }
+
+  protected List<UnspentOutput> fetchUtxos(
+      WhirlpoolAccount whirlpoolAccount, WhirlpoolWallet whirlpoolWallet) throws Exception {
+    Bip84ApiWallet wallet = whirlpoolWallet.getWallet(whirlpoolAccount);
+    List<UnspentOutput> utxos = wallet.fetchUtxos();
+
+    // refresh wallet indexs (to avoid address reuse while using mobile wallet)
+    try {
+      wallet.refreshIndexs();
+    } catch (Exception e) {
+      log.error("refreshIndexs failed", e);
+    }
+
+    return utxos;
   }
 
   private Collection<WhirlpoolUtxo> findUtxos(final WhirlpoolAccount... whirlpoolAccounts)
@@ -270,6 +331,7 @@ public class WhirlpoolWalletCacheData {
 
   private Map<String, WhirlpoolUtxo> replaceUtxos(
       final WhirlpoolAccount account,
+      final WhirlpoolWallet whirlpoolWallet,
       final Map<String, WhirlpoolUtxo> currentUtxos,
       final Map<String, UnspentOutput> freshUtxos,
       final boolean isFirstFetch) {

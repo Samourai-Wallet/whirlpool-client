@@ -1,23 +1,13 @@
 package com.samourai.whirlpool.client.whirlpool;
 
-import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.whirlpool.client.WhirlpoolClient;
-import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.mix.MixClient;
 import com.samourai.whirlpool.client.mix.MixParams;
 import com.samourai.whirlpool.client.mix.listener.MixClientListener;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
-import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
-import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
-import com.samourai.whirlpool.protocol.rest.PoolInfo;
-import com.samourai.whirlpool.protocol.rest.PoolsResponse;
-import java.util.ArrayList;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,45 +42,6 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
       log.debug("+whirlpoolClient");
     }
     log.info("+whirlpoolClient"); // TODO !!!!
-  }
-
-  @Override
-  public Pools fetchPools() throws HttpException, NotifiableException {
-    String url = WhirlpoolProtocol.getUrlFetchPools(config.getServer());
-    try {
-      PoolsResponse poolsResponse = config.getHttpClient().getJson(url, PoolsResponse.class, null);
-      return computePools(poolsResponse);
-    } catch (HttpException e) {
-      String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
-      if (restErrorResponseMessage != null) {
-        throw new NotifiableException(restErrorResponseMessage);
-      }
-      throw e;
-    }
-  }
-
-  private Pools computePools(PoolsResponse poolsResponse) {
-    List<Pool> listPools = new ArrayList<Pool>();
-    for (PoolInfo poolInfo : poolsResponse.pools) {
-      Pool pool = new Pool();
-      pool.setPoolId(poolInfo.poolId);
-      pool.setDenomination(poolInfo.denomination);
-      pool.setFeeValue(poolInfo.feeValue);
-      pool.setMustMixBalanceMin(poolInfo.mustMixBalanceMin);
-      pool.setMustMixBalanceCap(poolInfo.mustMixBalanceCap);
-      pool.setMustMixBalanceMax(poolInfo.mustMixBalanceMax);
-      pool.setMinAnonymitySet(poolInfo.minAnonymitySet);
-      pool.setMinMustMix(poolInfo.minMustMix);
-      pool.setNbRegistered(poolInfo.nbRegistered);
-
-      pool.setMixAnonymitySet(poolInfo.mixAnonymitySet);
-      pool.setMixStatus(poolInfo.mixStatus);
-      pool.setElapsedTime(poolInfo.elapsedTime);
-      pool.setNbConfirmed(poolInfo.nbConfirmed);
-      listPools.add(pool);
-    }
-    Pools pools = new Pools(listPools);
-    return pools;
   }
 
   @Override
