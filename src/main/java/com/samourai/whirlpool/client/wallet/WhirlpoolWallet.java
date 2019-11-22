@@ -340,8 +340,17 @@ public class WhirlpoolWallet {
 
   public Tx0 tx0(Collection<UnspentOutputWithKey> spendFroms, Pool pool, Tx0FeeTarget feeTarget)
       throws Exception {
+    return tx0(spendFroms, pool, feeTarget, config.getTx0MaxOutputs());
+  }
+
+  public Tx0 tx0(
+      Collection<UnspentOutputWithKey> spendFroms,
+      Pool pool,
+      Tx0FeeTarget feeTarget,
+      Integer maxOutputs)
+      throws Exception {
     int feeTx0 = getFee(feeTarget);
-    return tx0(spendFroms, pool, feeTx0, getFeePremix(), config.getTx0MaxOutputs());
+    return tx0(spendFroms, pool, feeTx0, getFeePremix(), maxOutputs);
   }
 
   public Tx0 tx0(
