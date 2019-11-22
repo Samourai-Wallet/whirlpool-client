@@ -41,7 +41,6 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     if (log.isDebugEnabled()) {
       log.debug("+whirlpoolClient");
     }
-    log.info("+whirlpoolClient"); // TODO !!!!
   }
 
   @Override

@@ -522,6 +522,8 @@ public class Tx0Service {
       }
     }
 
+    signTx0(tx, sortedSpendFroms, params);
+
     log.debug("Tx0 fee: " + tx0MinerFee + " sats");
     tx.verify();
 
@@ -535,6 +537,11 @@ public class Tx0Service {
     TransactionOutPoint depositSpendFrom = input.computeOutpoint(params);
     final Script segwitPubkeyScript = ScriptBuilder.createP2WPKHOutputScript(spendFromKey);
     tx.addSignedInput(depositSpendFrom, segwitPubkeyScript, spendFromKey);
+  }
+
+  protected void signTx0(
+      Transaction tx, Collection<UnspentOutputWithKey> inputs, NetworkParameters params) {
+    // inputs were already signed
   }
 
   public Collection<Pool> findPools(
