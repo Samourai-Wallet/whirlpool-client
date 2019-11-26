@@ -8,6 +8,7 @@ import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
+import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
@@ -88,17 +89,20 @@ public class JavaExample {
       WhirlpoolUtxo whirlpoolUtxo = whirlpoolWallet.findUtxo(utxoHash, utxoIndex);
       if (whirlpoolUtxo == null) {} // utxo not found
 
+      // configure tx0
+      Tx0Config tx0Config = whirlpoolWallet.getTx0Config().setBadbankChange(false);
+      Tx0FeeTarget minerFeeTarget = Tx0FeeTarget.BLOCKS_4;
+
       // find eligible pools for this utxo
-      Tx0FeeTarget feeTarget = Tx0FeeTarget.BLOCKS_4;
       Collection<Pool> eligiblePools =
-          whirlpoolWallet.findPoolsForTx0(whirlpoolUtxo.getUtxo().value, 1, feeTarget);
+          whirlpoolWallet.findPoolsForTx0(whirlpoolUtxo.getUtxo().value, 1, minerFeeTarget);
 
       // choose pool
       whirlpoolWallet.setPool(whirlpoolUtxo, "0.01btc");
 
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(whirlpoolUtxo, feeTarget);
+        Tx0 tx0 = whirlpoolWallet.tx0(whirlpoolUtxo, tx0Config, minerFeeTarget);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed
@@ -119,7 +123,10 @@ public class JavaExample {
       try {
         Tx0 tx0 =
             whirlpoolWallet.tx0(
-                Lists.of(new UnspentOutputWithKey(spendFrom, spendFromPrivKey)), pool, feeTarget);
+                Lists.of(new UnspentOutputWithKey(spendFrom, spendFromPrivKey)),
+                pool,
+                new Tx0Config(),
+                feeTarget);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed

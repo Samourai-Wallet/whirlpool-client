@@ -164,27 +164,37 @@ public class Tx0Service {
       Collection<UnspentOutputWithKey> spendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
+      Bip84Wallet badbankWallet,
+      Tx0Config tx0Config,
       int feeTx0,
       int feePremix,
-      Pool pool,
-      Integer maxOutputs)
+      Pool pool)
       throws Exception {
 
     // fetch fresh Tx0Data
     Tx0Data tx0Data = fetchTx0Data(pool.getPoolId());
 
     return tx0(
-        spendFroms, depositWallet, premixWallet, feeTx0, feePremix, pool, maxOutputs, tx0Data);
+        spendFroms,
+        depositWallet,
+        premixWallet,
+        badbankWallet,
+        tx0Config,
+        feeTx0,
+        feePremix,
+        pool,
+        tx0Data);
   }
 
   public Tx0 tx0(
       Collection<UnspentOutputWithKey> spendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
+      Bip84Wallet badbankWallet,
+      Tx0Config tx0Config,
       int feeTx0,
       int feePremix,
       Pool pool,
-      Integer maxOutputs,
       Tx0Data tx0Data)
       throws Exception {
 
@@ -198,7 +208,9 @@ public class Tx0Service {
             + ", poolId="
             + pool.getPoolId()
             + ", maxOutputs="
-            + (maxOutputs != null ? maxOutputs : "*")
+            + (tx0Config.getMaxOutputs() != null ? tx0Config.getMaxOutputs() : "*")
+            + ", badbankChange="
+            + tx0Config.isBadbankChange()
             + ", tx0Data=["
             + tx0Data
             + "]");
@@ -216,15 +228,24 @@ public class Tx0Service {
     // compute premixValue for pool
     long premixValue = computePremixValue(pool, feePremix);
 
-    return tx0(spendFroms, depositWallet, premixWallet, feeTx0, maxOutputs, premixValue, tx0Data);
+    return tx0(
+        spendFroms,
+        depositWallet,
+        premixWallet,
+        badbankWallet,
+        tx0Config,
+        feeTx0,
+        premixValue,
+        tx0Data);
   }
 
   protected Tx0 tx0(
       Collection<UnspentOutputWithKey> spendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
+      Bip84Wallet badbankWallet,
+      Tx0Config tx0Config,
       int feeTx0,
-      Integer maxOutputs,
       long premixValue,
       Tx0Data tx0Data)
       throws Exception {
@@ -289,8 +310,9 @@ public class Tx0Service {
         sortedSpendFroms,
         depositWallet,
         premixWallet,
+        badbankWallet,
+        tx0Config,
         feeTx0,
-        maxOutputs,
         premixValue,
         samouraiFee,
         opReturnValue,
@@ -301,8 +323,9 @@ public class Tx0Service {
       List<UnspentOutputWithKey> sortedSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
+      Bip84Wallet badbankWallet,
+      Tx0Config tx0Config,
       int feeTx0,
-      Integer maxOutputs,
       long premixValue,
       long samouraiFee,
       byte[] opReturnValue,
@@ -324,8 +347,8 @@ public class Tx0Service {
             sortedSpendFroms,
             samouraiFee,
             feeTx0); // cap with balance and tx0 minerFee
-    if (maxOutputs != null) {
-      nbPremix = Math.min(maxOutputs, nbPremix); // cap with maxOutputs
+    if (tx0Config.getMaxOutputs() != null) {
+      nbPremix = Math.min(tx0Config.getMaxOutputs(), nbPremix); // cap with maxOutputs
     }
     nbPremix = Math.min(NB_PREMIX_MAX, nbPremix); // cap with UTXO NB_PREMIX_MAX
 
@@ -349,6 +372,7 @@ public class Tx0Service {
 
     long spendValue = computeTx0SpendValue(premixValue, nbPremix, samouraiFee, tx0MinerFee);
     long changeValue = spendFromBalance - spendValue;
+    Bip84Wallet changeWallet = tx0Config.isBadbankChange() ? badbankWallet : depositWallet;
 
     //
     // tx0
@@ -357,12 +381,12 @@ public class Tx0Service {
     Tx0 tx0 =
         buildTx0(
             sortedSpendFroms,
-            depositWallet,
             premixWallet,
             premixValue,
             samouraiFee,
             opReturnValue,
             feeAddressBech32,
+            changeWallet,
             config.getNetworkParameters(),
             nbPremix,
             tx0MinerFee,
@@ -400,12 +424,12 @@ public class Tx0Service {
 
   protected Tx0 buildTx0(
       Collection<UnspentOutputWithKey> sortedSpendFroms,
-      Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
       long premixValue,
       long samouraiFee,
       byte[] opReturnValue,
       String feeAddressBech32,
+      Bip84Wallet changeWallet,
       NetworkParameters params,
       int nbPremix,
       long tx0MinerFee,
@@ -456,7 +480,7 @@ public class Tx0Service {
       //
       // 1 change output
       //
-      HD_Address changeAddress = depositWallet.getNextChangeAddress();
+      HD_Address changeAddress = changeWallet.getNextChangeAddress();
       String changeAddressBech32 = bech32Util.toBech32(changeAddress, params);
       changeOutput = bech32Util.getTransactionOutput(changeAddressBech32, changeValue, params);
       outputs.add(changeOutput);

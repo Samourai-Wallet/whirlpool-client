@@ -27,6 +27,8 @@ public class WhirlpoolWalletService {
   private static final String INDEX_PREMIX_CHANGE = "premix_change";
   private static final String INDEX_POSTMIX = "postmix";
   private static final String INDEX_POSTMIX_CHANGE = "postmix_change";
+  private static final String INDEX_BADBANK = "badbank";
+  private static final String INDEX_BADBANK_CHANGE = "badbank_change";
 
   public WhirlpoolWalletService() {
     this.whirlpoolWallet = Optional.empty();
@@ -127,15 +129,21 @@ public class WhirlpoolWalletService {
     IIndexHandler depositIndexHandler = walletPersistHandler.getIndexHandler(INDEX_DEPOSIT);
     IIndexHandler depositChangeIndexHandler =
         walletPersistHandler.getIndexHandler(INDEX_DEPOSIT_CHANGE);
+
     IIndexHandler premixIndexHandler = walletPersistHandler.getIndexHandler(INDEX_PREMIX);
     IIndexHandler premixChangeIndexHandler =
         walletPersistHandler.getIndexHandler(INDEX_PREMIX_CHANGE);
+
     IIndexHandler postmixIndexHandler = walletPersistHandler.getIndexHandler(INDEX_POSTMIX);
     IIndexHandler postmixChangeIndexHandler =
         walletPersistHandler.getIndexHandler(INDEX_POSTMIX_CHANGE);
+
+    IIndexHandler badbankIndexHandler = walletPersistHandler.getIndexHandler(INDEX_BADBANK);
+    IIndexHandler badbankChangeIndexHandler =
+        walletPersistHandler.getIndexHandler(INDEX_BADBANK_CHANGE);
     boolean init = !walletPersistHandler.isInitialized();
 
-    // deposit, premix & postmix wallets
+    // deposit, premix, postmix & badbank wallets
     Bip84ApiWallet depositWallet =
         new Bip84ApiWallet(
             bip84w,
@@ -160,19 +168,29 @@ public class WhirlpoolWalletService {
             postmixChangeIndexHandler,
             backendApi,
             init);
+    Bip84ApiWallet badbankWallet =
+        new Bip84ApiWallet(
+            bip84w,
+            WhirlpoolWalletAccount.BADBANK.getAccountIndex(),
+            badbankIndexHandler,
+            badbankChangeIndexHandler,
+            backendApi,
+            init);
 
     if (init) {
       walletPersistHandler.setInitialized(true);
     }
 
-    return computeWhirlpoolWallet(config, depositWallet, premixWallet, postmixWallet);
+    return computeWhirlpoolWallet(
+        config, depositWallet, premixWallet, postmixWallet, badbankWallet);
   }
 
   protected WhirlpoolWallet computeWhirlpoolWallet(
       WhirlpoolWalletConfig config,
       Bip84ApiWallet depositWallet,
       Bip84ApiWallet premixWallet,
-      Bip84ApiWallet postmixWallet) {
+      Bip84ApiWallet postmixWallet,
+      Bip84ApiWallet badbankWallet) {
 
     // debug whirlpoolWalletConfig
     if (log.isDebugEnabled()) {
@@ -193,7 +211,8 @@ public class WhirlpoolWalletService {
         whirlpoolClient,
         depositWallet,
         premixWallet,
-        postmixWallet);
+        postmixWallet,
+        badbankWallet);
   }
 
   protected WhirlpoolDataService newDataService(WhirlpoolWalletConfig config) {
