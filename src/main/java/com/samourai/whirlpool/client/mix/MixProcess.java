@@ -165,7 +165,9 @@ public class MixProcess {
     String blindedBordereau64 =
         WhirlpoolProtocol.encodeBytes(
             clientCryptoService.blind(this.receiveAddress, blindingParams));
-    ConfirmInputRequest confirmInputRequest = new ConfirmInputRequest(mixId, blindedBordereau64);
+    String userHash = premixHandler.computeUserHash(mixId);
+    ConfirmInputRequest confirmInputRequest =
+        new ConfirmInputRequest(mixId, blindedBordereau64, userHash);
 
     confirmedInput = true;
     return confirmInputRequest;

@@ -10,4 +10,6 @@ public interface IPremixHandler {
   void signTransaction(Transaction tx, int inputIndex, NetworkParameters params) throws Exception;
 
   String signMessage(String message);
+
+  String computeUserHash(String salt);
 }

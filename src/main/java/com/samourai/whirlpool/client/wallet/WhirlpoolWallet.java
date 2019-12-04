@@ -672,7 +672,13 @@ public class WhirlpoolWallet {
             premixOrPostmixUtxo.tx_hash,
             premixOrPostmixUtxo.tx_output_n,
             premixOrPostmixUtxo.value);
-    return new PremixHandler(utxoWithBalance, premixKey);
+
+    // use PREMIX(0,0) as userPreHash (not transmitted to server but rehashed with another salt)
+    HD_Address premix00 = getWallet(WhirlpoolAccount.PREMIX).getAddressAt(0, 0);
+    String premix00Bech32 = bech32Util.toBech32(premix00, config.getNetworkParameters());
+    String userPreHash = ClientUtils.sha256Hash(premix00Bech32);
+
+    return new PremixHandler(utxoWithBalance, premixKey, userPreHash);
   }
 
   public IPostmixHandler computePostmixHandler() {
