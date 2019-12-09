@@ -647,17 +647,39 @@ public class WhirlpoolWallet {
   }
 
   public void onMixFail(WhirlpoolUtxo whirlpoolUtxo, MixFailReason reason, String notifiableError) {
-    // is utxo still mixable?
-    if (whirlpoolUtxo.getUtxoConfig().getPoolId() == null) {
-      // utxo was spent in the meantime
-      return;
-    }
+    switch (reason) {
+      case PROTOCOL_MISMATCH:
+        // stop mixing on protocol mismatch
+        log.error("onMixFail(" + reason + "): stopping mixing");
+        stop();
+        break;
 
-    // retry
-    try {
-      mixQueue(whirlpoolUtxo);
-    } catch (Exception e) {
-      log.error("", e);
+      case DISCONNECTED:
+      case MIX_FAILED:
+        // is utxo still mixable?
+        if (whirlpoolUtxo.getUtxoConfig().getPoolId() == null) {
+          // utxo was spent in the meantime
+          log.warn(
+              "onMixFail(" + reason + "): not retrying because UTXO was spent: " + whirlpoolUtxo);
+          return;
+        }
+
+        // retry later
+        log.info("onMixFail(" + reason + "): will retry later");
+        try {
+          mixQueue(whirlpoolUtxo);
+        } catch (Exception e) {
+          log.error("", e);
+        }
+
+      case INPUT_REJECTED:
+      case INTERNAL_ERROR:
+        // not retrying
+        log.warn("onMixFail(" + reason + "): won't retry");
+
+      default:
+        // not retrying
+        log.warn("onMixFail(" + reason + "): unknown reason");
     }
   }
 
