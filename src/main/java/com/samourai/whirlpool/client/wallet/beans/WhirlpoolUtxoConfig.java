@@ -1,39 +1,39 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
-import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
+import io.reactivex.Observable;
+import io.reactivex.subjects.PublishSubject;
 
 public class WhirlpoolUtxoConfig {
   public static final int MIXS_TARGET_UNLIMITED = 0;
-  private WhirlpoolWallet whirlpoolWallet;
   private String poolId;
   private int mixsTarget;
   private int mixsDone;
   private long lastModified;
+  private PublishSubject<WhirlpoolUtxoConfig> observable;
 
-  public WhirlpoolUtxoConfig(WhirlpoolWallet whirlpoolWallet, int mixsTarget) {
-    this(whirlpoolWallet, null, mixsTarget, 0, 0);
+  public WhirlpoolUtxoConfig(int mixsTarget) {
+    this(null, mixsTarget, 0, 0);
+  }
+
+  public WhirlpoolUtxoConfig(int mixsTarget, int mixsDone) {
+    this(null, mixsTarget, mixsDone, 0);
   }
 
   public WhirlpoolUtxoConfig(WhirlpoolUtxoConfig copy) {
-    this(
-        copy.whirlpoolWallet,
-        copy.poolId,
-        copy.mixsTarget,
-        copy.mixsDone,
-        System.currentTimeMillis());
+    this(copy.poolId, copy.mixsTarget, copy.mixsDone, System.currentTimeMillis());
   }
 
-  public WhirlpoolUtxoConfig(
-      WhirlpoolWallet whirlpoolWallet,
-      String poolId,
-      int mixsTarget,
-      int mixsDone,
-      long lastModified) {
-    this.whirlpoolWallet = whirlpoolWallet;
+  public WhirlpoolUtxoConfig(String poolId, int mixsTarget, int mixsDone, long lastModified) {
     this.poolId = poolId;
     this.mixsTarget = mixsTarget;
     this.mixsDone = mixsDone;
     this.lastModified = lastModified;
+    this.observable = PublishSubject.create();
+  }
+
+  private void emit() {
+    // notify observers
+    observable.onNext(this);
   }
 
   public WhirlpoolUtxoConfig copy() {
@@ -47,16 +47,16 @@ public class WhirlpoolUtxoConfig {
 
   public void setPoolId(String poolId) {
     this.poolId = poolId;
-    whirlpoolWallet.onUtxoConfigChanged(this);
+    emit();
   }
 
   public int getMixsTarget() {
-    return Math.max(mixsTarget, whirlpoolWallet.getConfig().getMixsTarget());
+    return mixsTarget;
   }
 
   public void setMixsTarget(int mixsTarget) {
     this.mixsTarget = mixsTarget;
-    whirlpoolWallet.onUtxoConfigChanged(this);
+    emit();
   }
 
   public int getMixsDone() {
@@ -66,7 +66,6 @@ public class WhirlpoolUtxoConfig {
   public void incrementMixsDone() {
     this.mixsDone++;
     setLastModified();
-    whirlpoolWallet.onUtxoConfigChanged(this);
   }
 
   public long getLastModified() {
@@ -75,6 +74,11 @@ public class WhirlpoolUtxoConfig {
 
   private void setLastModified() {
     this.lastModified = System.currentTimeMillis();
+    emit();
+  }
+
+  public Observable<WhirlpoolUtxoConfig> getObservable() {
+    return observable;
   }
 
   @Override

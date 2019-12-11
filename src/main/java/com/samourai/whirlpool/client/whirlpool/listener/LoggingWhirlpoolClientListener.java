@@ -29,8 +29,6 @@ public class LoggingWhirlpoolClientListener extends AbstractWhirlpoolClientListe
   @Override
   public void success(MixSuccess mixSuccess) {
     super.success(mixSuccess);
-    logInfo("⣿ WHIRLPOOL SUCCESS ⣿");
-
     logInfo(format("⣿ WHIRLPOOL SUCCESS ⣿ txid: " + mixSuccess.getReceiveUtxo().getHash()));
   }
 

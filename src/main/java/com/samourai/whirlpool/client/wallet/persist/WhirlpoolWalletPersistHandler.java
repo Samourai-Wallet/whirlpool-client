@@ -26,13 +26,11 @@ public interface WhirlpoolWalletPersistHandler {
 
   WhirlpoolUtxoConfig getUtxoConfig(String utxoHash);
 
-  void setUtxoConfig(String utxoHash, int utxoIndex, WhirlpoolUtxoConfig value);
+  void addUtxoConfig(String utxoHash, int utxoIndex, WhirlpoolUtxoConfig value);
 
-  void setUtxoConfig(String utxoHash, WhirlpoolUtxoConfig value);
+  void addUtxoConfig(String utxoHash, WhirlpoolUtxoConfig value);
 
   void cleanUtxoConfig(Collection<WhirlpoolUtxo> knownUtxos);
 
   void save() throws Exception;
-
-  void onUtxoConfigChanged(WhirlpoolUtxoConfig whirlpoolUtxoConfig);
 }

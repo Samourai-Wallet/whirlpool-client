@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
+import io.reactivex.functions.Consumer;
+import io.reactivex.subjects.PublishSubject;
 import java.io.File;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,6 +28,7 @@ public class FileWhirlpoolUtxoConfigHandler {
   private Set<String> keysToClean;
   private long lastSet;
   private long lastWrite;
+  private Consumer<WhirlpoolUtxoConfig> consumer;
 
   protected FileWhirlpoolUtxoConfigHandler(File file) {
     this.file = file;
@@ -34,15 +37,34 @@ public class FileWhirlpoolUtxoConfigHandler {
     this.keysToClean = new HashSet<String>();
     this.lastSet = 0;
     this.lastWrite = 0;
+    this.consumer = computeConsumer();
   }
 
   protected WhirlpoolUtxoConfig get(String key) {
     return utxoConfigs.get(key);
   }
 
-  protected void set(String key, WhirlpoolUtxoConfig value) {
-    utxoConfigs.put(key, value);
+  protected synchronized void add(String key, WhirlpoolUtxoConfig utxoConfig) {
+    WhirlpoolUtxoConfig existingUtxoConfig = utxoConfigs.get(key);
+    if (existingUtxoConfig != null) {
+      // should never happen...
+      log.warn("add(" + key + "): utxoConfig already exists!");
+      WhirlpoolUtxoConfig removed = utxoConfigs.remove(key);
+      ((PublishSubject) removed.getObservable()).onComplete();
+    }
+    utxoConfig.getObservable().subscribe(consumer);
+    utxoConfigs.put(key, utxoConfig);
+
     setLastSet();
+  }
+
+  private Consumer<WhirlpoolUtxoConfig> computeConsumer() {
+    return new Consumer<WhirlpoolUtxoConfig>() {
+      @Override
+      public void accept(WhirlpoolUtxoConfig whirlpoolUtxoConfig) throws Exception {
+        setLastSet();
+      }
+    };
   }
 
   protected boolean save() throws Exception {
@@ -62,7 +84,8 @@ public class FileWhirlpoolUtxoConfigHandler {
 
   public synchronized void loadUtxoConfigs(final WhirlpoolWallet whirlpoolWallet) {
     try {
-      utxoConfigs.clear();
+      clearUtxoConfigs();
+
       if (file.exists() && file.length() > 0) {
         Map<String, WhirlpoolUtxoConfigPersisted> readValue =
             mapper.readValue(
@@ -86,7 +109,11 @@ public class FileWhirlpoolUtxoConfigHandler {
                           @Override
                           public WhirlpoolUtxoConfig apply(
                               Entry<String, WhirlpoolUtxoConfigPersisted> entry) {
-                            return entry.getValue().toUtxoConfig(whirlpoolWallet);
+                            WhirlpoolUtxoConfig utxoConfig =
+                                new WhirlpoolUtxoConfig(entry.getValue().toUtxoConfig());
+                            // subscribe
+                            utxoConfig.getObservable().subscribe(consumer);
+                            return utxoConfig;
                           }
                         }));
         utxoConfigs.putAll(whirlpoolUtxoConfigs);
@@ -100,6 +127,18 @@ public class FileWhirlpoolUtxoConfigHandler {
     } catch (Exception e) {
       log.warn("load: unable to read " + file.getAbsolutePath(), e);
     }
+  }
+
+  private synchronized void clearUtxoConfigs() {
+    StreamSupport.parallelStream(utxoConfigs.values())
+        .forEach(
+            new java8.util.function.Consumer<WhirlpoolUtxoConfig>() {
+              @Override
+              public void accept(WhirlpoolUtxoConfig utxoConfig) {
+                ((PublishSubject) utxoConfig.getObservable()).onComplete();
+              }
+            });
+    utxoConfigs.clear();
   }
 
   protected synchronized void clean(Set<String> knownUtxosKeys) {
@@ -122,6 +161,7 @@ public class FileWhirlpoolUtxoConfigHandler {
             log.debug("Remove obsolete key: " + entryKey);
           }
           iter.remove();
+          ((PublishSubject) entry.getValue().getObservable()).onComplete();
           knownUtxosKeys.remove(entryKey);
           setLastSet();
         }

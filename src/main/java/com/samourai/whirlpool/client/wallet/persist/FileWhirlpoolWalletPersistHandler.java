@@ -69,15 +69,15 @@ public class FileWhirlpoolWalletPersistHandler implements WhirlpoolWalletPersist
   }
 
   @Override
-  public void setUtxoConfig(String utxoHash, int utxoIndex, WhirlpoolUtxoConfig value) {
+  public void addUtxoConfig(String utxoHash, int utxoIndex, WhirlpoolUtxoConfig value) {
     String persistKey = computeUtxoConfigKey(utxoHash, utxoIndex);
-    fileUtxoConfigHandler.set(persistKey, value);
+    fileUtxoConfigHandler.add(persistKey, value);
   }
 
   @Override
-  public void setUtxoConfig(String utxoHash, WhirlpoolUtxoConfig value) {
+  public void addUtxoConfig(String utxoHash, WhirlpoolUtxoConfig value) {
     String persistKey = computeUtxoConfigKey(utxoHash);
-    fileUtxoConfigHandler.set(persistKey, value);
+    fileUtxoConfigHandler.add(persistKey, value);
   }
 
   @Override
@@ -93,11 +93,6 @@ public class FileWhirlpoolWalletPersistHandler implements WhirlpoolWalletPersist
   @Override
   public void save() throws Exception {
     fileUtxoConfigHandler.save();
-  }
-
-  @Override
-  public void onUtxoConfigChanged(WhirlpoolUtxoConfig whirlpoolUtxoConfig) {
-    fileUtxoConfigHandler.setLastSet();
   }
 
   private String computeUtxoConfigKey(String utxoHash, int utxoIndex) {

@@ -9,6 +9,7 @@ import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import java.security.KeyFactory;
@@ -143,10 +144,11 @@ public class ClientUtils {
     while (var3.hasNext()) {
       WhirlpoolUtxo whirlpoolUtxo = (WhirlpoolUtxo) var3.next();
       WhirlpoolUtxoConfig utxoConfig = whirlpoolUtxo.getUtxoConfig();
+      WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
       UnspentOutput o = whirlpoolUtxo.getUtxo();
       String utxo = o.tx_hash + ":" + o.tx_output_n;
       String mixableStatusName =
-          whirlpoolUtxo.getMixableStatus() != null ? whirlpoolUtxo.getMixableStatus().name() : "-";
+          utxoState.getMixableStatus() != null ? utxoState.getMixableStatus().name() : "-";
       sb.append(
           String.format(
               lineFormat,
@@ -154,7 +156,7 @@ public class ClientUtils {
               o.confirmations,
               utxo,
               o.getPath(),
-              whirlpoolUtxo.getStatus().name(),
+              utxoState.getStatus().name(),
               mixableStatusName,
               utxoConfig.getPoolId() != null ? utxoConfig.getPoolId() : "-",
               utxoConfig.getMixsDone() + "/" + utxoConfig.getMixsTarget()));

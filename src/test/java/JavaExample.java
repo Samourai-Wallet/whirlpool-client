@@ -4,23 +4,16 @@ import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.hd.HD_Wallet;
-import com.samourai.whirlpool.client.mix.listener.MixFailReason;
-import com.samourai.whirlpool.client.mix.listener.MixStep;
-import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
-import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletState;
+import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.persist.FileWhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
-import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import java.io.File;
 import java.util.Collection;
 import java8.util.Lists;
@@ -60,33 +53,76 @@ public class JavaExample {
   }
 
   public void example() throws Exception {
+    /*
+     * CONFIGURATION
+     */
     // configure whirlpool
     WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
 
-    // configure wallet
+    /*
+     * WALLET
+     */
+    // open wallet
     HD_Wallet bip84w = null; // provide your wallet here
-
     WhirlpoolWallet whirlpoolWallet = whirlpoolWalletService.openWallet(config, bip84w);
 
     // start whirlpool wallet
     whirlpoolWallet.start();
 
-    // get state
-    WhirlpoolWalletState whirlpoolWalletState = whirlpoolWallet.getState();
+    // get mixing state (started, utxosMixing, nbMixing, nbQueued...)
+    MixingState mixingState = whirlpoolWallet.getMixingState();
 
+    // observe mixing state
+    mixingState.getObservable().subscribe(/* ... */ );
+
+    /*
+     * POOLS
+     */
     // list pools
     Collection<Pool> pools = whirlpoolWallet.getPools();
 
     // find pool by poolId
     Pool pool05btc = whirlpoolWallet.findPoolById("0.5btc");
 
+    /*
+     * UTXOS
+     */
+    // list utxos
+    Collection<WhirlpoolUtxo> utxosDeposit = whirlpoolWallet.getUtxosDeposit();
+    Collection<WhirlpoolUtxo> utxosPremix = whirlpoolWallet.getUtxosPremix();
+    Collection<WhirlpoolUtxo> utxosPostmix = whirlpoolWallet.getUtxosPostmix();
+
+    // get specific utxo
+    WhirlpoolUtxo whirlpoolUtxo =
+        whirlpoolWallet.findUtxo(
+            "040df121854c7db49e38b6fcb61c2b0953c8b234ce53c1b2a2fb122a4e1c3d2e", 1);
+
+    // get specific utxoConfig (poolId, mixsTarget, mixsDone, lastModified...)
+    WhirlpoolUtxoConfig utxoConfig = whirlpoolUtxo.getUtxoConfig();
+
+    // set specific utxoConfig
+    utxoConfig.setMixsTarget(5);
+    utxoConfig.setPoolId("0.01btc");
+
+    // observe specific utxo config
+    utxoConfig.getObservable().subscribe(/* ... */ );
+
+    // get specific utxo state (status, mixStep, mixableStatus, progressPercent, message, error...)
+    WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
+
+    // observe specific utxo state
+    utxoState.getObservable().subscribe(/* ... */ );
+
+    /*
+     * TX0
+     */
     // tx0 method 1: spending a whirlpool-managed utxo
     {
       // whirlpool utxo for tx0
       String utxoHash = "6517ece36402a89d76d075c60a8d3d0e051e4e5efa42a01c9033328707631b61";
       int utxoIndex = 2;
-      WhirlpoolUtxo whirlpoolUtxo = whirlpoolWallet.findUtxo(utxoHash, utxoIndex);
+      whirlpoolUtxo = whirlpoolWallet.findUtxo(utxoHash, utxoIndex);
       if (whirlpoolUtxo == null) {} // utxo not found
 
       // configure tx0
@@ -133,35 +169,13 @@ public class JavaExample {
       }
     }
 
-    // list premix utxos
-    Collection<WhirlpoolUtxo> utxosPremix = whirlpoolWallet.getUtxosPremix();
+    /*
+     * MIX
+     */
+    whirlpoolWallet.mix(whirlpoolUtxo).subscribe(/* ... */ );
 
-    // mix specific utxo
-    WhirlpoolUtxo whirlpoolUtxo = utxosPremix.iterator().next();
-    WhirlpoolClientListener listener =
-        new WhirlpoolClientListener() {
-          @Override
-          public void success(MixSuccess mixSuccess) {
-            // mix success
-          }
-
-          @Override
-          public void fail(MixFailReason reason, String notifiableError) {
-            // mix failed
-          }
-
-          @Override
-          public void progress(MixStep step) {
-            // mix progress
-          }
-        };
-    whirlpoolWallet.mix(whirlpoolUtxo, listener);
-
-    // stop mixing specific utxo
+    // stop mixing specific utxo (or remove it from mix queue)
     whirlpoolWallet.mixStop(whirlpoolUtxo);
-
-    // get global mix state
-    WhirlpoolWalletState whirlpoolState = whirlpoolWallet.getState();
 
     // stop Whirlpool
     whirlpoolWalletService.closeWallet();

@@ -40,9 +40,11 @@ public class AutoMixOrchestrator extends AbstractOrchestrator {
     try {
       if (whirlpoolUtxo.getUtxoConfig().getPoolId() != null
           && WhirlpoolAccount.PREMIX.equals(whirlpoolUtxo.getAccount())
-          && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getStatus())) {
+          && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getUtxoState().getStatus())) {
 
-        log.info(" o AutoMix: new PREMIX utxo detected, adding to mixQueue: " + whirlpoolUtxo);
+        if (log.isDebugEnabled()) {
+          log.debug(" o AutoMix: new PREMIX utxo detected, adding to mixQueue: " + whirlpoolUtxo);
+        }
         whirlpoolWallet.mixQueue(whirlpoolUtxo);
       }
     } catch (Exception e) {

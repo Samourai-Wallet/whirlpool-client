@@ -53,27 +53,29 @@ public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo
     }
 
     // when same priority: no error first
-    if (o1.getLastError() != null && o2.getLastError() == null) {
+    WhirlpoolUtxoState s1 = o1.getUtxoState();
+    WhirlpoolUtxoState s2 = o2.getUtxoState();
+    if (s1.getLastError() != null && s2.getLastError() == null) {
       return 1;
     }
-    if (o2.getLastError() != null && o1.getLastError() == null) {
+    if (s2.getLastError() != null && s1.getLastError() == null) {
       return -1;
     }
-    if (o1.getLastError() != null && o2.getLastError() != null) {
+    if (s1.getLastError() != null && s2.getLastError() != null) {
       // both errors: older error first
-      return Longs.compare(o1.getLastError(), o2.getLastError());
+      return Longs.compare(s1.getLastError(), s2.getLastError());
     }
 
     // when same priority: last activity first
-    if (o1.getLastActivity() != null && o2.getLastActivity() == null) {
+    if (s1.getLastActivity() != null && s2.getLastActivity() == null) {
       return -1;
     }
-    if (o2.getLastActivity() != null && o1.getLastActivity() == null) {
+    if (s2.getLastActivity() != null && s1.getLastActivity() == null) {
       return 1;
     }
-    if (o1.getLastActivity() == null && o2.getLastActivity() == null) {
+    if (s1.getLastActivity() == null && s2.getLastActivity() == null) {
       return 0;
     }
-    return Longs.compare(o2.getLastActivity(), o1.getLastActivity());
+    return Longs.compare(s2.getLastActivity(), s1.getLastActivity());
   }
 }

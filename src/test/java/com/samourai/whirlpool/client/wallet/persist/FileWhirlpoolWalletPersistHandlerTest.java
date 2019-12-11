@@ -10,8 +10,7 @@ import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.beans.*;
 import java.io.File;
 import java.util.List;
 import java8.util.Lists;
@@ -50,6 +49,12 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
         .loadUtxoConfigs(whirlpoolWallet);
   }
 
+  private WhirlpoolUtxo computeUtxo(UnspentOutput utxo) {
+    WhirlpoolAccount whirlpoolAccount = WhirlpoolAccount.DEPOSIT;
+    WhirlpoolUtxoConfig utxoConfig = whirlpoolWallet.computeUtxoConfig(utxo, whirlpoolAccount);
+    return new WhirlpoolUtxo(utxo, whirlpoolAccount, utxoConfig, WhirlpoolUtxoStatus.READY);
+  }
+
   @Test
   public void testCleanup() throws Exception {
     // save
@@ -62,7 +67,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     utxoFoo.addr = "foo";
     utxoFoo.xpub = new UnspentResponse.UnspentOutput.Xpub();
     utxoFoo.xpub.path = "foo";
-    WhirlpoolUtxo foo = new WhirlpoolUtxo(utxoFoo, null, null, whirlpoolWallet);
+    WhirlpoolUtxo foo = computeUtxo(utxoFoo);
     foo.getUtxoConfig().setMixsTarget(1);
 
     UnspentOutput utxoBar = new UnspentOutput();
@@ -73,7 +78,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     utxoBar.addr = "bar";
     utxoBar.xpub = new UnspentResponse.UnspentOutput.Xpub();
     utxoBar.xpub.path = "bar";
-    WhirlpoolUtxo bar = new WhirlpoolUtxo(utxoBar, null, null, whirlpoolWallet);
+    WhirlpoolUtxo bar = computeUtxo(utxoBar);
     bar.getUtxoConfig().setMixsTarget(2);
 
     // verify
@@ -117,7 +122,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
     Assertions.assertNull(persistHandler.getUtxoConfig("bar", 1));
 
     // modify foo
-    foo.getUtxoConfig().setMixsTarget(5);
+    persistHandler.getUtxoConfig("foo", 1).setMixsTarget(5);
     Assertions.assertEquals(5, persistHandler.getUtxoConfig("foo", 1).getMixsTarget());
     persistHandler.save();
 

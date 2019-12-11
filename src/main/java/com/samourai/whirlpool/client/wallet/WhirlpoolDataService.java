@@ -9,10 +9,7 @@ import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84ApiWallet;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.utils.ClientUtils;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolPoolByBalanceMinDescComparator;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
+import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
@@ -349,7 +346,7 @@ public class WhirlpoolDataService {
                 if (freshUtxo != null) {
                   UnspentOutput oldUtxo = whirlpoolUtxo.getUtxo();
 
-                  // update existing utxo
+                  // set existing utxo
                   whirlpoolUtxo.setUtxo(freshUtxo);
                   whirlpoolWallet.onUtxoUpdated(whirlpoolUtxo, oldUtxo);
 
@@ -371,11 +368,12 @@ public class WhirlpoolDataService {
                 String key = ClientUtils.utxoToKey(utxo);
                 if (!currentUtxos.containsKey(key)) {
                   // add missing
+                  WhirlpoolUtxoConfig utxoConfig = whirlpoolWallet.computeUtxoConfig(utxo, account);
                   WhirlpoolUtxo whirlpoolUtxo =
-                      new WhirlpoolUtxo(utxo, account, WhirlpoolUtxoStatus.READY, whirlpoolWallet);
+                      new WhirlpoolUtxo(utxo, account, utxoConfig, WhirlpoolUtxoStatus.READY);
                   if (!isFirstFetch) {
                     // set lastActivity when utxo is detected but ignore on first fetch
-                    whirlpoolUtxo.setLastActivity();
+                    whirlpoolUtxo.getUtxoState().setLastActivity();
                   }
                   whirlpoolWallet.onUtxoDetected(whirlpoolUtxo, isFirstFetch);
                   result.put(key, whirlpoolUtxo);

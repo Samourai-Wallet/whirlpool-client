@@ -10,6 +10,7 @@ import com.samourai.whirlpool.client.tx0.Tx0Service;
 import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
+import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
@@ -262,6 +263,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public Map<String, String> getConfigInfo() {
     Map<String, String> configInfo = new LinkedHashMap<String, String>();
+    configInfo.put("protocolVersion", WhirlpoolProtocol.PROTOCOL_VERSION);
     configInfo.put(
         "server",
         "url=" + getServer() + ", network=" + getNetworkParameters().getPaymentProtocolId());
