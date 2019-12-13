@@ -545,11 +545,13 @@ public class MixOrchestrator extends AbstractOrchestrator {
               || mixsTargetOrDefault == WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED)
           && utxoConfig.getPoolId() != null) {
 
-        log.info(
-            " o Mix: new POSTMIX utxo detected, adding to mixQueue: "
-                + whirlpoolUtxo
-                + " ; "
-                + utxoConfig);
+        if (log.isDebugEnabled()) {
+          log.debug(
+                  " o Mix: new POSTMIX utxo detected, adding to mixQueue: "
+                          + whirlpoolUtxo
+                          + " ; "
+                          + utxoConfig);
+        }
         try {
           whirlpoolWallet.mixQueue(whirlpoolUtxo);
         } catch (Exception e) {
