@@ -124,7 +124,7 @@ public class ClientUtils {
     log.info("\n" + sb.toString());
   }
 
-  public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos) {
+  public static void logWhirlpoolUtxos(Collection<WhirlpoolUtxo> utxos, int mixsTargetMin) {
     String lineFormat = "| %10s | %8s | %68s | %14s | %12s | %14s | %8s | %8s |\n";
     StringBuilder sb = new StringBuilder();
     sb.append(
@@ -149,6 +149,7 @@ public class ClientUtils {
       String utxo = o.tx_hash + ":" + o.tx_output_n;
       String mixableStatusName =
           utxoState.getMixableStatus() != null ? utxoState.getMixableStatus().name() : "-";
+      int mixsTargetOrDefault = utxoConfig.getMixsTargetOrDefault(mixsTargetMin);
       sb.append(
           String.format(
               lineFormat,
@@ -159,7 +160,11 @@ public class ClientUtils {
               utxoState.getStatus().name(),
               mixableStatusName,
               utxoConfig.getPoolId() != null ? utxoConfig.getPoolId() : "-",
-              utxoConfig.getMixsDone() + "/" + utxoConfig.getMixsTarget()));
+              utxoConfig.getMixsDone()
+                  + "/"
+                  + (mixsTargetOrDefault == WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED
+                      ? "∞"
+                      : mixsTargetOrDefault)));
     }
 
     log.info("\n" + sb.toString());
@@ -213,5 +218,21 @@ public class ClientUtils {
     return value.substring(0, Math.min(startEnd, value.length()))
         + "..."
         + value.substring(Math.max(0, value.length() - startEnd), value.length());
+  }
+
+  public static void setLogLevel(Level mainLevel, Level subLevel) {
+    LogbackUtils.setLogLevel("com.samourai", mainLevel.toString());
+
+    LogbackUtils.setLogLevel("com.samourai.whirlpool.client", subLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.stomp.client", subLevel.toString());
+
+    LogbackUtils.setLogLevel("com.samourai.whirlpool.client.wallet", mainLevel.toString());
+    LogbackUtils.setLogLevel(
+        "com.samourai.whirlpool.client.wallet.orchestrator", mainLevel.toString());
+
+    // skip noisy logs
+    LogbackUtils.setLogLevel("org.bitcoinj", org.slf4j.event.Level.ERROR.toString());
+    LogbackUtils.setLogLevel(
+        "org.bitcoin", org.slf4j.event.Level.WARN.toString()); // "no wallycore"
   }
 }

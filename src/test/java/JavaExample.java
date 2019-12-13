@@ -82,6 +82,9 @@ public class JavaExample {
             new Consumer<MixingState>() {
               @Override
               public void accept(MixingState mixingState) throws Exception {
+                // get whirlpool status
+                boolean whirlpoolStarted = mixingState.isStarted();
+
                 // get mixing utxos
                 Collection<WhirlpoolUtxo> mixingUtxos = mixingState.getUtxosMixing();
                 if (mixingUtxos.isEmpty()) {

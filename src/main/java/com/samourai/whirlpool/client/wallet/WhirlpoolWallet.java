@@ -472,9 +472,9 @@ public class WhirlpoolWallet {
     whirlpoolUtxo.getUtxoConfig().setPoolId(poolId);
   }
 
-  public void setMixsTarget(WhirlpoolUtxo whirlpoolUtxo, int mixsTarget)
+  public void setMixsTarget(WhirlpoolUtxo whirlpoolUtxo, Integer mixsTarget)
       throws NotifiableException {
-    if (mixsTarget < 0) {
+    if (mixsTarget != null && mixsTarget < 0) {
       throw new NotifiableException("Invalid mixsTarget: " + mixsTarget);
     }
     whirlpoolUtxo.getUtxoConfig().setMixsTarget(mixsTarget);
@@ -784,7 +784,7 @@ public class WhirlpoolWallet {
       // POSTMIX was already mixed once (at least)
       mixsDone++;
     }
-    utxoConfig = new WhirlpoolUtxoConfig(config.getMixsTarget(), mixsDone);
+    utxoConfig = new WhirlpoolUtxoConfig(mixsDone);
     addUtxoConfig(utxoConfig, utxo.tx_hash, utxo.tx_output_n);
 
     if (log.isDebugEnabled()) {

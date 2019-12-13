@@ -39,11 +39,11 @@ public class StompTransport {
           public void onMessage(Void foo) {
             if (!done) {
               listener.onTransportConnected();
-            } else {
-              if (log.isDebugEnabled()) {
-                log.debug("onMessage: message ignored (done=true)");
-              }
-            }
+            } /* else {
+                if (log.isDebugEnabled()) {
+                  log.debug("onMessage: message ignored (done=true)");
+                }
+              }*/
           }
 
           // onDisconnect
@@ -52,11 +52,11 @@ public class StompTransport {
             if (!done) {
               disconnect();
               listener.onTransportDisconnected(exception);
-            } else {
-              if (log.isDebugEnabled()) {
-                log.info("onError: message ignored (done=true)");
-              }
-            }
+            } /* else {
+                if (log.isDebugEnabled()) {
+                  log.debug("onError: message ignored (done=true)");
+                }
+              }*/
           }
         });
   }

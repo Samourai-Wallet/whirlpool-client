@@ -536,10 +536,12 @@ public class MixOrchestrator extends AbstractOrchestrator {
     boolean isAutoMix = whirlpoolWallet.getConfig().isAutoMix();
     if (!isFirstFetch || isAutoMix) {
       // enqueue unfinished POSTMIX utxos
+      int mixsTargetOrDefault =
+          utxoConfig.getMixsTargetOrDefault(whirlpoolWallet.getConfig().getMixsTarget());
       if (WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount())
           && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getUtxoState().getStatus())
-          && (utxoConfig.getMixsDone() < utxoConfig.getMixsTarget()
-              || utxoConfig.getMixsTarget() == WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED)
+          && (utxoConfig.getMixsDone() < mixsTargetOrDefault
+              || mixsTargetOrDefault == WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED)
           && utxoConfig.getPoolId() != null) {
 
         log.info(

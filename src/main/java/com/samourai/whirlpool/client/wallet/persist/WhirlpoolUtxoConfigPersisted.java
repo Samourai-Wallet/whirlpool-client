@@ -4,11 +4,11 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 
 public class WhirlpoolUtxoConfigPersisted {
   private String poolId;
-  private int mixsTarget;
+  private Integer mixsTarget;
   private int mixsDone;
 
   public WhirlpoolUtxoConfigPersisted() {
-    this(null, 0, 0);
+    this(null, null, 0);
   }
 
   public WhirlpoolUtxoConfigPersisted(WhirlpoolUtxoConfig utxoConfig) {
@@ -17,7 +17,7 @@ public class WhirlpoolUtxoConfigPersisted {
     this.mixsDone = utxoConfig.getMixsDone();
   }
 
-  public WhirlpoolUtxoConfigPersisted(String poolId, int mixsTarget, int mixsDone) {
+  public WhirlpoolUtxoConfigPersisted(String poolId, Integer mixsTarget, int mixsDone) {
     this.poolId = poolId;
     this.mixsTarget = mixsTarget;
     this.mixsDone = mixsDone;
@@ -31,7 +31,7 @@ public class WhirlpoolUtxoConfigPersisted {
     return poolId;
   }
 
-  public int getMixsTarget() {
+  public Integer getMixsTarget() {
     return mixsTarget;
   }
 

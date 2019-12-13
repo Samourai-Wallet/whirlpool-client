@@ -6,24 +6,24 @@ import io.reactivex.subjects.PublishSubject;
 public class WhirlpoolUtxoConfig {
   public static final int MIXS_TARGET_UNLIMITED = 0;
   private String poolId;
-  private int mixsTarget;
+  private Integer mixsTarget;
   private int mixsDone;
   private long lastModified;
   private PublishSubject<WhirlpoolUtxoConfig> observable;
 
-  public WhirlpoolUtxoConfig(int mixsTarget) {
-    this(null, mixsTarget, 0, 0);
+  public WhirlpoolUtxoConfig() {
+    this(null, null, 0, 0);
   }
 
-  public WhirlpoolUtxoConfig(int mixsTarget, int mixsDone) {
-    this(null, mixsTarget, mixsDone, 0);
+  public WhirlpoolUtxoConfig(int mixsDone) {
+    this(null, null, mixsDone, 0);
   }
 
   protected WhirlpoolUtxoConfig(WhirlpoolUtxoConfig copy) {
     this(copy.poolId, copy.mixsTarget, copy.mixsDone, System.currentTimeMillis());
   }
 
-  public WhirlpoolUtxoConfig(String poolId, int mixsTarget, int mixsDone, long lastModified) {
+  public WhirlpoolUtxoConfig(String poolId, Integer mixsTarget, int mixsDone, long lastModified) {
     this.poolId = poolId;
     this.mixsTarget = mixsTarget;
     this.mixsDone = mixsDone;
@@ -50,13 +50,22 @@ public class WhirlpoolUtxoConfig {
     emit();
   }
 
-  public int getMixsTarget() {
+  public Integer getMixsTarget() {
     return mixsTarget;
   }
 
-  public void setMixsTarget(int mixsTarget) {
+  public int getMixsTargetOrDefault(int mixsTargetMin) {
+    if (mixsTarget == null) {
+      return mixsTargetMin;
+    }
+    if (mixsTarget == WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED) {
+      return WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED;
+    }
+    return Math.max(mixsTarget, mixsTargetMin);
+  }
+
+  public void setMixsTarget(Integer mixsTarget) {
     this.mixsTarget = mixsTarget;
-    emit();
   }
 
   public int getMixsDone() {
@@ -86,7 +95,7 @@ public class WhirlpoolUtxoConfig {
     return "poolId="
         + (poolId != null ? poolId : "null")
         + ", mixsTarget="
-        + getMixsTarget()
+        + (mixsTarget != null ? mixsTarget : "null")
         + ", mixsDone="
         + mixsDone;
   }
