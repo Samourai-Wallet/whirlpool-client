@@ -16,6 +16,7 @@ import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
+import com.samourai.whirlpool.client.tx0.Tx0Preview;
 import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
@@ -272,64 +273,90 @@ public class WhirlpoolWallet {
             feeTarget,
             getFeePremix()); // throws UnconfirmedUtxoException, EmptyWalletException
 
-    return tx0(spendFrom, getTx0Config(), feeTarget);
+    return tx0(Lists.of(spendFrom), pool, getTx0Config(), feeTarget);
   }
 
-  public Tx0 tx0(WhirlpoolUtxo whirlpoolUtxoSpendFrom, Tx0Config tx0Config, Tx0FeeTarget feeTarget)
+  public Tx0Preview tx0Preview(
+      Collection<WhirlpoolUtxo> whirlpoolUtxos,
+      Pool pool,
+      Tx0Config tx0Config,
+      Tx0FeeTarget feeTarget)
       throws Exception {
-    WhirlpoolUtxoState utxoState = whirlpoolUtxoSpendFrom.getUtxoState();
 
-    // check status
-    WhirlpoolUtxoStatus utxoStatus = utxoState.getStatus();
-    if (!WhirlpoolUtxoStatus.READY.equals(utxoStatus)
-        && !WhirlpoolUtxoStatus.TX0_FAILED.equals(utxoStatus)) {
-      throw new NotifiableException("Cannot Tx0: utxoStatus=" + utxoStatus);
-    }
+    Collection<UnspentOutputWithKey> utxos = toUnspentOutputWithKeys(whirlpoolUtxos);
+    return tx0Preview(pool, utxos, tx0Config, feeTarget);
+  }
 
-    // check pool
-    Pool pool = findPoolById(whirlpoolUtxoSpendFrom.getUtxoConfig().getPoolId());
-    if (pool == null) {
-      utxoState.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, true);
-      utxoState.setError("Tx0 failed: no pool set");
-      throw new NotifiableException("Tx0 failed: no pool set");
-    }
+  public Tx0Preview tx0Preview(
+      Pool pool,
+      Collection<UnspentOutputWithKey> spendFroms,
+      Tx0Config tx0Config,
+      Tx0FeeTarget feeTarget)
+      throws Exception {
 
-    UnspentOutput utxoSpendFrom = whirlpoolUtxoSpendFrom.getUtxo();
+    int feeTx0 = getFee(feeTarget);
+    return config.getTx0Service().tx0Preview(spendFroms, tx0Config, feeTx0, getFeePremix(), pool);
+  }
 
-    utxoState.setStatus(WhirlpoolUtxoStatus.TX0, true);
-    try {
-      byte[] spendFromPrivKey =
-          depositWallet.getAddressAt(utxoSpendFrom).getECKey().getPrivKeyBytes();
+  public Tx0 tx0(
+      Collection<WhirlpoolUtxo> whirlpoolUtxos,
+      Pool pool,
+      Tx0Config tx0Config,
+      Tx0FeeTarget feeTarget)
+      throws Exception {
 
-      int feeTx0 = getFee(feeTarget);
-      if (log.isDebugEnabled()) {
-        log.debug("Tx0 fee: feeTarget=" + feeTarget + " => " + feeTx0);
+    Collection<UnspentOutputWithKey> spendFroms = toUnspentOutputWithKeys(whirlpoolUtxos);
+
+    // verify utxos
+    String poolId = pool.getPoolId();
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
+      // check status
+      WhirlpoolUtxoStatus utxoStatus = whirlpoolUtxo.getUtxoState().getStatus();
+      if (!WhirlpoolUtxoStatus.READY.equals(utxoStatus)
+          && !WhirlpoolUtxoStatus.TX0_FAILED.equals(utxoStatus)) {
+        throw new NotifiableException("Cannot Tx0: utxoStatus=" + utxoStatus);
       }
+    }
 
-      UnspentOutputWithKey spendFrom = new UnspentOutputWithKey(utxoSpendFrom, spendFromPrivKey);
-      Collection<UnspentOutputWithKey> spendFroms = Lists.of(spendFrom);
-      Tx0 tx0 = tx0(spendFroms, pool, tx0Config, feeTx0);
+    // set utxos
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
+      // set pool
+      if (!poolId.equals(whirlpoolUtxo.getUtxoConfig().getPoolId())) {
+        whirlpoolUtxo.getUtxoConfig().setPoolId(poolId);
+      }
+      // set status
+      whirlpoolUtxo.getUtxoState().setStatus(WhirlpoolUtxoStatus.TX0, true);
+    }
+    try {
+      // run
+      Tx0 tx0 = tx0(pool, spendFroms, tx0Config, feeTarget);
 
       // success
-      utxoState.setStatus(WhirlpoolUtxoStatus.TX0_SUCCESS, true);
-      utxoState.setMessage("TX0 txid: " + tx0.getTx().getHashAsString());
+      for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
+        WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
+        utxoState.setStatus(WhirlpoolUtxoStatus.TX0_SUCCESS, true);
+        utxoState.setMessage("TX0 txid: " + tx0.getTx().getHashAsString());
+      }
 
       // preserve utxo config
       String tx0Txid = tx0.getTx().getHashAsString();
-      addUtxoConfig(whirlpoolUtxoSpendFrom.getUtxoConfig().copy(), tx0Txid);
+      addUtxoConfig(whirlpoolUtxos.iterator().next().getUtxoConfig().copy(), tx0Txid);
 
       return tx0;
     } catch (Exception e) {
       // error
-      utxoState.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, true);
-      utxoState.setError(e);
+      for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
+        WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
+        utxoState.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, true);
+        utxoState.setError(e);
+      }
       throw e;
     }
   }
 
   public Tx0 tx0(
-      Collection<UnspentOutputWithKey> spendFroms,
       Pool pool,
+      Collection<UnspentOutputWithKey> spendFroms,
       Tx0Config tx0Config,
       Tx0FeeTarget feeTarget)
       throws Exception {
@@ -392,6 +419,19 @@ public class WhirlpoolWallet {
       premixWallet.getIndexHandler().set(initialPremixIndex);
       throw e;
     }
+  }
+
+  private Collection<UnspentOutputWithKey> toUnspentOutputWithKeys(
+      Collection<WhirlpoolUtxo> whirlpoolUtxos) {
+    Collection<UnspentOutputWithKey> spendFroms = new LinkedList<UnspentOutputWithKey>();
+
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
+      UnspentOutput utxo = whirlpoolUtxo.getUtxo();
+      byte[] utxoKey = depositWallet.getAddressAt(utxo).getECKey().getPrivKeyBytes();
+      UnspentOutputWithKey spendFrom = new UnspentOutputWithKey(utxo, utxoKey);
+      spendFroms.add(spendFrom);
+    }
+    return spendFroms;
   }
 
   public Tx0Config getTx0Config() {

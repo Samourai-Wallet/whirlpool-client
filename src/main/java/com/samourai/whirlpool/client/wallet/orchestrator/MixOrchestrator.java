@@ -547,10 +547,10 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
         if (log.isDebugEnabled()) {
           log.debug(
-                  " o Mix: new POSTMIX utxo detected, adding to mixQueue: "
-                          + whirlpoolUtxo
-                          + " ; "
-                          + utxoConfig);
+              " o Mix: new POSTMIX utxo detected, adding to mixQueue: "
+                  + whirlpoolUtxo
+                  + " ; "
+                  + utxoConfig);
         }
         try {
           whirlpoolWallet.mixQueue(whirlpoolUtxo);

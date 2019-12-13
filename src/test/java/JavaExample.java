@@ -7,6 +7,7 @@ import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
+import com.samourai.whirlpool.client.tx0.Tx0Preview;
 import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
@@ -150,6 +151,7 @@ public class JavaExample {
       int utxoIndex = 2;
       whirlpoolUtxo = whirlpoolWallet.findUtxo(utxoHash, utxoIndex);
       if (whirlpoolUtxo == null) {} // utxo not found
+      Collection<WhirlpoolUtxo> utxos = Lists.of(whirlpoolUtxo);
 
       // configure tx0
       Tx0Config tx0Config = whirlpoolWallet.getTx0Config().setBadbankChange(false);
@@ -162,9 +164,20 @@ public class JavaExample {
       // choose pool
       whirlpoolWallet.setPool(whirlpoolUtxo, "0.01btc");
 
+      // preview tx0
+      try {
+        Tx0Preview tx0Preview =
+            whirlpoolWallet.tx0Preview(utxos, pool05btc, tx0Config, minerFeeTarget);
+        long minerFee =
+            tx0Preview
+                .getMinerFee(); // get minerFee, poolFee, premixValue, changeValue, nbPremix...
+      } catch (Exception e) {
+        // preview tx0 failed
+      }
+
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(whirlpoolUtxo, tx0Config, minerFeeTarget);
+        Tx0 tx0 = whirlpoolWallet.tx0(utxos, pool05btc, tx0Config, minerFeeTarget);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed
@@ -176,19 +189,30 @@ public class JavaExample {
       // external utxo for tx0
       UnspentResponse.UnspentOutput spendFrom = null; // provide utxo outpoint
       byte[] spendFromPrivKey = null; // provide utxo private key
+      Collection<UnspentOutputWithKey> utxos =
+          Lists.of(new UnspentOutputWithKey(spendFrom, spendFromPrivKey));
+
+      // configure tx0
+      Tx0Config tx0Config = whirlpoolWallet.getTx0Config().setBadbankChange(false);
+      Tx0FeeTarget minerFeeTarget = Tx0FeeTarget.BLOCKS_4;
 
       // pool for tx0
       Pool pool = whirlpoolWallet.findPoolById("0.01btc"); // provide poolId
-      Tx0FeeTarget feeTarget = Tx0FeeTarget.BLOCKS_4;
+
+      // preview tx0
+      try {
+        Tx0Preview tx0Preview =
+            whirlpoolWallet.tx0Preview(pool05btc, utxos, tx0Config, minerFeeTarget);
+        long minerFee =
+            tx0Preview
+                .getMinerFee(); // get minerFee, poolFee, premixValue, changeValue, nbPremix...
+      } catch (Exception e) {
+        // preview tx0 failed
+      }
 
       // execute tx0
       try {
-        Tx0 tx0 =
-            whirlpoolWallet.tx0(
-                Lists.of(new UnspentOutputWithKey(spendFrom, spendFromPrivKey)),
-                pool,
-                new Tx0Config(),
-                feeTarget);
+        Tx0 tx0 = whirlpoolWallet.tx0(pool, utxos, tx0Config, minerFeeTarget);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed
