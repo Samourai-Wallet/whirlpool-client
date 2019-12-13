@@ -13,7 +13,8 @@ import com.samourai.whirlpool.client.whirlpool.listener.LoggingWhirlpoolClientLi
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
 import com.samourai.whirlpool.protocol.websocket.notifications.MixStatus;
 import io.reactivex.Observable;
-import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.subjects.Subject;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java8.util.Optional;
@@ -423,7 +424,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     }
 
     // start mixing (whirlpoolClient will start a new thread)
-    PublishSubject<MixProgress> mixStateObservable = PublishSubject.create();
+    Subject<MixProgress> mixStateObservable = BehaviorSubject.create();
     WhirlpoolClientListener listener = computeListener(whirlpoolUtxo, mixStateObservable);
     mixClient.whirlpool(mixParams, listener);
 
@@ -435,7 +436,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   private WhirlpoolClientListener computeListener(
-      final WhirlpoolUtxo whirlpoolUtxo, final PublishSubject<MixProgress> mixStateObservable) {
+      final WhirlpoolUtxo whirlpoolUtxo, final Subject<MixProgress> mixStateObservable) {
     return new LoggingWhirlpoolClientListener() {
       @Override
       public void success(MixSuccess mixSuccess) {

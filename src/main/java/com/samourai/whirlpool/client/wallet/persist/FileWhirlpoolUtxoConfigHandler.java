@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 import io.reactivex.functions.Consumer;
-import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.BehaviorSubject;
 import java.io.File;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -50,7 +50,7 @@ public class FileWhirlpoolUtxoConfigHandler {
       // should never happen...
       log.warn("add(" + key + "): utxoConfig already exists!");
       WhirlpoolUtxoConfig removed = utxoConfigs.remove(key);
-      ((PublishSubject) removed.getObservable()).onComplete();
+      ((BehaviorSubject<WhirlpoolUtxoConfig>) removed.getObservable()).onComplete();
     }
     utxoConfig.getObservable().subscribe(consumer);
     utxoConfigs.put(key, utxoConfig);
@@ -116,7 +116,7 @@ public class FileWhirlpoolUtxoConfigHandler {
             new java8.util.function.Consumer<WhirlpoolUtxoConfig>() {
               @Override
               public void accept(WhirlpoolUtxoConfig utxoConfig) {
-                ((PublishSubject) utxoConfig.getObservable()).onComplete();
+                ((BehaviorSubject<WhirlpoolUtxoConfig>) utxoConfig.getObservable()).onComplete();
               }
             });
     utxoConfigs.clear();
@@ -142,7 +142,7 @@ public class FileWhirlpoolUtxoConfigHandler {
             log.debug("Remove obsolete key: " + entryKey);
           }
           iter.remove();
-          ((PublishSubject) entry.getValue().getObservable()).onComplete();
+          ((BehaviorSubject<WhirlpoolUtxoConfig>) entry.getValue().getObservable()).onComplete();
           knownUtxosKeys.remove(entryKey);
           setLastSet();
         }

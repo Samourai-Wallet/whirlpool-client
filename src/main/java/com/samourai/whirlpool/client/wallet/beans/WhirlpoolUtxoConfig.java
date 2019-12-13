@@ -1,7 +1,8 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import io.reactivex.Observable;
-import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.subjects.Subject;
 
 public class WhirlpoolUtxoConfig {
   public static final int MIXS_TARGET_UNLIMITED = 0;
@@ -9,7 +10,7 @@ public class WhirlpoolUtxoConfig {
   private Integer mixsTarget;
   private int mixsDone;
   private long lastModified;
-  private PublishSubject<WhirlpoolUtxoConfig> observable;
+  private Subject<WhirlpoolUtxoConfig> observable;
 
   public WhirlpoolUtxoConfig() {
     this(null, null, 0, 0);
@@ -28,7 +29,7 @@ public class WhirlpoolUtxoConfig {
     this.mixsTarget = mixsTarget;
     this.mixsDone = mixsDone;
     this.lastModified = lastModified;
-    this.observable = PublishSubject.create();
+    this.observable = BehaviorSubject.create();
   }
 
   private void emit() {

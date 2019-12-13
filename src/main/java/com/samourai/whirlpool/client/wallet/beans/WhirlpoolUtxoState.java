@@ -2,7 +2,8 @@ package com.samourai.whirlpool.client.wallet.beans;
 
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import io.reactivex.Observable;
-import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.subjects.Subject;
 
 public class WhirlpoolUtxoState {
   private WhirlpoolUtxoStatus status;
@@ -14,7 +15,7 @@ public class WhirlpoolUtxoState {
 
   private Long lastActivity;
   private Long lastError;
-  private PublishSubject<WhirlpoolUtxoState> observable;
+  private Subject<WhirlpoolUtxoState> observable;
 
   public WhirlpoolUtxoState(WhirlpoolUtxoStatus status) {
     this.status = status;
@@ -26,7 +27,7 @@ public class WhirlpoolUtxoState {
 
     this.lastActivity = null;
     this.lastError = null;
-    this.observable = PublishSubject.create();
+    this.observable = BehaviorSubject.create();
   }
 
   private void emit() {

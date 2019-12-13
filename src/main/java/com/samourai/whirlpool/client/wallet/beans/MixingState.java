@@ -1,7 +1,8 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import io.reactivex.Observable;
-import io.reactivex.subjects.PublishSubject;
+import io.reactivex.subjects.BehaviorSubject;
+import io.reactivex.subjects.Subject;
 import java.util.Collection;
 
 public class MixingState {
@@ -9,14 +10,14 @@ public class MixingState {
   private Collection<WhirlpoolUtxo> utxosMixing;
   private int nbMixing;
   private int nbQueued;
-  private PublishSubject<MixingState> observable;
+  private Subject<MixingState> observable;
 
   public MixingState(boolean started, Collection<WhirlpoolUtxo> utxosMixing, int nbQueued) {
     this.started = started;
     this.utxosMixing = utxosMixing;
     this.nbMixing = utxosMixing.size();
     this.nbQueued = nbQueued;
-    this.observable = PublishSubject.create();
+    this.observable = BehaviorSubject.create();
   }
 
   protected void setStarted(boolean started) {
