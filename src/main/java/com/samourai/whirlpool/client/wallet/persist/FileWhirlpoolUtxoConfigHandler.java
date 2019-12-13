@@ -94,29 +94,10 @@ public class FileWhirlpoolUtxoConfigHandler {
           log.debug("load: " + readValue.size() + " utxos loaded");
         }
         // convert to WhirlpoolUtxoConfig
-        Map<String, WhirlpoolUtxoConfig> whirlpoolUtxoConfigs =
-            StreamSupport.stream(readValue.entrySet())
-                .collect(
-                    Collectors.toMap(
-                        new Function<Entry<String, WhirlpoolUtxoConfigPersisted>, String>() {
-                          @Override
-                          public String apply(Entry<String, WhirlpoolUtxoConfigPersisted> entry) {
-                            return entry.getKey();
-                          }
-                        },
-                        new Function<
-                            Entry<String, WhirlpoolUtxoConfigPersisted>, WhirlpoolUtxoConfig>() {
-                          @Override
-                          public WhirlpoolUtxoConfig apply(
-                              Entry<String, WhirlpoolUtxoConfigPersisted> entry) {
-                            WhirlpoolUtxoConfig utxoConfig =
-                                new WhirlpoolUtxoConfig(entry.getValue().toUtxoConfig());
-                            // subscribe
-                            utxoConfig.getObservable().subscribe(consumer);
-                            return utxoConfig;
-                          }
-                        }));
-        utxoConfigs.putAll(whirlpoolUtxoConfigs);
+        for (Entry<String, WhirlpoolUtxoConfigPersisted> entry : readValue.entrySet()) {
+          WhirlpoolUtxoConfig utxoConfig = entry.getValue().toUtxoConfig().copy();
+          add(entry.getKey(), utxoConfig);
+        }
       } else {
         if (log.isDebugEnabled()) {
           log.debug("load: skipping (file empty)");

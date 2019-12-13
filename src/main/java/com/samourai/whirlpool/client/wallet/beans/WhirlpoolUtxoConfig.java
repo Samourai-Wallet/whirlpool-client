@@ -19,7 +19,7 @@ public class WhirlpoolUtxoConfig {
     this(null, mixsTarget, mixsDone, 0);
   }
 
-  public WhirlpoolUtxoConfig(WhirlpoolUtxoConfig copy) {
+  protected WhirlpoolUtxoConfig(WhirlpoolUtxoConfig copy) {
     this(copy.poolId, copy.mixsTarget, copy.mixsDone, System.currentTimeMillis());
   }
 

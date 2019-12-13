@@ -816,7 +816,7 @@ public class WhirlpoolWallet {
       // find by tx hash (new PREMIX from TX0)
       WhirlpoolUtxoConfig utxoConfigByHash = getUtxoConfigOrNull(utxo.tx_hash);
       if (utxoConfigByHash != null) {
-        addUtxoConfig(new WhirlpoolUtxoConfig(utxoConfigByHash), utxo.tx_hash, utxo.tx_output_n);
+        addUtxoConfig(utxoConfigByHash.copy(), utxo.tx_hash, utxo.tx_output_n);
         if (log.isDebugEnabled()) {
           log.debug(
               firstFetchInfo
