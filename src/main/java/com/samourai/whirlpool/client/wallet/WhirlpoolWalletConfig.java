@@ -67,7 +67,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     // technical settings
     this.backendApi = backendApi;
     this.tx0Delay = 30;
-    this.tx0MinConfirmations = 1;
+    this.tx0MinConfirmations = 0;
     this.tx0MaxOutputs = null; // spend whole utxo when possible
     this.refreshUtxoDelay = 60; // 1min
     this.refreshFeeDelay = 300; // 5min
