@@ -4,6 +4,7 @@ import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
@@ -14,6 +15,7 @@ import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.wallet.persist.FileWhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
+import io.reactivex.functions.Consumer;
 import java.io.File;
 import java.util.Collection;
 import java8.util.Lists;
@@ -74,7 +76,28 @@ public class JavaExample {
     MixingState mixingState = whirlpoolWallet.getMixingState();
 
     // observe mixing state
-    mixingState.getObservable().subscribe(/* ... */ );
+    mixingState
+        .getObservable()
+        .subscribe(
+            new Consumer<MixingState>() {
+              @Override
+              public void accept(MixingState mixingState) throws Exception {
+                // get mixing utxos
+                Collection<WhirlpoolUtxo> mixingUtxos = mixingState.getUtxosMixing();
+                if (mixingUtxos.isEmpty()) {
+                  // no utxo mixing currently
+                  return;
+                }
+
+                // one utxo (at least) is mixing currently
+                WhirlpoolUtxo mixingUtxo = mixingUtxos.iterator().next();
+
+                // get mixing progress for this utxo
+                MixProgress mixProgress = mixingUtxo.getUtxoState().getMixProgress();
+                MixStep mixStep = mixProgress.getMixStep(); // CONNECTING, CONNECTED...
+                int progressPercent = mixProgress.getProgressPercent();
+              }
+            });
 
     /*
      * POOLS
