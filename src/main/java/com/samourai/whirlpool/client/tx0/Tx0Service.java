@@ -386,7 +386,7 @@ public class Tx0Service {
       throws Exception {
 
     long premixValue = tx0Preview.getPremixValue();
-    long samouraiFee = tx0Preview.getMinerFee();
+    long samouraiFee = tx0Preview.getPoolFee();
     int nbPremix = tx0Preview.getNbPremix();
     long tx0MinerFee = tx0Preview.getMinerFee();
     long changeValue = tx0Preview.getChangeValue();
