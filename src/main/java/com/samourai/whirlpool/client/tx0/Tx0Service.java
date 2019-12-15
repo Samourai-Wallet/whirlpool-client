@@ -572,7 +572,7 @@ public class Tx0Service {
     return (utxoValue >= balanceMin);
   }
 
-  private Tx0Data fetchTx0Data(String poolId) throws HttpException, NotifiableException {
+  protected Tx0Data fetchTx0Data(String poolId) throws HttpException, NotifiableException {
     String url = WhirlpoolProtocol.getUrlTx0Data(config.getServer(), poolId, config.getScode());
     try {
       Tx0DataResponse tx0Response =
