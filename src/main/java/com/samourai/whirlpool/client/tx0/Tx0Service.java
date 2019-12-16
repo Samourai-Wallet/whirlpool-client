@@ -181,13 +181,13 @@ public class Tx0Service {
     Tx0Data tx0Data = fetchTx0Data(pool.getPoolId());
 
     long premixValue = computePremixValue(pool, feePremix);
-    long samouraiFee = (tx0Data.getFeeValue() > 0 ? tx0Data.getFeeValue() : 0);
-    int nbPremix = computeNbPremix(spendFroms, tx0Config, feeTx0, premixValue, samouraiFee);
+    int nbPremix =
+        computeNbPremix(spendFroms, tx0Config, feeTx0, premixValue, tx0Data.getFeeValue());
     long minerFee = computeTx0MinerFee(nbPremix, feeTx0, spendFroms);
-    long spendValue = computeTx0SpendValue(premixValue, nbPremix, samouraiFee, minerFee);
+    long spendValue = computeTx0SpendValue(premixValue, nbPremix, tx0Data.getFeeValue(), minerFee);
     long changeValue = spendFromBalance - spendValue;
 
-    return new Tx0Preview(tx0Data, minerFee, samouraiFee, premixValue, changeValue, nbPremix);
+    return new Tx0Preview(tx0Data, minerFee, premixValue, changeValue, nbPremix);
   }
 
   /** Generate maxOutputs premixes outputs max. */
@@ -236,33 +236,24 @@ public class Tx0Service {
     // compute opReturnValue for feePaymentCode and feePayload
     byte[] feePayload = tx0Data.getFeePayload();
     int feeIndice;
-    String feeAddressBech32;
-    long samouraiFee;
+    String feeOrBackAddressBech32;
     if (tx0Data.getFeeValue() > 0) {
       // pay to fee
       feeIndice = tx0Data.getFeeIndice();
-      feeAddressBech32 = tx0Data.getFeeAddress();
-      samouraiFee = tx0Data.getFeeValue();
+      feeOrBackAddressBech32 = tx0Data.getFeeAddress();
       if (log.isDebugEnabled()) {
         log.debug(
-            "feeAddressDestination: samourai => feeAddress="
-                + feeAddressBech32
+            "feeAddressDestination: samourai => "
+                + feeOrBackAddressBech32
                 + ", feeIndice="
-                + feeIndice
-                + ", samouraiFee="
-                + samouraiFee);
+                + feeIndice);
       }
     } else {
       // pay to deposit
       feeIndice = 0;
-      feeAddressBech32 = bech32Util.toBech32(depositWallet.getNextChangeAddress(), params);
-      samouraiFee = tx0Data.getFeeChange();
+      feeOrBackAddressBech32 = bech32Util.toBech32(depositWallet.getNextChangeAddress(), params);
       if (log.isDebugEnabled()) {
-        log.debug(
-            "feeAddressDestination: deposit => feeAddress="
-                + feeAddressBech32
-                + ", samouraiFee="
-                + samouraiFee);
+        log.debug("feeAddressDestination: back to deposit => " + feeOrBackAddressBech32);
       }
     }
 
@@ -296,7 +287,7 @@ public class Tx0Service {
         tx0Config,
         tx0Preview,
         opReturnValue,
-        feeAddressBech32);
+        feeOrBackAddressBech32);
   }
 
   protected Tx0 tx0(
@@ -307,7 +298,7 @@ public class Tx0Service {
       Tx0Config tx0Config,
       Tx0Preview tx0Preview,
       byte[] opReturnValue,
-      String feeAddressBech32)
+      String feeOrBackAddressBech32)
       throws Exception {
 
     Bip84Wallet changeWallet = tx0Config.isBadbankChange() ? badbankWallet : depositWallet;
@@ -322,7 +313,7 @@ public class Tx0Service {
             premixWallet,
             tx0Preview,
             opReturnValue,
-            feeAddressBech32,
+            feeOrBackAddressBech32,
             changeWallet,
             config.getNetworkParameters());
 
@@ -380,13 +371,15 @@ public class Tx0Service {
       Bip84Wallet premixWallet,
       Tx0Preview tx0Preview,
       byte[] opReturnValue,
-      String feeAddressBech32,
+      String feeOrBackAddressBech32,
       Bip84Wallet changeWallet,
       NetworkParameters params)
       throws Exception {
 
+    Tx0Data tx0Data = tx0Preview.getTx0Data();
     long premixValue = tx0Preview.getPremixValue();
-    long samouraiFee = tx0Preview.getPoolFee();
+    long samouraiFeeOrBack =
+        (tx0Data.getFeeValue() > 0 ? tx0Data.getFeeValue() : tx0Data.getFeeChange());
     int nbPremix = tx0Preview.getNbPremix();
     long tx0MinerFee = tx0Preview.getMinerFee();
     long changeValue = tx0Preview.getChangeValue();
@@ -397,8 +390,8 @@ public class Tx0Service {
       throw new IllegalArgumentException("spendFroms should be > 0");
     }
 
-    if (samouraiFee <= 0) {
-      throw new IllegalArgumentException("samouraiFee should be > 0");
+    if (samouraiFeeOrBack <= 0) {
+      throw new IllegalArgumentException("samouraiFeeOrBack should be > 0");
     }
 
     // at least 1 premix
@@ -476,12 +469,17 @@ public class Tx0Service {
       }
     }
 
-    // samourai fee
+    // samourai fee (or back deposit)
     TransactionOutput txSWFee =
-        bech32Util.getTransactionOutput(feeAddressBech32, samouraiFee, params);
+        bech32Util.getTransactionOutput(feeOrBackAddressBech32, samouraiFeeOrBack, params);
     outputs.add(txSWFee);
     if (log.isDebugEnabled()) {
-      log.debug("Tx0 out (fee): feeAddress=" + feeAddressBech32 + " (" + samouraiFee + " sats)");
+      log.debug(
+          "Tx0 out (fee): feeAddress="
+              + feeOrBackAddressBech32
+              + " ("
+              + samouraiFeeOrBack
+              + " sats)");
     }
 
     // add OP_RETURN output
