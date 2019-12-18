@@ -80,7 +80,7 @@ public class Tx0Service {
   private int computeNbPremixMax(
       long premixValue,
       Collection<? extends UnspentResponse.UnspentOutput> spendFrom,
-      long samouraiFee,
+      long feeValueOrFeeChange,
       int feeTx0) {
     long spendFromBalance = computeSpendFromBalance(spendFrom);
 
@@ -92,7 +92,8 @@ public class Tx0Service {
     while (true) {
       // estimate TX0 fee for nbPremix
       long tx0MinerFee = computeTx0MinerFee(nbPremix, feeTx0, spendFrom);
-      long spendValue = computeTx0SpendValue(premixValue, nbPremix, samouraiFee, tx0MinerFee);
+      long spendValue =
+          computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, tx0MinerFee);
       if (log.isDebugEnabled()) {
         log.debug(
             "computeNbPremixMax: nbPremix="
@@ -145,10 +146,20 @@ public class Tx0Service {
     return tx0MinerFee;
   }
 
+  private long computeOutputsSum(Tx0Preview tx0Preview) {
+    long tx0SpendValue =
+        computeTx0SpendValue(
+            tx0Preview.getPremixValue(),
+            tx0Preview.getNbPremix(),
+            tx0Preview.computeFeeValueOrFeeChange(),
+            tx0Preview.getMinerFee());
+    return tx0SpendValue + tx0Preview.getChangeValue();
+  }
+
   private long computeTx0SpendValue(
-      long premixValue, int nbPremix, long samouraiFee, long tx0MinerFee) {
-    long changeValue = (premixValue * nbPremix) + samouraiFee + tx0MinerFee;
-    return changeValue;
+      long premixValue, int nbPremix, long feeValueOrFeeChange, long tx0MinerFee) {
+    long spendValue = (premixValue * nbPremix) + feeValueOrFeeChange + tx0MinerFee;
+    return spendValue;
   }
 
   public long computeSpendFromBalanceMin(Pool pool, int feeTx0, int feePremix, int nbPremix) {
@@ -166,6 +177,19 @@ public class Tx0Service {
       int feePremix,
       Pool pool)
       throws Exception {
+    // fetch fresh Tx0Data
+    Tx0Data tx0Data = fetchTx0Data(pool.getPoolId());
+    return tx0Preview(spendFroms, tx0Config, feeTx0, feePremix, pool, tx0Data);
+  }
+
+  protected Tx0Preview tx0Preview(
+      Collection<UnspentOutputWithKey> spendFroms,
+      Tx0Config tx0Config,
+      int feeTx0,
+      int feePremix,
+      Pool pool,
+      Tx0Data tx0Data)
+      throws Exception {
 
     // check balance min
     final long spendFromBalanceMin =
@@ -177,17 +201,28 @@ public class Tx0Service {
           "Insufficient utxo value for Tx0: " + spendFromBalance + " < " + spendFromBalanceMin);
     }
 
-    // fetch fresh Tx0Data
-    Tx0Data tx0Data = fetchTx0Data(pool.getPoolId());
-
     long premixValue = computePremixValue(pool, feePremix);
-    int nbPremix =
-        computeNbPremix(spendFroms, tx0Config, feeTx0, premixValue, tx0Data.getFeeValue());
+    long feeValueOrFeeChange = tx0Data.computeFeeValueOrFeeChange();
+    int nbPremix = computeNbPremix(spendFroms, tx0Config, feeTx0, premixValue, feeValueOrFeeChange);
     long minerFee = computeTx0MinerFee(nbPremix, feeTx0, spendFroms);
-    long spendValue = computeTx0SpendValue(premixValue, nbPremix, tx0Data.getFeeValue(), minerFee);
+    long spendValue = computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, minerFee);
     long changeValue = spendFromBalance - spendValue;
 
-    return new Tx0Preview(tx0Data, minerFee, premixValue, changeValue, nbPremix);
+    Tx0Preview tx0Preview = new Tx0Preview(tx0Data, minerFee, premixValue, changeValue, nbPremix);
+
+    // verify outputsSum
+    long outputsSum = computeOutputsSum(tx0Preview);
+    if (outputsSum != spendFromBalance) {
+      throw new Exception(
+          "Invalid outputsSum for tx0: "
+              + outputsSum
+              + " vs "
+              + spendFromBalance
+              + " for tx0Preview=["
+              + tx0Preview
+              + "]");
+    }
+    return tx0Preview;
   }
 
   /** Generate maxOutputs premixes outputs max. */
@@ -337,12 +372,12 @@ public class Tx0Service {
       Tx0Config tx0Config,
       int feeTx0,
       long premixValue,
-      long samouraiFee) {
+      long feeValueOrFeeChange) {
     int nbPremix =
         computeNbPremixMax(
             premixValue,
             sortedSpendFroms,
-            samouraiFee,
+            feeValueOrFeeChange,
             feeTx0); // cap with balance and tx0 minerFee
     if (tx0Config.getMaxOutputs() != null) {
       nbPremix = Math.min(tx0Config.getMaxOutputs(), nbPremix); // cap with maxOutputs
@@ -376,10 +411,8 @@ public class Tx0Service {
       NetworkParameters params)
       throws Exception {
 
-    Tx0Data tx0Data = tx0Preview.getTx0Data();
     long premixValue = tx0Preview.getPremixValue();
-    long samouraiFeeOrBack =
-        (tx0Data.getFeeValue() > 0 ? tx0Data.getFeeValue() : tx0Data.getFeeChange());
+    long feeValueOrFeeChange = tx0Preview.computeFeeValueOrFeeChange();
     int nbPremix = tx0Preview.getNbPremix();
     long tx0MinerFee = tx0Preview.getMinerFee();
     long changeValue = tx0Preview.getChangeValue();
@@ -390,13 +423,20 @@ public class Tx0Service {
       throw new IllegalArgumentException("spendFroms should be > 0");
     }
 
-    if (samouraiFeeOrBack <= 0) {
+    if (feeValueOrFeeChange <= 0) {
       throw new IllegalArgumentException("samouraiFeeOrBack should be > 0");
     }
 
     // at least 1 premix
     if (nbPremix < 1) {
       throw new Exception("Invalid nbPremix=" + nbPremix);
+    }
+
+    // verify outputsSum
+    long outputsSum = computeOutputsSum(tx0Preview);
+    long spendFromBalance = computeSpendFromBalance(sortedSpendFroms);
+    if (outputsSum != spendFromBalance) {
+      throw new Exception("Invalid outputsSum for tx0: " + outputsSum + " vs " + spendFromBalance);
     }
 
     //
@@ -471,14 +511,14 @@ public class Tx0Service {
 
     // samourai fee (or back deposit)
     TransactionOutput txSWFee =
-        bech32Util.getTransactionOutput(feeOrBackAddressBech32, samouraiFeeOrBack, params);
+        bech32Util.getTransactionOutput(feeOrBackAddressBech32, feeValueOrFeeChange, params);
     outputs.add(txSWFee);
     if (log.isDebugEnabled()) {
       log.debug(
           "Tx0 out (fee): feeAddress="
               + feeOrBackAddressBech32
               + " ("
-              + samouraiFeeOrBack
+              + feeValueOrFeeChange
               + " sats)");
     }
 
@@ -581,6 +621,7 @@ public class Tx0Service {
               tx0Response.feePaymentCode,
               tx0Response.feeValue,
               tx0Response.feeChange,
+              tx0Response.feeDiscountPercent,
               // tx0Response.message,
               feePayload,
               tx0Response.feeAddress,

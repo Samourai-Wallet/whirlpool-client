@@ -4,6 +4,7 @@ public class Tx0Data {
   private String feePaymentCode;
   private long feeValue;
   private long feeChange;
+  private int feeDiscountPercent;
   private byte[] feePayload;
   private String feeAddress;
   private Integer feeIndice;
@@ -12,15 +13,21 @@ public class Tx0Data {
       String feePaymentCode,
       long feeValue,
       long feeChange,
+      int feeDiscountPercent,
       byte[] feePayload,
       String feeAddress,
       Integer feeIndice) {
     this.feePaymentCode = feePaymentCode;
     this.feeValue = feeValue;
     this.feeChange = feeChange;
+    this.feeDiscountPercent = feeDiscountPercent;
     this.feePayload = feePayload;
     this.feeAddress = feeAddress;
     this.feeIndice = feeIndice;
+  }
+
+  public long computeFeeValueOrFeeChange() {
+    return feeValue > 0 ? feeValue : feeChange;
   }
 
   public String getFeePaymentCode() {
@@ -33,6 +40,10 @@ public class Tx0Data {
 
   public long getFeeChange() {
     return feeChange;
+  }
+
+  public int getFeeDiscountPercent() {
+    return feeDiscountPercent;
   }
 
   public byte[] getFeePayload() {
@@ -55,6 +66,8 @@ public class Tx0Data {
         + feeValue
         + ", feeChange="
         + feeChange
+        + ", feeDiscountPercent="
+        + feeDiscountPercent
         + ", feePayload="
         + feePayload
         + ", feeAddress="
