@@ -155,7 +155,8 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
             persistHandler,
             WhirlpoolServer.LOCAL_TESTNET.getServerUrl(false),
             WhirlpoolServer.LOCAL_TESTNET.getParams(),
-            backendApi);
+            backendApi,
+            "clientPreHash");
     return new WhirlpoolWalletService().openWallet(config, bip84w);
   }
 }

@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.beans;
 
 public enum WhirlpoolUtxoStatus {
   READY,
+  STOP,
 
   TX0,
   TX0_FAILED,

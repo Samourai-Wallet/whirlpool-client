@@ -71,7 +71,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
   public synchronized void stopMixingClients() {
     for (Mixing oneMixing : mixing.values()) {
-      mixStop(oneMixing);
+      mixStop(oneMixing, true);
     }
     mixing.clear();
     mixingHashs.clear();
@@ -365,30 +365,24 @@ public class MixOrchestrator extends AbstractOrchestrator {
   }
 
   public synchronized void mixStop(WhirlpoolUtxo whirlpoolUtxo) {
-    WhirlpoolUtxoStatus utxoStatus = whirlpoolUtxo.getUtxoState().getStatus();
-    if (!WhirlpoolUtxoStatus.MIX_QUEUE.equals(utxoStatus)
-        && !WhirlpoolUtxoStatus.MIX_FAILED.equals(utxoStatus)
-        && !WhirlpoolUtxoStatus.MIX_STARTED.equals(utxoStatus)
-        && !WhirlpoolUtxoStatus.MIX_SUCCESS.equals(utxoStatus)) {
-      log.warn("mixStop ignored: utxoStatus=" + utxoStatus);
-      return;
-    }
+    WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
+    boolean wasQueued = WhirlpoolUtxoStatus.MIX_QUEUE.equals(utxoState.getStatus());
+
+    // set STOP status (this eventually removes it from queue)
+    utxoState.setStatus(WhirlpoolUtxoStatus.STOP, false);
 
     final String key = ClientUtils.utxoToKey(whirlpoolUtxo.getUtxo());
     Mixing myMixing = mixing.get(key);
     if (myMixing != null) {
       // stop mixing
-      mixStop(myMixing);
-    } else if (WhirlpoolUtxoStatus.MIX_QUEUE.equals(utxoStatus)) {
-      // remove from queue
-      whirlpoolUtxo.getUtxoState().setStatus(WhirlpoolUtxoStatus.READY, false);
+      mixStop(myMixing, false);
+    } else if (wasQueued) {
+      // recount QUEUE if it was queued
       mixingState.setNbQueued((int) getQueue().count());
-    } else {
-      log.warn("mixStop ignored: not mixing or queued: " + whirlpoolUtxo);
     }
   }
 
-  protected void mixStop(final Mixing mixing) {
+  protected void mixStop(final Mixing mixing, boolean setReadyStatus) {
     if (log.isDebugEnabled()) {
       log.debug("Stopping mixing client: " + mixing);
     }
@@ -404,7 +398,10 @@ public class MixOrchestrator extends AbstractOrchestrator {
         },
         "stop-whirlpoolClient");
 
-    whirlpoolUtxo.getUtxoState().setStatus(WhirlpoolUtxoStatus.READY, false);
+    if (setReadyStatus) {
+      // set status READY
+      whirlpoolUtxo.getUtxoState().setStatus(WhirlpoolUtxoStatus.READY, false);
+    }
   }
 
   public Observable<MixProgress> doMix(

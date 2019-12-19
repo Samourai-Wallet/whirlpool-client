@@ -77,8 +77,8 @@ public class Tx0Preview {
         + feeValue
         + ", feeChange="
         + feeChange
-            + ", feeDiscountPercent="
-            + feeDiscountPercent
+        + ", feeDiscountPercent="
+        + feeDiscountPercent
         + ", premixValue="
         + premixValue
         + ", changeValue="

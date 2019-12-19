@@ -12,6 +12,7 @@ public class WhirlpoolClientConfig {
   private WhirlpoolWalletPersistHandler persistHandler;
   private String server;
   private NetworkParameters networkParameters;
+  private String clientPreHash;
   private int reconnectDelay;
   private int reconnectUntil;
   private String scode;
@@ -21,8 +22,18 @@ public class WhirlpoolClientConfig {
       IStompClientService stompClientService,
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
-      NetworkParameters networkParameters) {
-    this(httpClient, stompClientService, persistHandler, server, networkParameters, null, 5, 500);
+      NetworkParameters networkParameters,
+      String clientPreHash) {
+    this(
+        httpClient,
+        stompClientService,
+        persistHandler,
+        server,
+        networkParameters,
+        clientPreHash,
+        null,
+        5,
+        500);
   }
 
   public WhirlpoolClientConfig(
@@ -31,6 +42,7 @@ public class WhirlpoolClientConfig {
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters networkParameters,
+      String clientPreHash,
       String scode,
       int reconnectDelay,
       int reconnectUntil) {
@@ -39,6 +51,7 @@ public class WhirlpoolClientConfig {
     this.persistHandler = persistHandler;
     this.server = server;
     this.networkParameters = networkParameters;
+    this.clientPreHash = clientPreHash;
     this.reconnectDelay = reconnectDelay;
     this.reconnectUntil = reconnectUntil;
     this.scode = scode;
@@ -74,6 +87,14 @@ public class WhirlpoolClientConfig {
 
   public void setNetworkParameters(NetworkParameters networkParameters) {
     this.networkParameters = networkParameters;
+  }
+
+  public String getClientPreHash() {
+    return clientPreHash;
+  }
+
+  public void setClientPreHash(String clientPreHash) {
+    this.clientPreHash = clientPreHash;
   }
 
   public int getReconnectDelay() {

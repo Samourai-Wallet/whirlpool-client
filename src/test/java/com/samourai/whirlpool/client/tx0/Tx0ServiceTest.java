@@ -34,7 +34,13 @@ public class Tx0ServiceTest extends AbstractTest {
     WhirlpoolServer server = WhirlpoolServer.LOCAL_TESTNET;
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(
-            null, null, null, server.getServerUrlClear(), server.getParams(), null);
+            null,
+            null,
+            null,
+            server.getServerUrlClear(),
+            server.getParams(),
+            null,
+            "clientPreHash");
     tx0Service = new Tx0Service(config);
   }
 
@@ -54,7 +60,7 @@ public class Tx0ServiceTest extends AbstractTest {
     int nbOutputsExpected = 10;
     long premixValue = 1000201;
     String feePaymentCode =
-            "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
+        "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
     byte[] feePayload = null;
     long feeValue = 0;
@@ -64,8 +70,13 @@ public class Tx0ServiceTest extends AbstractTest {
 
     Tx0Data tx0Data =
         new Tx0Data(
-            feePaymentCode, feeValue,
-                feeChange, feeDiscountPercent,feePayload, "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym", 0);
+            feePaymentCode,
+            feeValue,
+            feeChange,
+            feeDiscountPercent,
+            feePayload,
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+            0);
     Tx0Preview tx0Preview =
         tx0Service.tx0Preview(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
@@ -82,7 +93,7 @@ public class Tx0ServiceTest extends AbstractTest {
     Assertions.assertEquals(changeValue, tx0Preview.getChangeValue());
     Assertions.assertEquals(nbOutputsExpected, tx0Preview.getNbPremix());
   }
-  
+
   private void assertEquals(Tx0Preview tp, Tx0Preview tp2) {
     Assertions.assertEquals(tp.getMinerFee(), tp2.getMinerFee());
     Assertions.assertEquals(tp.getFeeValue(), tp2.getFeeValue());
@@ -138,7 +149,7 @@ public class Tx0ServiceTest extends AbstractTest {
         new Tx0Data(
             feePaymentCode,
             feeValue,
-                feeChange,
+            feeChange,
             feeDiscountPercent,
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
@@ -225,8 +236,8 @@ public class Tx0ServiceTest extends AbstractTest {
     Tx0Data tx0Data =
         new Tx0Data(
             feePaymentCode,
-                feeValue,
-                feeChange,
+            feeValue,
+            feeChange,
             feeDiscountPercent,
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
@@ -369,8 +380,8 @@ public class Tx0ServiceTest extends AbstractTest {
     Tx0Data tx0Data =
         new Tx0Data(
             feePaymentCode,
-                feeValue,
-                feeChange,
+            feeValue,
+            feeChange,
             feeDiscountPercent,
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
@@ -449,7 +460,7 @@ public class Tx0ServiceTest extends AbstractTest {
         "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
     int feeSatPerByte = 1;
     byte[] feePayload = new byte[] {1, 2};
-    long feeValue = FEE_VALUE/2;
+    long feeValue = FEE_VALUE / 2;
     long feeChange = 0;
     int feeDiscountPercent = 50;
     long changeValue = 16246;
@@ -545,8 +556,13 @@ public class Tx0ServiceTest extends AbstractTest {
     // no SCODE => samouraiFee
     Tx0Data tx0Data =
         new Tx0Data(
-            feePaymentCode, feeValue,
-                feeChange, feeDiscountPercent,null, "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym", 0);
+            feePaymentCode,
+            feeValue,
+            feeChange,
+            feeDiscountPercent,
+            null,
+            "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+            0);
 
     Tx0Preview tx0Preview =
         new Tx0Preview(tx0Data, feeSatPerByte, premixValue, changeValue, nbOutputsExpected);

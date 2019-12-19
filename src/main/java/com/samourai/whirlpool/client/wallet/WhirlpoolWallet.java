@@ -313,6 +313,7 @@ public class WhirlpoolWallet {
       // check status
       WhirlpoolUtxoStatus utxoStatus = whirlpoolUtxo.getUtxoState().getStatus();
       if (!WhirlpoolUtxoStatus.READY.equals(utxoStatus)
+          && !WhirlpoolUtxoStatus.STOP.equals(utxoStatus)
           && !WhirlpoolUtxoStatus.TX0_FAILED.equals(utxoStatus)) {
         throw new NotifiableException("Cannot Tx0: utxoStatus=" + utxoStatus);
       }
