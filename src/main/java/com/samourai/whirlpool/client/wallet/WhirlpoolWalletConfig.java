@@ -53,9 +53,8 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters params,
-      BackendApi backendApi,
-      String clientPreHash) {
-    super(httpClient, stompClientService, persistHandler, server, params, clientPreHash);
+      BackendApi backendApi) {
+    super(httpClient, stompClientService, persistHandler, server, params);
 
     // default settings
     this.maxClients = null;

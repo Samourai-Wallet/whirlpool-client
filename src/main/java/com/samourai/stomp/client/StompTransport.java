@@ -28,7 +28,7 @@ public class StompTransport {
     this.listener = listener;
   }
 
-  public void connect(String wsUrl, Map<String, String> connectHeaders) {
+  public synchronized void connect(String wsUrl, Map<String, String> connectHeaders) {
     done = false;
     stompClient.connect(
         wsUrl,
@@ -112,7 +112,7 @@ public class StompTransport {
     stompClient.subscribe(subscribeHeaders, onMessageOnErrorListener);
   }
 
-  public void disconnect() {
+  public synchronized void disconnect() {
     if (log.isDebugEnabled()) {
       log.debug("disconnect");
     }

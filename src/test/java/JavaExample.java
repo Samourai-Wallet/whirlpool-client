@@ -9,7 +9,6 @@ import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.Tx0Preview;
 import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
-import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
@@ -41,16 +40,9 @@ public class JavaExample {
     BackendApi backendApi = new BackendApi(httpClient, backendUrl, null);
 
     NetworkParameters params = whirlpoolServer.getParams();
-    String clientPreHash = ClientUtils.sha256Hash("uniqueId");
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
-            httpClient,
-            stompClientService,
-            persistHandler,
-            serverUrl,
-            params,
-            backendApi,
-            clientPreHash);
+            httpClient, stompClientService, persistHandler, serverUrl, params, backendApi);
 
     whirlpoolWalletConfig.setAutoTx0PoolId(null); // disable auto-tx0
     whirlpoolWalletConfig.setAutoMix(false); // disable auto-mix

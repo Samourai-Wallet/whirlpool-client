@@ -166,16 +166,11 @@ public class MixProcess {
         WhirlpoolProtocol.encodeBytes(
             clientCryptoService.blind(this.receiveAddress, blindingParams));
     String userHash = premixHandler.computeUserHash(mixId);
-    String clientHash = computeClientHash(mixId);
     ConfirmInputRequest confirmInputRequest =
-        new ConfirmInputRequest(mixId, blindedBordereau64, userHash, clientHash);
+        new ConfirmInputRequest(mixId, blindedBordereau64, userHash);
 
     confirmedInput = true;
     return confirmInputRequest;
-  }
-
-  private String computeClientHash(String salt) {
-    return ClientUtils.sha256Hash(salt + config.getClientPreHash());
   }
 
   protected void onConfirmInputResponse(ConfirmInputResponse confirmInputResponse)
