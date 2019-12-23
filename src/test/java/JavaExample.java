@@ -230,3 +230,4 @@ public class JavaExample {
     whirlpoolWalletService.closeWallet();
   }
 }
+
