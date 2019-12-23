@@ -30,10 +30,10 @@ public class MultiClientManager {
     return listener;
   }
 
-  public void exit() {
+  public void stop() {
     for (WhirlpoolClient whirlpoolClient : clients) {
       if (whirlpoolClient != null) {
-        whirlpoolClient.exit();
+        whirlpoolClient.stop();
       }
     }
   }

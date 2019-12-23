@@ -14,5 +14,5 @@ public interface WhirlpoolClient {
   void whirlpool(MixParams mixParams, WhirlpoolClientListener listener);
 
   /** Abort mix. */
-  void exit();
+  void stop();
 }

@@ -80,13 +80,13 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
       public void success(MixSuccess mixSuccess) {
         // done
         listener.success(mixSuccess);
-        exit();
+        disconnect();
       }
 
       @Override
       public void fail(MixFailReason reason, String notifiableError) {
         listener.fail(reason, notifiableError);
-        exit();
+        disconnect();
       }
 
       @Override
@@ -97,14 +97,18 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
   }
 
   @Override
-  public void exit() {
+  public void stop() {
+    mixClient.stop();
+  }
+
+  private void disconnect() {
     if (!done) {
       if (log.isDebugEnabled()) {
         log.debug("--whirlpoolClient");
       }
       done = true;
       if (mixClient != null) {
-        mixClient.exit();
+        mixClient.disconnect();
       }
       if (mixThread != null) {
         synchronized (mixThread) {

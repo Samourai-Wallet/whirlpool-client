@@ -5,7 +5,8 @@ public enum MixFailReason {
   MIX_FAILED("Mix failed"),
   DISCONNECTED("Disconnected"),
   INPUT_REJECTED("Input rejected"),
-  INTERNAL_ERROR("Internal error");
+  INTERNAL_ERROR("Internal error"),
+  STOP("Stopped");
 
   private String message;
 

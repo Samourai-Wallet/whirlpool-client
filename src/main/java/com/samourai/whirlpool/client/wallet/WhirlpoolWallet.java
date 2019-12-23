@@ -336,7 +336,6 @@ public class WhirlpoolWallet {
       for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
         utxoState.setStatus(WhirlpoolUtxoStatus.TX0_SUCCESS, true);
-        utxoState.setMessage("TX0 txid: " + tx0.getTx().getHashAsString());
       }
 
       // preserve utxo config
@@ -698,15 +697,19 @@ public class WhirlpoolWallet {
         } catch (Exception e) {
           log.error("", e);
         }
+        break;
 
       case INPUT_REJECTED:
       case INTERNAL_ERROR:
+      case STOP:
         // not retrying
         log.warn("onMixFail(" + reason + "): won't retry");
+        break;
 
       default:
         // not retrying
         log.warn("onMixFail(" + reason + "): unknown reason");
+        break;
     }
   }
 

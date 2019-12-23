@@ -77,7 +77,7 @@ public class MixClient {
     mixSession.connect();
   }
 
-  private void disconnect() {
+  public void disconnect() {
     if (mixSession != null) {
       mixSession.disconnect();
       mixSession = null;
@@ -87,11 +87,11 @@ public class MixClient {
   private void failAndExit(MixFailReason reason, String notifiableError) {
     mixParams.getPostmixHandler().cancelReceiveAddress();
     this.listener.fail(reason, notifiableError);
-    exit();
+    disconnect();
   }
 
-  public void exit() {
-    disconnect();
+  public void stop() {
+    failAndExit(MixFailReason.STOP, null);
   }
 
   private MixProcess computeMixProcess() {
@@ -208,7 +208,8 @@ public class MixClient {
 
       @Override
       public void onMixSuccess() {
-        exit(); // disconnect before notifying listener to avoid reconnecting before disconnect
+        disconnect(); // disconnect before notifying listener to avoid reconnecting before
+        // disconnect
         listener.progress(MixStep.SUCCESS);
         listener.success(mixProcess.computeMixSuccess());
       }
