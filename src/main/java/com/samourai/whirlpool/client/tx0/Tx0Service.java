@@ -256,7 +256,7 @@ public class Tx0Service {
     return tx0(spendFroms, depositWallet, premixWallet, badbankWallet, tx0Config, tx0Preview);
   }
 
-  protected Tx0 tx0(
+  public Tx0 tx0(
       Collection<UnspentOutputWithKey> spendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
