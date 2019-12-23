@@ -5,6 +5,7 @@ import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixSt
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
+import io.reactivex.Completable;
 
 public interface MixDialogListener {
 
@@ -19,7 +20,7 @@ public interface MixDialogListener {
   ConfirmInputRequest confirmInput(
       ConfirmInputMixStatusNotification confirmInputMixStatusNotification) throws Exception;
 
-  void postRegisterOutput(
+  Completable postRegisterOutput(
       RegisterOutputMixStatusNotification registerOutputMixStatusNotification,
       String registerOutputUrl)
       throws Exception;

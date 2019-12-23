@@ -15,6 +15,8 @@ import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixSt
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
+import io.reactivex.Completable;
+import io.reactivex.Observable;
 import io.reactivex.functions.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -185,7 +187,7 @@ public class MixClient {
       }
 
       @Override
-      public void postRegisterOutput(
+      public Completable postRegisterOutput(
           RegisterOutputMixStatusNotification registerOutputMixStatusNotification,
           String registerOutputUrl)
           throws Exception {
@@ -201,16 +203,18 @@ public class MixClient {
         // confirm receive address even when REGISTER_OUTPUT fails, to avoid 'ouput already
         // registered'
         mixParams.getPostmixHandler().confirmReceiveAddress();
-        config
-            .getHttpClient()
-            .postJsonOverTor(registerOutputUrl, null, null, registerOutputRequest)
-            .subscribe(
-                new Consumer<Object>() {
-                  @Override
-                  public void accept(Object a) {
-                    listenerProgress(MixStep.REGISTERED_OUTPUT);
-                  }
-                });
+        Observable<Object> observable =
+            config
+                .getHttpClient()
+                .postJsonOverTor(registerOutputUrl, null, null, registerOutputRequest);
+        observable.subscribe(
+            new Consumer<Object>() {
+              @Override
+              public void accept(Object a) {
+                listenerProgress(MixStep.REGISTERED_OUTPUT);
+              }
+            });
+        return Completable.fromObservable(observable);
       }
 
       @Override
