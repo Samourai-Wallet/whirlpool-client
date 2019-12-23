@@ -51,7 +51,6 @@ public class JavaExample {
     whirlpoolWalletConfig.setScode("foo");
     whirlpoolWalletConfig.setMaxClients(1);
     whirlpoolWalletConfig.setClientDelay(15);
-
     return whirlpoolWalletConfig;
   }
 
