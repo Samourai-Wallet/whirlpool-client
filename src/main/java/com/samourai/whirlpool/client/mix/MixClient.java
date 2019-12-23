@@ -18,6 +18,7 @@ import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusN
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.functions.Action;
+import java8.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -203,7 +204,7 @@ public class MixClient {
         // confirm receive address even when REGISTER_OUTPUT fails, to avoid 'ouput already
         // registered'
         mixParams.getPostmixHandler().confirmReceiveAddress();
-        Observable<Object> observable =
+        Observable<Optional<Object>> observable =
             config
                 .getHttpClient()
                 .postJsonOverTor(registerOutputUrl, null, null, registerOutputRequest);
