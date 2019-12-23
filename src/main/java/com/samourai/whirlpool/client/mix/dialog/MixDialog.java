@@ -18,6 +18,8 @@ import com.samourai.whirlpool.protocol.websocket.notifications.MixStatusNotifica
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
+import io.reactivex.CompletableObserver;
+import io.reactivex.disposables.Disposable;
 import java.util.HashSet;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -105,7 +107,7 @@ public class MixDialog {
     }
   }
 
-  private void exitOnPrivateReceivedException(Exception e) {
+  private void exitOnPrivateReceivedException(Throwable e) {
     log.error("Protocol error", e);
     String notifiableError = "onPrivate: " + e.getClass().getName();
     listener.exitOnProtocolError(notifiableError);
@@ -153,7 +155,7 @@ public class MixDialog {
       if (gotConfirmInputResponse()) {
 
         if (MixStatus.REGISTER_OUTPUT.equals(notification.status)) {
-          doRegisterOutput((RegisterOutputMixStatusNotification) notification);
+          doRegisterOutput((RegisterOutputMixStatusNotification) notification); // async
           mixStatusCompleted.add(MixStatus.REGISTER_OUTPUT);
 
         } else if (mixStatusCompleted.contains(MixStatus.REGISTER_OUTPUT)) {
@@ -224,7 +226,37 @@ public class MixDialog {
       RegisterOutputMixStatusNotification registerOutputMixStatusNotification) throws Exception {
     try {
       String registerOutputUrl = WhirlpoolProtocol.getUrlRegisterOutput(clientConfig.getServer());
-      listener.postRegisterOutput(registerOutputMixStatusNotification, registerOutputUrl);
+      listener
+          .postRegisterOutput(registerOutputMixStatusNotification, registerOutputUrl)
+          .subscribe(
+              new CompletableObserver() {
+                @Override
+                public void onSubscribe(Disposable disposable) {}
+
+                @Override
+                public void onComplete() {}
+
+                @Override
+                public void onError(Throwable throwable) {
+                  // registerOutput failed
+                  try {
+                    if (throwable instanceof HttpException) {
+                      String restErrorResponseMessage =
+                          ClientUtils.parseRestErrorMessage((HttpException) throwable);
+                      if (restErrorResponseMessage != null) {
+                        throw new NotifiableException(restErrorResponseMessage);
+                      }
+                    }
+                    throw throwable;
+                  } catch (NotifiableException e) {
+                    log.error("onPrivateReceived NotifiableException: " + e.getMessage());
+                    exitOnResponseError(e.getMessage());
+                  } catch (Throwable e) {
+                    log.error("onPrivateReceived Exception", e);
+                    exitOnPrivateReceivedException(e);
+                  }
+                }
+              });
     } catch (HttpException e) {
       String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);
       if (restErrorResponseMessage != null) {

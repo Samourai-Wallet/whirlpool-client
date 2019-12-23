@@ -17,7 +17,7 @@ import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixSt
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
-import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Action;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -207,14 +207,15 @@ public class MixClient {
             config
                 .getHttpClient()
                 .postJsonOverTor(registerOutputUrl, null, null, registerOutputRequest);
-        observable.subscribe(
-            new Consumer<Object>() {
+        Completable completable = Completable.fromObservable(observable);
+        completable.doOnComplete(
+            new Action() {
               @Override
-              public void accept(Object a) {
+              public void run() throws Exception {
                 listenerProgress(MixStep.REGISTERED_OUTPUT);
               }
             });
-        return Completable.fromObservable(observable);
+        return completable;
       }
 
       @Override
