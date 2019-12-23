@@ -15,6 +15,7 @@ import com.samourai.whirlpool.protocol.websocket.notifications.ConfirmInputMixSt
 import com.samourai.whirlpool.protocol.websocket.notifications.RegisterOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.RevealOutputMixStatusNotification;
 import com.samourai.whirlpool.protocol.websocket.notifications.SigningMixStatusNotification;
+import io.reactivex.functions.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -202,8 +203,14 @@ public class MixClient {
         mixParams.getPostmixHandler().confirmReceiveAddress();
         config
             .getHttpClient()
-            .postJsonOverTor(registerOutputUrl, null, null, registerOutputRequest);
-        listenerProgress(MixStep.REGISTERED_OUTPUT);
+            .postJsonOverTor(registerOutputUrl, null, null, registerOutputRequest)
+            .subscribe(
+                new Consumer<Object>() {
+                  @Override
+                  public void accept(Object a) {
+                    listenerProgress(MixStep.REGISTERED_OUTPUT);
+                  }
+                });
       }
 
       @Override
