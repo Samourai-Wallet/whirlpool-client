@@ -53,8 +53,9 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters params,
+      boolean mobile,
       BackendApi backendApi) {
-    super(httpClient, stompClientService, persistHandler, server, params);
+    super(httpClient, stompClientService, persistHandler, server, params, mobile);
 
     // default settings
     this.maxClients = null;
@@ -283,7 +284,9 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
             + refreshPoolsDelay);
     configInfo.put(
         "mix",
-        "maxClients="
+        "mobile="
+            + isMobile()
+            + ", maxClients="
             + (getMaxClients() != null ? getMaxClients() : "null")
             + ", maxClientsPerPool="
             + getMaxClientsPerPool()

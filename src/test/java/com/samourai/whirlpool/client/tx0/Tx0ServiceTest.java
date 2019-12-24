@@ -34,7 +34,7 @@ public class Tx0ServiceTest extends AbstractTest {
     WhirlpoolServer server = WhirlpoolServer.LOCAL_TESTNET;
     WhirlpoolWalletConfig config =
         new WhirlpoolWalletConfig(
-            null, null, null, server.getServerUrlClear(), server.getParams(), null);
+            null, null, null, server.getServerUrlClear(), server.getParams(), false, null);
     tx0Service = new Tx0Service(config);
   }
 

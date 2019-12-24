@@ -734,7 +734,7 @@ public class WhirlpoolWallet {
   }
 
   public IPostmixHandler computePostmixHandler() {
-    return new Bip84PostmixHandler(getWalletPostmix());
+    return new Bip84PostmixHandler(getWalletPostmix(), config.isMobile());
   }
 
   private MixParams computeMixParams(WhirlpoolUtxo whirlpoolUtxo, Pool pool)

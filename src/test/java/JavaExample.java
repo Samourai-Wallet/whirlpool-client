@@ -40,9 +40,16 @@ public class JavaExample {
     BackendApi backendApi = new BackendApi(httpClient, backendUrl, null);
 
     NetworkParameters params = whirlpoolServer.getParams();
+    boolean isAndroid = false;
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
-            httpClient, stompClientService, persistHandler, serverUrl, params, backendApi);
+            httpClient,
+            stompClientService,
+            persistHandler,
+            serverUrl,
+            params,
+            isAndroid,
+            backendApi);
 
     whirlpoolWalletConfig.setAutoTx0PoolId(null); // disable auto-tx0
     whirlpoolWalletConfig.setAutoMix(false); // disable auto-mix
@@ -230,4 +237,3 @@ public class JavaExample {
     whirlpoolWalletService.closeWallet();
   }
 }
-

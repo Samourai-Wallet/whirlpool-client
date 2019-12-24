@@ -11,11 +11,13 @@ public class Bip84PostmixHandler implements IPostmixHandler {
   private static final Logger log = LoggerFactory.getLogger(Bip84PostmixHandler.class);
   private Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
   private Bip84Wallet postmixWallet;
+  private boolean mobile;
   private HD_Address receiveAddress;
   private Integer receiveAddressIndex;
 
-  public Bip84PostmixHandler(Bip84Wallet postmixWallet) {
+  public Bip84PostmixHandler(Bip84Wallet postmixWallet, boolean mobile) {
     this.postmixWallet = postmixWallet;
+    this.mobile = mobile;
     this.receiveAddress = null;
     this.receiveAddressIndex = null;
   }
@@ -23,7 +25,7 @@ public class Bip84PostmixHandler implements IPostmixHandler {
   @Override
   public synchronized String computeReceiveAddress(NetworkParameters params) throws Exception {
     // use "unconfirmed" index to avoid huge index gaps on multiple mix failures
-    this.receiveAddressIndex = postmixWallet.getIndexHandler().getAndIncrementUnconfirmed();
+    this.receiveAddressIndex = computeNextReceiveAddressIndex();
     this.receiveAddress =
         postmixWallet.getAddressAt(Bip84Wallet.CHAIN_RECEIVE, this.receiveAddressIndex);
 
@@ -38,6 +40,16 @@ public class Bip84PostmixHandler implements IPostmixHandler {
               + receiveAddress.toJSON().get("path"));
     }
     return bech32Address;
+  }
+
+  protected int computeNextReceiveAddressIndex() {
+    // Android => odd indexs, CLI => even indexs
+    int modulo = this.mobile ? 1 : 0;
+    int index;
+    do {
+      index = postmixWallet.getIndexHandler().getAndIncrementUnconfirmed();
+    } while (index % 2 != modulo);
+    return index;
   }
 
   @Override
