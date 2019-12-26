@@ -69,7 +69,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
     stopMixingClients();
   }
 
-  private synchronized void stopMixingClients() {
+  public synchronized void stopMixingClients() {
     for (Mixing oneMixing : mixing.values()) {
       mixStop(oneMixing, true);
     }
