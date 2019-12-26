@@ -98,11 +98,15 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
 
       if (whirlpoolUtxo.getUtxo().confirmations
           >= whirlpoolWallet.getConfig().getTx0MinConfirmations()) {
-        log.info(" o AutoTx0: new DEPOSIT utxo detected, checking for tx0: " + whirlpoolUtxo);
+        if (log.isDebugEnabled()) {
+          log.debug(" o AutoTx0: new DEPOSIT utxo detected, checking for tx0: " + whirlpoolUtxo);
+        }
         notifyOrchestrator();
       } else {
-        log.info(
-            " o AutoTx0: new DEPOSIT utxo detected, waiting for confirmation: " + whirlpoolUtxo);
+        if (log.isDebugEnabled()) {
+          log.debug(
+              " o AutoTx0: new DEPOSIT utxo detected, waiting for confirmation: " + whirlpoolUtxo);
+        }
       }
     }
   }
