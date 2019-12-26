@@ -33,7 +33,7 @@ public class MultiClientManager {
   public void stop() {
     for (WhirlpoolClient whirlpoolClient : clients) {
       if (whirlpoolClient != null) {
-        whirlpoolClient.stop();
+        whirlpoolClient.stop(false);
       }
     }
   }

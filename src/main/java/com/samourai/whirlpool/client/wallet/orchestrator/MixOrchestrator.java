@@ -69,9 +69,9 @@ public class MixOrchestrator extends AbstractOrchestrator {
     stopMixingClients();
   }
 
-  public synchronized void stopMixingClients() {
+  private synchronized void stopMixingClients() {
     for (Mixing oneMixing : mixing.values()) {
-      mixStop(oneMixing);
+      mixStop(oneMixing, true);
     }
     mixing.clear();
     mixingHashs.clear();
@@ -165,7 +165,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
                 + ", swapping from: "
                 + mixingToSwap);
       }
-      mixStop(mixingToSwap.getUtxo());
+      mixStop(mixingToSwap.getUtxo(), true);
       return mixableUtxo;
     }
   }
@@ -219,8 +219,8 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
   public boolean hasMoreMixableOrUnconfirmed() {
     return getQueueByMixableStatus(false, MixableStatus.MIXABLE, MixableStatus.UNCONFIRMED)
-            .findFirst()
-        != null;
+        .findFirst()
+        .isPresent();
   }
 
   public boolean hasMoreMixingThreadAvailable(String poolId) {
@@ -364,27 +364,32 @@ public class MixOrchestrator extends AbstractOrchestrator {
     }
   }
 
-  public synchronized void mixStop(WhirlpoolUtxo whirlpoolUtxo) {
+  public synchronized void mixStop(WhirlpoolUtxo whirlpoolUtxo, boolean cancel) {
     WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
     boolean wasQueued = WhirlpoolUtxoStatus.MIX_QUEUE.equals(utxoState.getStatus());
 
-    // set STOP status (this eventually removes it from queue)
-    utxoState.setStatus(WhirlpoolUtxoStatus.STOP, false);
+    // set status (this eventually removes it from queue)
+    WhirlpoolUtxoStatus utxoStatus = cancel ? WhirlpoolUtxoStatus.READY : WhirlpoolUtxoStatus.STOP;
+    utxoState.setStatus(utxoStatus, false);
 
     final String key = ClientUtils.utxoToKey(whirlpoolUtxo.getUtxo());
     Mixing myMixing = mixing.get(key);
     if (myMixing != null) {
       // stop mixing
-      mixStop(myMixing);
+      mixStop(myMixing, cancel);
     } else if (wasQueued) {
       // recount QUEUE if it was queued
       mixingState.setNbQueued((int) getQueue().count());
     }
   }
 
-  protected void mixStop(final Mixing mixing) {
+  protected void mixStop(final Mixing mixing, final boolean cancel) {
     if (log.isDebugEnabled()) {
-      log.debug("Stopping mixing client: " + mixing);
+      if (cancel) {
+        log.debug("Canceling mixing client: " + mixing);
+      } else {
+        log.debug("Stopping mixing client: " + mixing);
+      }
     }
 
     // stop in new thread for faster response
@@ -392,7 +397,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
             new Runnable() {
               @Override
               public void run() {
-                mixing.getWhirlpoolClient().stop();
+                mixing.getWhirlpoolClient().stop(cancel);
               }
             },
             "stop-whirlpoolClient")
@@ -467,6 +472,9 @@ public class MixOrchestrator extends AbstractOrchestrator {
         if (reason == MixFailReason.STOP) {
           utxoState.setStatus(WhirlpoolUtxoStatus.STOP, false, mixProgress);
           utxoState.setError(message);
+        } else if (reason == MixFailReason.CANCEL) {
+          // silent stop
+          utxoState.setStatus(WhirlpoolUtxoStatus.READY, false, mixProgress);
         } else {
           utxoState.setStatus(WhirlpoolUtxoStatus.MIX_FAILED, true, mixProgress);
           utxoState.setError(message);

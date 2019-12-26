@@ -525,7 +525,7 @@ public class WhirlpoolWallet {
   }
 
   public void mixStop(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
-    this.mixOrchestrator.mixStop(whirlpoolUtxo);
+    this.mixOrchestrator.mixStop(whirlpoolUtxo, false);
   }
 
   public int getFee(Tx0FeeTarget feeTarget) {
@@ -702,6 +702,7 @@ public class WhirlpoolWallet {
       case INPUT_REJECTED:
       case INTERNAL_ERROR:
       case STOP:
+      case CANCEL:
         // not retrying
         log.warn("onMixFail(" + reason + "): won't retry");
         break;

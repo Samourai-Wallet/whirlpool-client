@@ -94,8 +94,9 @@ public class MixClient {
     disconnect();
   }
 
-  public void stop() {
-    failAndExit(MixFailReason.STOP, null);
+  public void stop(boolean cancel) {
+    MixFailReason failReason = cancel ? MixFailReason.CANCEL : MixFailReason.STOP;
+    failAndExit(failReason, null);
   }
 
   private MixProcess computeMixProcess() {

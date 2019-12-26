@@ -97,8 +97,8 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
   }
 
   @Override
-  public void stop() {
-    mixClient.stop();
+  public void stop(boolean cancel) {
+    mixClient.stop(cancel);
   }
 
   private void disconnect() {
