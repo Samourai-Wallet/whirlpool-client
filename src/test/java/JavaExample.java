@@ -160,7 +160,8 @@ public class JavaExample {
       Collection<WhirlpoolUtxo> utxos = Lists.of(whirlpoolUtxo);
 
       // configure tx0
-      Tx0Config tx0Config = whirlpoolWallet.getTx0Config().setBadbankChange(false);
+      Tx0Config tx0Config =
+          whirlpoolWallet.getTx0Config().setChangeWallet(WhirlpoolWalletAccount.BADBANK);
       Tx0FeeTarget minerFeeTarget = Tx0FeeTarget.BLOCKS_4;
 
       // find eligible pools for this utxo
@@ -199,7 +200,8 @@ public class JavaExample {
           Lists.of(new UnspentOutputWithKey(spendFrom, spendFromPrivKey));
 
       // configure tx0
-      Tx0Config tx0Config = whirlpoolWallet.getTx0Config().setBadbankChange(false);
+      Tx0Config tx0Config =
+          whirlpoolWallet.getTx0Config().setChangeWallet(WhirlpoolWalletAccount.BADBANK);
       Tx0FeeTarget minerFeeTarget = Tx0FeeTarget.BLOCKS_4;
 
       // pool for tx0

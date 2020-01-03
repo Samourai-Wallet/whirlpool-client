@@ -230,6 +230,7 @@ public class Tx0Service {
       Collection<UnspentOutputWithKey> spendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
+      Bip84Wallet postmixWallet,
       Bip84Wallet badbankWallet,
       Tx0Config tx0Config,
       int feeTx0,
@@ -247,19 +248,27 @@ public class Tx0Service {
             + pool.getPoolId()
             + ", maxOutputs="
             + (tx0Config.getMaxOutputs() != null ? tx0Config.getMaxOutputs() : "*")
-            + ", badbankChange="
-            + tx0Config.isBadbankChange()
+            + ", changeWallet="
+            + tx0Config.getChangeWallet().name()
             + ", tx0Preview=["
             + tx0Preview
             + "]");
 
-    return tx0(spendFroms, depositWallet, premixWallet, badbankWallet, tx0Config, tx0Preview);
+    return tx0(
+        spendFroms,
+        depositWallet,
+        premixWallet,
+        postmixWallet,
+        badbankWallet,
+        tx0Config,
+        tx0Preview);
   }
 
   public Tx0 tx0(
       Collection<UnspentOutputWithKey> spendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
+      Bip84Wallet postmixWallet,
       Bip84Wallet badbankWallet,
       Tx0Config tx0Config,
       Tx0Preview tx0Preview)
@@ -318,6 +327,7 @@ public class Tx0Service {
         sortedSpendFroms,
         depositWallet,
         premixWallet,
+        postmixWallet,
         badbankWallet,
         tx0Config,
         tx0Preview,
@@ -329,6 +339,7 @@ public class Tx0Service {
       List<UnspentOutputWithKey> sortedSpendFroms,
       Bip84Wallet depositWallet,
       Bip84Wallet premixWallet,
+      Bip84Wallet postmixWallet,
       Bip84Wallet badbankWallet,
       Tx0Config tx0Config,
       Tx0Preview tx0Preview,
@@ -336,7 +347,22 @@ public class Tx0Service {
       String feeOrBackAddressBech32)
       throws Exception {
 
-    Bip84Wallet changeWallet = tx0Config.isBadbankChange() ? badbankWallet : depositWallet;
+    // find change wallet
+    Bip84Wallet changeWallet;
+    switch (tx0Config.getChangeWallet()) {
+      case PREMIX:
+        changeWallet = premixWallet;
+        break;
+      case POSTMIX:
+        changeWallet = postmixWallet;
+        break;
+      case BADBANK:
+        changeWallet = badbankWallet;
+        break;
+      default:
+        changeWallet = depositWallet;
+        break;
+    }
 
     //
     // tx0

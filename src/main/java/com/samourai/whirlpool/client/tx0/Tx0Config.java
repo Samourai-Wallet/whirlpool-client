@@ -1,10 +1,15 @@
 package com.samourai.whirlpool.client.tx0;
 
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletAccount;
+
 public class Tx0Config {
   private Integer maxOutputs;
-  private boolean badbankChange;
+  private WhirlpoolWalletAccount changeWallet;
 
-  public Tx0Config() {}
+  public Tx0Config() {
+    this.maxOutputs = null;
+    this.changeWallet = WhirlpoolWalletAccount.DEPOSIT;
+  }
 
   public Integer getMaxOutputs() {
     return maxOutputs;
@@ -15,12 +20,12 @@ public class Tx0Config {
     return this;
   }
 
-  public boolean isBadbankChange() {
-    return badbankChange;
+  public WhirlpoolWalletAccount getChangeWallet() {
+    return changeWallet;
   }
 
-  public Tx0Config setBadbankChange(boolean badbankChange) {
-    this.badbankChange = badbankChange;
+  public Tx0Config setChangeWallet(WhirlpoolWalletAccount changeWallet) {
+    this.changeWallet = changeWallet;
     return this;
   }
 }

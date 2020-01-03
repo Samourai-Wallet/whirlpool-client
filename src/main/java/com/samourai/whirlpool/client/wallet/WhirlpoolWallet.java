@@ -386,6 +386,7 @@ public class WhirlpoolWallet {
                   spendFroms,
                   depositWallet,
                   premixWallet,
+                  postmixWallet,
                   badbankWallet,
                   tx0Config,
                   feeTx0,
@@ -437,7 +438,6 @@ public class WhirlpoolWallet {
   public Tx0Config getTx0Config() {
     Tx0Config tx0Config = new Tx0Config();
     tx0Config.setMaxOutputs(config.getTx0MaxOutputs());
-    tx0Config.setBadbankChange(false);
     return tx0Config;
   }
 
