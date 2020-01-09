@@ -440,7 +440,6 @@ public class Tx0Service {
     long premixValue = tx0Preview.getPremixValue();
     long feeValueOrFeeChange = tx0Preview.computeFeeValueOrFeeChange();
     int nbPremix = tx0Preview.getNbPremix();
-    long tx0MinerFee = tx0Preview.getMinerFee();
     long changeValue = tx0Preview.getChangeValue();
 
     // verify
@@ -528,10 +527,7 @@ public class Tx0Service {
       }
       if (changeValue < 0) {
         throw new Exception(
-            "Negative change detected, please report this bug. changeValue="
-                + changeValue
-                + ", tx0MinerFee="
-                + tx0MinerFee);
+            "Negative change detected, please report this bug. tx0Preview=" + tx0Preview);
       }
     }
 
