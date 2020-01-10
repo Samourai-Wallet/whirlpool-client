@@ -114,7 +114,7 @@ public abstract class JacksonHttpClient implements IHttpClient {
     return result;
   }
 
-  private <T> Observable<Optional<T>> httpObservable(final Callable<T> supplier) {
+  protected <T> Observable<Optional<T>> httpObservable(final Callable<T> supplier) {
     return Observable.fromCallable(
         new Callable<Optional<T>>() {
           @Override
