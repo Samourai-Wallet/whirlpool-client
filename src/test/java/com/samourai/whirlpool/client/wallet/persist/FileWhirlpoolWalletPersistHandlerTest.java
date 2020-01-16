@@ -6,6 +6,7 @@ import com.samourai.wallet.api.backend.beans.MultiAddrResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.wallet.util.oauth.OAuthManager;
 import com.samourai.whirlpool.client.test.AbstractTest;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
@@ -14,6 +15,7 @@ import com.samourai.whirlpool.client.wallet.beans.*;
 import java.io.File;
 import java.util.List;
 import java8.util.Lists;
+import java8.util.Optional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -137,7 +139,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
   private WhirlpoolWallet computeWallet() throws Exception {
     String backendUrl = BackendServer.TESTNET.getBackendUrl(false);
     BackendApi backendApi =
-        new BackendApi(null, backendUrl, null) {
+        new BackendApi(null, backendUrl, Optional.<OAuthManager>empty()) {
           @Override
           public MultiAddrResponse.Address fetchAddress(String zpub) throws Exception {
             // MOCK

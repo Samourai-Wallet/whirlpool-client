@@ -4,6 +4,7 @@ import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.hd.HD_Wallet;
+import com.samourai.wallet.util.oauth.OAuthManager;
 import com.samourai.whirlpool.client.mix.listener.MixStep;
 import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
@@ -20,6 +21,7 @@ import io.reactivex.functions.Consumer;
 import java.io.File;
 import java.util.Collection;
 import java8.util.Lists;
+import java8.util.Optional;
 import org.bitcoinj.core.NetworkParameters;
 
 public class JavaExample {
@@ -37,7 +39,7 @@ public class JavaExample {
     boolean onion = true;
     String serverUrl = whirlpoolServer.getServerUrl(onion);
     String backendUrl = BackendServer.TESTNET.getBackendUrl(onion);
-    BackendApi backendApi = new BackendApi(httpClient, backendUrl, null);
+    BackendApi backendApi = new BackendApi(httpClient, backendUrl, Optional.<OAuthManager>empty());
 
     NetworkParameters params = whirlpoolServer.getParams();
     boolean isAndroid = false;
