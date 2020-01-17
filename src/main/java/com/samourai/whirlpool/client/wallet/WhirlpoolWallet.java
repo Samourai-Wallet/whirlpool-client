@@ -1017,4 +1017,8 @@ public class WhirlpoolWallet {
   public WhirlpoolWalletConfig getConfig() {
     return config;
   }
+
+  protected WhirlpoolDataService getDataService() {
+    return dataService;
+  }
 }

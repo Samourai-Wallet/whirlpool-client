@@ -8,6 +8,7 @@ import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.hd.HD_Wallet;
 import com.samourai.wallet.util.oauth.OAuthManager;
 import com.samourai.whirlpool.client.test.AbstractTest;
+import com.samourai.whirlpool.client.wallet.WhirlpoolDataService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
@@ -24,6 +25,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
 
   private FileWhirlpoolWalletPersistHandler persistHandler;
   private WhirlpoolWallet whirlpoolWallet;
+  private final WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
   private File fileState;
   private File fileUtxos;
 
@@ -159,6 +161,7 @@ public class FileWhirlpoolWalletPersistHandlerTest extends AbstractTest {
             WhirlpoolServer.LOCAL_TESTNET.getParams(),
             false,
             backendApi);
-    return new WhirlpoolWalletService().openWallet(config, bip84w);
+    WhirlpoolDataService dataService = new WhirlpoolDataService(config, whirlpoolWalletService);
+    return whirlpoolWalletService.openWallet(config, dataService, bip84w);
   }
 }

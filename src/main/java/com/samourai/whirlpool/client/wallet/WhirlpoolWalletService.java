@@ -50,9 +50,10 @@ public class WhirlpoolWalletService {
     }
   }
 
-  public WhirlpoolWallet openWallet(WhirlpoolWalletConfig config, HD_Wallet bip84w)
+  public WhirlpoolWallet openWallet(
+      WhirlpoolWalletConfig config, WhirlpoolDataService dataService, HD_Wallet bip84w)
       throws Exception {
-    WhirlpoolWallet wp = computeWhirlpoolWallet(config, bip84w);
+    WhirlpoolWallet wp = computeWhirlpoolWallet(config, dataService, bip84w);
     return openWallet(wp);
   }
 
@@ -120,7 +121,8 @@ public class WhirlpoolWalletService {
     return wp;
   }
 
-  protected WhirlpoolWallet computeWhirlpoolWallet(WhirlpoolWalletConfig config, HD_Wallet bip84w)
+  protected WhirlpoolWallet computeWhirlpoolWallet(
+      WhirlpoolWalletConfig config, WhirlpoolDataService dataService, HD_Wallet bip84w)
       throws Exception {
     BackendApi backendApi = config.getBackendApi();
 
@@ -182,11 +184,12 @@ public class WhirlpoolWalletService {
     }
 
     return computeWhirlpoolWallet(
-        config, depositWallet, premixWallet, postmixWallet, badbankWallet);
+        config, dataService, depositWallet, premixWallet, postmixWallet, badbankWallet);
   }
 
   protected WhirlpoolWallet computeWhirlpoolWallet(
       WhirlpoolWalletConfig config,
+      WhirlpoolDataService dataService,
       Bip84ApiWallet depositWallet,
       Bip84ApiWallet premixWallet,
       Bip84ApiWallet postmixWallet,
@@ -202,7 +205,6 @@ public class WhirlpoolWalletService {
 
     Bech32UtilGeneric bech32Util = Bech32UtilGeneric.getInstance();
     WhirlpoolClient whirlpoolClient = WhirlpoolClientImpl.newClient(config);
-    WhirlpoolDataService dataService = newDataService(config);
 
     return new WhirlpoolWallet(
         config,
@@ -213,10 +215,6 @@ public class WhirlpoolWalletService {
         premixWallet,
         postmixWallet,
         badbankWallet);
-  }
-
-  protected WhirlpoolDataService newDataService(WhirlpoolWalletConfig config) {
-    return new WhirlpoolDataService(config, this);
   }
 
   public Optional<WhirlpoolWallet> getWhirlpoolWallet() {

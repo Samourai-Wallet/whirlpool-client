@@ -10,6 +10,7 @@ import com.samourai.whirlpool.client.tx0.Tx0;
 import com.samourai.whirlpool.client.tx0.Tx0Config;
 import com.samourai.whirlpool.client.tx0.Tx0Preview;
 import com.samourai.whirlpool.client.tx0.UnspentOutputWithKey;
+import com.samourai.whirlpool.client.wallet.WhirlpoolDataService;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWalletService;
@@ -70,13 +71,15 @@ public class JavaExample {
     // configure whirlpool
     WhirlpoolWalletService whirlpoolWalletService = new WhirlpoolWalletService();
     WhirlpoolWalletConfig config = computeWhirlpoolWalletConfig();
+    WhirlpoolDataService dataService = new WhirlpoolDataService(config, whirlpoolWalletService);
 
     /*
      * WALLET
      */
     // open wallet
     HD_Wallet bip84w = null; // provide your wallet here
-    WhirlpoolWallet whirlpoolWallet = whirlpoolWalletService.openWallet(config, bip84w);
+    WhirlpoolWallet whirlpoolWallet =
+        whirlpoolWalletService.openWallet(config, dataService, bip84w);
 
     // start whirlpool wallet
     whirlpoolWallet.start();
