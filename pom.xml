@@ -15,12 +15,22 @@
             <groupId>com.github.Samourai-Wallet</groupId>
             <artifactId>whirlpool-protocol</artifactId>
             <version>develop-SNAPSHOT</version>
-            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.github.Samourai-Wallet</groupId>
+                    <artifactId>extlibj</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.github.Samourai-Wallet</groupId>
             <artifactId>extlibj</artifactId>
-            <version>0.0.10</version>
+            <version>0.0.11</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.Samourai-Wallet</groupId>
+            <artifactId>xmanager-protocol</artifactId>
+            <version>develop-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

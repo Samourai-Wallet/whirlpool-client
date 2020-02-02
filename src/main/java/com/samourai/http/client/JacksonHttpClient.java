@@ -23,6 +23,9 @@ public abstract class JacksonHttpClient implements IHttpClient {
   protected abstract String requestJsonGet(String urlStr, Map<String, String> headers)
       throws Exception;
 
+  protected abstract String requestJsonPost(
+      String urlStr, Map<String, String> headers, String jsonBody) throws Exception;
+
   protected abstract String requestJsonPostOverTor(
       String urlStr, Map<String, String> headers, String jsonBody) throws Exception;
 
@@ -51,6 +54,32 @@ public abstract class JacksonHttpClient implements IHttpClient {
       }
       throw (HttpException) e;
     }
+  }
+
+  @Override
+  public synchronized <T> Observable<Optional<T>> postJson(
+      final String urlStr,
+      final Class<T> responseType,
+      final Map<String, String> headers,
+      final Object bodyObj) {
+    if (log.isDebugEnabled()) {
+      log.debug("postJson: " + urlStr);
+    }
+    return httpObservable(
+        new Callable<T>() {
+          @Override
+          public T call() throws Exception {
+            try {
+              String jsonBody = objectMapper.writeValueAsString(bodyObj);
+              String responseContent = requestJsonPost(urlStr, headers, jsonBody);
+              T result = parseJson(responseContent, responseType);
+              return result;
+            } catch (Exception e) {
+              onRequestError(e, false);
+              throw e;
+            }
+          }
+        });
   }
 
   @Override
