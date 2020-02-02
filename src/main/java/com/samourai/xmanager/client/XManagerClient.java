@@ -69,13 +69,15 @@ public class XManagerClient {
       log.error("getAddressIndexResponse(" + service.name() + ") failed", e);
     }
     if (response == null || !formatUtils.isValidBech32(response.address) || response.index < 0) {
+      String addressStr = response != null && response.address != null ? response.address : "null";
+      String indexStr = response != null ? Integer.toString(response.index) : "null";
       log.error(
           "getAddressIndexResponse("
               + service.name()
               + "): invalid response (address="
-              + (response.address != null ? response.address : "null")
+              + addressStr
               + " index="
-              + response.index
+              + indexStr
               + ") => using default address");
       String defaultAaddress = service.getDefaultAddress(testnet);
       response = new AddressIndexResponse(defaultAaddress, 0);
