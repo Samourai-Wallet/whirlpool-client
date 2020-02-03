@@ -52,6 +52,9 @@ public class WhirlpoolDataService {
       WhirlpoolWalletConfig config, WhirlpoolWalletService whirlpoolWalletService) {
     this.config = config;
     this.whirlpoolWalletService = whirlpoolWalletService;
+    this.utxos =
+        new ConcurrentHashMap<
+            WhirlpoolAccount, Supplier<Throwing<Map<String, WhirlpoolUtxo>, Exception>>>();
 
     clear();
   }
@@ -205,9 +208,6 @@ public class WhirlpoolDataService {
   // UTXOS
 
   public void clearUtxos() {
-    this.utxos =
-        new ConcurrentHashMap<
-            WhirlpoolAccount, Supplier<Throwing<Map<String, WhirlpoolUtxo>, Exception>>>();
     this.previousUtxos = new ConcurrentHashMap<WhirlpoolAccount, Map<String, WhirlpoolUtxo>>();
     for (WhirlpoolAccount whirlpoolAccount : WhirlpoolAccount.values()) {
       clearUtxos(whirlpoolAccount);
