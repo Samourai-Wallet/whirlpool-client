@@ -71,13 +71,13 @@ public class Tx0ServiceTest extends AbstractTest {
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
             0);
+    Tx0Param tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feeSatPerByte, pool01btc);
+    Assertions.assertEquals(1000201, tx0Param.getPremixValue());
     Tx0Preview tx0Preview =
         tx0Service.tx0Preview(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
             tx0Config,
-            feeSatPerByte,
-            feeSatPerByte,
-            pool01btc,
+            tx0Param,
             tx0Data);
     Assertions.assertEquals(572, tx0Preview.getMinerFee());
     Assertions.assertEquals(feeValue, tx0Preview.getFeeValue());

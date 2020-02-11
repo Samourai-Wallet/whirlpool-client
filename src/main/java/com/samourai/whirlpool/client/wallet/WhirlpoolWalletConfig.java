@@ -11,6 +11,7 @@ import com.samourai.whirlpool.client.wallet.beans.Tx0FeeTarget;
 import com.samourai.whirlpool.client.wallet.persist.WhirlpoolWalletPersistHandler;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientConfig;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
@@ -36,6 +37,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private int refreshFeeDelay;
   private int refreshPoolsDelay;
   private int mixsTarget;
+  private Map<String, Long> overspendPerPool;
   private int persistDelay;
   private int persistCleanDelay;
 
@@ -74,6 +76,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.refreshFeeDelay = 300; // 5min
     this.refreshPoolsDelay = 300; // 5min
     this.mixsTarget = 1;
+    this.overspendPerPool = new HashMap<String, Long>();
     this.persistDelay = 4; // 4s
     this.persistCleanDelay = 300; // 5min
 
@@ -196,6 +199,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setMixsTarget(int mixsTarget) {
     this.mixsTarget = mixsTarget;
+  }
+
+  public Map<String, Long> getOverspendPerPool() {
+    return overspendPerPool;
+  }
+
+  public void setOverspendPerPool(Map<String, Long> overspendPerPool) {
+    this.overspendPerPool = overspendPerPool;
   }
 
   public int getPersistDelay() {

@@ -169,10 +169,6 @@ public class JavaExample {
           whirlpoolWallet.getTx0Config().setChangeWallet(WhirlpoolWalletAccount.BADBANK);
       Tx0FeeTarget minerFeeTarget = Tx0FeeTarget.BLOCKS_4;
 
-      // find eligible pools for this utxo
-      Collection<Pool> eligiblePools =
-          whirlpoolWallet.findPoolsForTx0(whirlpoolUtxo.getUtxo().value, 1, minerFeeTarget);
-
       // choose pool
       whirlpoolWallet.setPool(whirlpoolUtxo, "0.01btc");
 
@@ -189,7 +185,7 @@ public class JavaExample {
 
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(utxos, pool05btc, tx0Config, minerFeeTarget);
+        Tx0 tx0 = whirlpoolWallet.tx0(utxos, pool05btc, minerFeeTarget, tx0Config);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed
@@ -225,7 +221,7 @@ public class JavaExample {
 
       // execute tx0
       try {
-        Tx0 tx0 = whirlpoolWallet.tx0(pool, utxos, tx0Config, minerFeeTarget);
+        Tx0 tx0 = whirlpoolWallet.tx0(utxos, pool, tx0Config, minerFeeTarget);
         String txid = tx0.getTx().getHashAsString(); // get txid
       } catch (Exception e) {
         // tx0 failed

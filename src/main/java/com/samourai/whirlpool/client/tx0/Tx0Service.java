@@ -42,14 +42,36 @@ public class Tx0Service {
     whirlpoolFee = WhirlpoolFee.getInstance(config.getSecretPointFactory());
   }
 
-  private long computePremixValue(Pool pool, int feePremix) {
-    // compute minerFeePerMustmix
-    long txPremixFeesEstimate =
-        feeUtil.estimatedFeeSegwit(
-            0, 0, pool.getMixAnonymitySet(), pool.getMixAnonymitySet(), 0, feePremix);
-    long minerFeePerMustmix = txPremixFeesEstimate / pool.getMinMustMix();
-    // pool.getMixAnonymitySet();
-    long premixValue = pool.getDenomination() + minerFeePerMustmix;
+  public Tx0Param computeTx0Param(int feeTx0, int feePremix, Pool pool) {
+    String poolId = pool.getPoolId();
+    Long overspendValueOrNull =
+        config.getOverspendPerPool() != null ? config.getOverspendPerPool().get(poolId) : null;
+
+    long premixValue = computePremixValue(pool, feePremix, overspendValueOrNull);
+    return new Tx0Param(feeTx0, feePremix, pool, premixValue);
+  }
+
+  private long computePremixValue(Pool pool, int feePremix, final Long overspendValueOrNull) {
+    long premixOverspend;
+    if (overspendValueOrNull != null && overspendValueOrNull > 0) {
+      premixOverspend = overspendValueOrNull;
+    } else {
+      // compute premixOverspend
+      long mixFeesEstimate =
+          feeUtil.estimatedFeeSegwit(
+              0, 0, pool.getMixAnonymitySet(), pool.getMixAnonymitySet(), 0, feePremix);
+      premixOverspend = mixFeesEstimate / pool.getMinMustMix();
+      if (log.isDebugEnabled()) {
+        log.debug(
+            "mixFeesEstimate="
+                + mixFeesEstimate
+                + " => premixOverspend="
+                + overspendValueOrNull
+                + " for poolId="
+                + pool.getPoolId());
+      }
+    }
+    long premixValue = pool.getDenomination() + premixOverspend;
 
     // make sure destinationValue is acceptable for pool
     long premixBalanceMin = pool.computePremixBalanceMin(false);
@@ -67,10 +89,8 @@ public class Tx0Service {
               + premixValueFinal
               + ", premixValue="
               + premixValue
-              + ", minerFeePerMustmix="
-              + minerFeePerMustmix
-              + ", txPremixFeesEstimate="
-              + txPremixFeesEstimate
+              + ", premixOverspend="
+              + premixOverspend
               + " for poolId="
               + pool.getPoolId());
     }
@@ -162,38 +182,31 @@ public class Tx0Service {
     return spendValue;
   }
 
-  public long computeSpendFromBalanceMin(Pool pool, int feeTx0, int feePremix, int nbPremix) {
-    long premixValue = computePremixValue(pool, feePremix);
-    long tx0MinerFee = computeTx0MinerFee(nbPremix, feeTx0, null);
-    long samouraiFee = pool.getFeeValue();
-    long spendValue = computeTx0SpendValue(premixValue, nbPremix, samouraiFee, tx0MinerFee);
+  public long computeSpendFromBalanceMin(Tx0Param tx0Param, int nbPremix) {
+    long tx0MinerFee = computeTx0MinerFee(nbPremix, tx0Param.getFeeTx0(), null);
+    long samouraiFee = tx0Param.getPool().getFeeValue();
+    long spendValue =
+        computeTx0SpendValue(tx0Param.getPremixValue(), nbPremix, samouraiFee, tx0MinerFee);
     return spendValue;
   }
 
   public Tx0Preview tx0Preview(
-      Collection<UnspentOutputWithKey> spendFroms,
-      Tx0Config tx0Config,
-      int feeTx0,
-      int feePremix,
-      Pool pool)
+      Collection<UnspentOutputWithKey> spendFroms, Tx0Config tx0Config, Tx0Param tx0Param)
       throws Exception {
     // fetch fresh Tx0Data
-    Tx0Data tx0Data = fetchTx0Data(pool.getPoolId());
-    return tx0Preview(spendFroms, tx0Config, feeTx0, feePremix, pool, tx0Data);
+    Tx0Data tx0Data = fetchTx0Data(tx0Param.getPool().getPoolId());
+    return tx0Preview(spendFroms, tx0Config, tx0Param, tx0Data);
   }
 
   protected Tx0Preview tx0Preview(
       Collection<UnspentOutputWithKey> spendFroms,
       Tx0Config tx0Config,
-      int feeTx0,
-      int feePremix,
-      Pool pool,
+      Tx0Param tx0Param,
       Tx0Data tx0Data)
       throws Exception {
 
     // check balance min
-    final long spendFromBalanceMin =
-        config.getTx0Service().computeSpendFromBalanceMin(pool, feeTx0, feePremix, 1);
+    final long spendFromBalanceMin = computeSpendFromBalanceMin(tx0Param, 1);
 
     long spendFromBalance = computeSpendFromBalance(spendFroms);
     if (spendFromBalance < spendFromBalanceMin) {
@@ -201,9 +214,13 @@ public class Tx0Service {
           "Insufficient utxo value for Tx0: " + spendFromBalance + " < " + spendFromBalanceMin);
     }
 
-    long premixValue = computePremixValue(pool, feePremix);
+    int feeTx0 = tx0Param.getFeeTx0();
+    long premixValue = tx0Param.getPremixValue();
+
     long feeValueOrFeeChange = tx0Data.computeFeeValueOrFeeChange();
-    int nbPremix = computeNbPremix(spendFroms, tx0Config, feeTx0, premixValue, feeValueOrFeeChange);
+    int nbPremix =
+        computeNbPremix(
+            spendFroms, tx0Config.getMaxOutputs(), feeTx0, premixValue, feeValueOrFeeChange);
     long minerFee = computeTx0MinerFee(nbPremix, feeTx0, spendFroms);
     long spendValue = computeTx0SpendValue(premixValue, nbPremix, feeValueOrFeeChange, minerFee);
     long changeValue = spendFromBalance - spendValue;
@@ -233,22 +250,20 @@ public class Tx0Service {
       Bip84Wallet postmixWallet,
       Bip84Wallet badbankWallet,
       Tx0Config tx0Config,
-      int feeTx0,
-      int feePremix,
-      Pool pool)
+      Tx0Param tx0Param)
       throws Exception {
 
     // compute & preview
-    Tx0Preview tx0Preview = tx0Preview(spendFroms, tx0Config, feeTx0, feePremix, pool);
+    Tx0Preview tx0Preview = tx0Preview(spendFroms, tx0Config, tx0Param);
 
     log.info(
         " • Tx0: spendFrom="
             + spendFroms
-            + ", poolId="
-            + pool.getPoolId()
             + ", maxOutputs="
             + (tx0Config.getMaxOutputs() != null ? tx0Config.getMaxOutputs() : "*")
-            + ", changeWallet="
+            + ", tx0Param=["
+            + tx0Param
+            + "], changeWallet="
             + tx0Config.getChangeWallet().name()
             + ", tx0Preview=["
             + tx0Preview
@@ -395,7 +410,7 @@ public class Tx0Service {
 
   private int computeNbPremix(
       Collection<UnspentOutputWithKey> sortedSpendFroms,
-      Tx0Config tx0Config,
+      Integer maxOutputs,
       int feeTx0,
       long premixValue,
       long feeValueOrFeeChange) {
@@ -405,8 +420,8 @@ public class Tx0Service {
             sortedSpendFroms,
             feeValueOrFeeChange,
             feeTx0); // cap with balance and tx0 minerFee
-    if (tx0Config.getMaxOutputs() != null) {
-      nbPremix = Math.min(tx0Config.getMaxOutputs(), nbPremix); // cap with maxOutputs
+    if (maxOutputs != null) {
+      nbPremix = Math.min(maxOutputs, nbPremix); // cap with maxOutputs
     }
     nbPremix = Math.min(NB_PREMIX_MAX, nbPremix); // cap with UTXO NB_PREMIX_MAX
     return nbPremix;
@@ -596,14 +611,15 @@ public class Tx0Service {
   }
 
   public Collection<Pool> findPools(
+      Tx0ParamSimple tx0ParamSimple,
       int nbOutputsMin,
       Collection<Pool> poolsByPreference,
-      long utxoValue,
-      int feeTx0,
-      int feePremix) {
+      long utxoValue) {
     List<Pool> eligiblePools = new LinkedList<Pool>();
     for (Pool pool : poolsByPreference) {
-      boolean eligible = isTx0Possible(utxoValue, pool, feeTx0, feePremix, nbOutputsMin);
+      Tx0Param tx0Param =
+          computeTx0Param(tx0ParamSimple.getFeeTx0(), tx0ParamSimple.getFeePremix(), pool);
+      boolean eligible = isTx0Possible(utxoValue, tx0Param, nbOutputsMin);
       if (eligible) {
         eligiblePools.add(pool);
       }
@@ -611,23 +627,18 @@ public class Tx0Service {
     return eligiblePools;
   }
 
-  public boolean isTx0Possible(
-      long utxoValue, Pool pool, int feeTx0, int feePremix, int nbOutputsMin) {
-    long balanceMin = computeSpendFromBalanceMin(pool, feeTx0, feePremix, nbOutputsMin);
+  protected boolean isTx0Possible(long utxoValue, Tx0Param tx0Param, int nbOutputsMin) {
+    long balanceMin = computeSpendFromBalanceMin(tx0Param, nbOutputsMin);
     if (log.isDebugEnabled()) {
       log.debug(
-          "isTx0Possible["
-              + pool.getPoolId()
-              + "] spendFromBalanceMin="
+          "isTx0Possible: spendFromBalanceMin="
               + balanceMin
               + " for nbOutputsMin="
               + nbOutputsMin
               + ", utxoValue="
               + utxoValue
-              + ", feeTx0="
-              + feeTx0
-              + ", feePremix="
-              + feePremix);
+              + ", tx0Param="
+              + tx0Param);
     }
     return (utxoValue >= balanceMin);
   }
