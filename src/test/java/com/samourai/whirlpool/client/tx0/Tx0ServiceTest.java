@@ -18,12 +18,17 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class Tx0ServiceTest extends AbstractTest {
   private Logger log = LoggerFactory.getLogger(Tx0ServiceTest.class);
 
   private static final long FEE_VALUE = 10000;
 
   private Tx0Service tx0Service;
+
+  private WhirlpoolWalletConfig config;
 
   public Tx0ServiceTest() {
     super();
@@ -32,7 +37,7 @@ public class Tx0ServiceTest extends AbstractTest {
   @BeforeEach
   public void setup() {
     WhirlpoolServer server = WhirlpoolServer.LOCAL_TESTNET;
-    WhirlpoolWalletConfig config =
+    config =
         new WhirlpoolWalletConfig(
             null, null, null, server.getServerUrlClear(), server.getParams(), false, null);
     tx0Service = new Tx0Service(config);
@@ -86,6 +91,226 @@ public class Tx0ServiceTest extends AbstractTest {
     Assertions.assertEquals(premixValue, tx0Preview.getPremixValue());
     Assertions.assertEquals(changeValue, tx0Preview.getChangeValue());
     Assertions.assertEquals(nbOutputsExpected, tx0Preview.getNbPremix());
+  }
+
+  @Test
+  public void tx0Preview_overspend() throws Exception {
+    String seedWords = "all all all all all all all all all all all all";
+    String passphrase = "whirlpool";
+    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
+    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
+
+    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    UnspentResponse.UnspentOutput spendFrom =
+            newUnspentOutput(
+                    "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 500000000);
+
+    Tx0Config tx0Config = new Tx0Config().setMaxOutputs(10);
+    String feePaymentCode =
+            "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
+    int feeSatPerByte = 1;
+    byte[] feePayload = null;
+    long feeValue = 0;
+    long feeChange = FEE_VALUE;
+    int feeDiscountPercent = 100;
+
+    Tx0Data tx0Data =
+            new Tx0Data(
+                    feePaymentCode,
+                    feeValue,
+                    feeChange,
+                    feeDiscountPercent,
+                    feePayload,
+                    "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+                    0);
+
+    // no overspend
+    config.setOverspendPerPool(null);
+    Tx0Param tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feeSatPerByte, pool01btc);
+    Assertions.assertEquals(1000201, tx0Param.getPremixValue());
+    Tx0Preview tx0Preview =
+            tx0Service.tx0Preview(
+                    Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
+                    tx0Config,
+                    tx0Param,
+                    tx0Data);
+    Assertions.assertEquals(1000201, tx0Preview.getPremixValue());
+
+    // overspend too low => min
+    Map<String,Long> overspend = new HashMap<String,Long>();
+    overspend.put(pool01btc.getPoolId(), 1L);
+    config.setOverspendPerPool(overspend);
+    tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feeSatPerByte, pool01btc);
+    Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Param.getPremixValue());
+    tx0Preview =
+            tx0Service.tx0Preview(
+                    Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
+                    tx0Config,
+                    tx0Param,
+                    tx0Data);
+    Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Preview.getPremixValue());
+
+    // overspend too high => max
+    overspend.put(pool01btc.getPoolId(), 999999999L);
+    config.setOverspendPerPool(overspend);
+    tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feeSatPerByte, pool01btc);
+    Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Param.getPremixValue());
+    tx0Preview =
+            tx0Service.tx0Preview(
+                    Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
+                    tx0Config,
+                    tx0Param,
+                    tx0Data);
+    Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Preview.getPremixValue());
+  }
+
+  @Test
+  public void tx0Preview_feeTx0() throws Exception {
+    String seedWords = "all all all all all all all all all all all all";
+    String passphrase = "whirlpool";
+    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
+    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
+
+    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    UnspentResponse.UnspentOutput spendFrom =
+            newUnspentOutput(
+                    "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 500000000);
+
+    Tx0Config tx0Config = new Tx0Config().setMaxOutputs(10);
+    String feePaymentCode =
+            "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
+    int feeSatPerByte = 1;
+    byte[] feePayload = null;
+    long feeValue = 0;
+    long feeChange = FEE_VALUE;
+    int feeDiscountPercent = 100;
+
+    Tx0Data tx0Data =
+            new Tx0Data(
+                    feePaymentCode,
+                    feeValue,
+                    feeChange,
+                    feeDiscountPercent,
+                    feePayload,
+                    "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+                    0);
+    Tx0Param tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feeSatPerByte, pool01btc);
+    Assertions.assertEquals(1000201, tx0Param.getPremixValue());
+
+    int TX0_SIZE = 572;
+
+    // feeTx0
+    int feeTx0 = 1;
+    tx0Param = tx0Service.computeTx0Param(feeTx0, feeSatPerByte, pool01btc);
+    Tx0Preview tx0Preview =
+            tx0Service.tx0Preview(
+                    Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
+                    tx0Config,
+                    tx0Param,
+                    tx0Data);
+    Assertions.assertEquals(TX0_SIZE*feeTx0, tx0Preview.getMinerFee());
+
+    // feeTx0
+    feeTx0 = 5;
+    tx0Param = tx0Service.computeTx0Param(feeTx0, feeSatPerByte, pool01btc);
+    tx0Preview =
+            tx0Service.tx0Preview(
+                    Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
+                    tx0Config,
+                    tx0Param,
+                    tx0Data);
+    Assertions.assertEquals(TX0_SIZE*feeTx0, tx0Preview.getMinerFee());
+
+    // feeTx0
+    feeTx0 = 50;
+    tx0Param = tx0Service.computeTx0Param(feeTx0, feeSatPerByte, pool01btc);
+    tx0Preview =
+            tx0Service.tx0Preview(
+                    Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
+                    tx0Config,
+                    tx0Param,
+                    tx0Data);
+    Assertions.assertEquals(TX0_SIZE*feeTx0, tx0Preview.getMinerFee());
+  }
+
+  @Test
+  public void tx0Preview_feePremix() throws Exception {
+    String seedWords = "all all all all all all all all all all all all";
+    String passphrase = "whirlpool";
+    byte[] seed = hdWalletFactory.computeSeedFromWords(seedWords);
+    HD_Wallet bip84w = hdWalletFactory.getBIP84(seed, passphrase, params);
+
+    ECKey spendFromKey = bip84w.getAccountAt(0).getChain(0).getAddressAt(61).getECKey();
+    UnspentResponse.UnspentOutput spendFrom =
+            newUnspentOutput(
+                    "cc588cdcb368f894a41c372d1f905770b61ecb3fb8e5e01a97e7cedbf5e324ae", 1, 500000000);
+
+    Tx0Config tx0Config = new Tx0Config().setMaxOutputs(10);
+    String feePaymentCode =
+            "PM8TJXp19gCE6hQzqRi719FGJzF6AreRwvoQKLRnQ7dpgaakakFns22jHUqhtPQWmfevPQRCyfFbdDrKvrfw9oZv5PjaCerQMa3BKkPyUf9yN1CDR3w6";
+    int feeSatPerByte = 1;
+    byte[] feePayload = null;
+    long feeValue = 0;
+    long feeChange = FEE_VALUE;
+    int feeDiscountPercent = 100;
+
+    Tx0Data tx0Data =
+            new Tx0Data(
+                    feePaymentCode,
+                    feeValue,
+                    feeChange,
+                    feeDiscountPercent,
+                    feePayload,
+                    "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
+                    0);
+    Tx0Param tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feeSatPerByte, pool01btc);
+    Assertions.assertEquals(1000201, tx0Param.getPremixValue());
+
+    int TX0_SIZE = 572;
+
+    // feePremix
+    int feePremix = 1;
+    tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feePremix, pool01btc);
+    Tx0Preview tx0Preview =
+            tx0Service.tx0Preview(
+                    Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
+                    tx0Config,
+                    tx0Param,
+                    tx0Data);
+    Assertions.assertEquals(1000201, tx0Preview.getPremixValue());
+
+    // feePremix
+    feePremix = 5;
+    tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feePremix, pool01btc);
+    tx0Preview =
+            tx0Service.tx0Preview(
+                    Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
+                    tx0Config,
+                    tx0Param,
+                    tx0Data);
+    Assertions.assertEquals(1001008, tx0Preview.getPremixValue());
+
+    // feePremix
+    feePremix = 20;
+    tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feePremix, pool01btc);
+    tx0Preview =
+            tx0Service.tx0Preview(
+                    Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
+                    tx0Config,
+                    tx0Param,
+                    tx0Data);
+    Assertions.assertEquals(1004033, tx0Preview.getPremixValue());
+
+    // feePremix max
+    feePremix = 99999;
+    tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feePremix, pool01btc);
+    tx0Preview =
+            tx0Service.tx0Preview(
+                    Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
+                    tx0Config,
+                    tx0Param,
+                    tx0Data);
+    Assertions.assertEquals(1009500, tx0Preview.getPremixValue());
   }
 
   private void assertEquals(Tx0Preview tp, Tx0Preview tp2) {

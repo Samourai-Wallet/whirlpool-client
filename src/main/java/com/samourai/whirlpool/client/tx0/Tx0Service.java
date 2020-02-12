@@ -207,15 +207,26 @@ public class Tx0Service {
 
     // check balance min
     final long spendFromBalanceMin = computeSpendFromBalanceMin(tx0Param, 1);
-
     long spendFromBalance = computeSpendFromBalance(spendFroms);
     if (spendFromBalance < spendFromBalanceMin) {
       throw new NotifiableException(
           "Insufficient utxo value for Tx0: " + spendFromBalance + " < " + spendFromBalanceMin);
     }
 
+    // check fee (duplicate safety check)
     int feeTx0 = tx0Param.getFeeTx0();
+    if (feeTx0 < config.getFeeMin()) {
+      throw new NotifiableException("Invalid fee for Tx0: " + feeTx0 + " < " + config.getFeeMin());
+    }
+    if (feeTx0 > config.getFeeMax()) {
+      throw new NotifiableException("Invalid fee for Tx0: " + feeTx0 + " > " + config.getFeeMax());
+    }
+
+    // check premixValue (duplicate safety check)
     long premixValue = tx0Param.getPremixValue();
+    if (!tx0Param.getPool().checkInputBalance(premixValue, false)) {
+      throw new NotifiableException("Invalid premixValue for Tx0: " + premixValue);
+    }
 
     long feeValueOrFeeChange = tx0Data.computeFeeValueOrFeeChange();
     int nbPremix =
