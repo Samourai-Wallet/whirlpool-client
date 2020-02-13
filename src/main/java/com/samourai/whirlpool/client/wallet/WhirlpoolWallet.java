@@ -254,7 +254,7 @@ public class WhirlpoolWallet {
     Tx0FeeTarget tx0FeeTarget = config.getAutoTx0FeeTarget();
     Tx0Param tx0Param = getTx0Param(pool, tx0FeeTarget, null);
 
-    Tx0Config tx0Config = getTx0Config();
+    Tx0Config tx0Config = getTx0Config(pool);
     WhirlpoolUtxo spendFrom =
         findTx0SpendFrom(tx0Param, 1); // throws UnconfirmedUtxoException, EmptyWalletException
 
@@ -413,7 +413,7 @@ public class WhirlpoolWallet {
     return spendFroms;
   }
 
-  public Tx0Config getTx0Config() {
+  public Tx0Config getTx0Config(Pool pool) {
     Tx0Config tx0Config = new Tx0Config();
     tx0Config.setMaxOutputs(config.getTx0MaxOutputs());
     return tx0Config;
