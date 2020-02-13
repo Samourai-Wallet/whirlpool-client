@@ -13,6 +13,7 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import java.security.KeyFactory;
+import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
@@ -29,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 public class ClientUtils {
   private static final Logger log = LoggerFactory.getLogger(ClientUtils.class);
+  private static final SecureRandom secureRandom = new SecureRandom();
 
   private static final int SLEEP_REFRESH_UTXOS_TESTNET = 20000;
   private static final int SLEEP_REFRESH_UTXOS_MAINNET = 10000;
@@ -218,6 +220,10 @@ public class ClientUtils {
     return value.substring(0, Math.min(startEnd, value.length()))
         + "..."
         + value.substring(Math.max(0, value.length() - startEnd), value.length());
+  }
+
+  public static int random(int minInclusive, int maxInclusive) {
+    return secureRandom.nextInt(maxInclusive + 1 - minInclusive) + minInclusive;
   }
 
   public static void setLogLevel(Level mainLevel, Level subLevel) {

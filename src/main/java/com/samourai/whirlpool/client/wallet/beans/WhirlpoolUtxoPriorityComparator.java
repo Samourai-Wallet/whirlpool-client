@@ -1,6 +1,7 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import com.google.common.primitives.Ints;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Set;
@@ -66,7 +67,7 @@ public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo
       return Longs.compare(s1.getLastError(), s2.getLastError());
     }
 
-    // when same priority: most confirmations first
-    return Ints.compare(o2.getUtxo().confirmations, o1.getUtxo().confirmations);
+    // when same priority: random selection
+    return ClientUtils.random(-1, 1);
   }
 }
