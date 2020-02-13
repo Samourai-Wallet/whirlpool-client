@@ -45,18 +45,18 @@ public class WhirlpoolUtxoPriorityComparatorTest extends AbstractTest {
             .collect(Collectors.<String>toList())
             .toArray(new String[] {});
 
-    String[] expected =
-        new String[] {
-          "0.01btcPremix10conf:3",
-          "0.01btcPremix1conf:3",
-          "0.01btcPremix0conf:3",
-          "0.01btcPremix5confError:3",
-          "0.01btcPostmix10conf:3",
-          "0.01btcPostmix1conf:3",
-          "0.01btcPostmix0conf:3",
-          "0.01btcPostmix5confError:3"
-        };
-    Assertions.assertArrayEquals(expected, sortedUtxos);
+    // expected: first premix
+    for (int i = 0; i < 4; i++) {
+      Assertions.assertTrue(sortedUtxos[i].contains("Premix"));
+    }
+    Assertions.assertEquals(sortedUtxos[3], "0.01btcPremix5confError:3"); // error last
+
+    // expected: then postmix
+    for (int i = 4; i < sortedUtxos.length; i++) {
+      Assertions.assertTrue(sortedUtxos[i].contains("Postmix"));
+    }
+    Assertions.assertEquals(
+        sortedUtxos[sortedUtxos.length - 1], "0.01btcPostmix5confError:3"); // error last
   }
 
   private WhirlpoolUtxo newUtxo(

@@ -9,8 +9,6 @@ import com.samourai.whirlpool.client.wallet.WhirlpoolWalletConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolServer;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolWalletAccount;
 import com.samourai.whirlpool.client.whirlpool.beans.Tx0Data;
-import java.util.HashMap;
-import java.util.Map;
 import java8.util.Lists;
 import org.bitcoinj.core.*;
 import org.bouncycastle.util.encoders.Hex;
@@ -75,7 +73,7 @@ public class Tx0ServiceTest extends AbstractTest {
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
             0);
-    Tx0Param tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feeSatPerByte, pool01btc);
+    Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assertions.assertEquals(1000201, tx0Param.getPremixValue());
     Tx0Preview tx0Preview =
         tx0Service.tx0Preview(
@@ -124,8 +122,7 @@ public class Tx0ServiceTest extends AbstractTest {
             0);
 
     // no overspend
-    config.setOverspendPerPool(null);
-    Tx0Param tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feeSatPerByte, pool01btc);
+    Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assertions.assertEquals(1000201, tx0Param.getPremixValue());
     Tx0Preview tx0Preview =
         tx0Service.tx0Preview(
@@ -136,10 +133,7 @@ public class Tx0ServiceTest extends AbstractTest {
     Assertions.assertEquals(1000201, tx0Preview.getPremixValue());
 
     // overspend too low => min
-    Map<String, Long> overspend = new HashMap<String, Long>();
-    overspend.put(pool01btc.getPoolId(), 1L);
-    config.setOverspendPerPool(overspend);
-    tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feeSatPerByte, pool01btc);
+    tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 1L);
     Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Param.getPremixValue());
     tx0Preview =
         tx0Service.tx0Preview(
@@ -150,9 +144,7 @@ public class Tx0ServiceTest extends AbstractTest {
     Assertions.assertEquals(pool01btc.getMustMixBalanceMin(), tx0Preview.getPremixValue());
 
     // overspend too high => max
-    overspend.put(pool01btc.getPoolId(), 999999999L);
-    config.setOverspendPerPool(overspend);
-    tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feeSatPerByte, pool01btc);
+    tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, 999999999L);
     Assertions.assertEquals(pool01btc.getMustMixBalanceCap(), tx0Param.getPremixValue());
     tx0Preview =
         tx0Service.tx0Preview(
@@ -193,14 +185,14 @@ public class Tx0ServiceTest extends AbstractTest {
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
             0);
-    Tx0Param tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feeSatPerByte, pool01btc);
+    Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assertions.assertEquals(1000201, tx0Param.getPremixValue());
 
     int TX0_SIZE = 572;
 
     // feeTx0
     int feeTx0 = 1;
-    tx0Param = tx0Service.computeTx0Param(feeTx0, feeSatPerByte, pool01btc);
+    tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
     Tx0Preview tx0Preview =
         tx0Service.tx0Preview(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
@@ -211,7 +203,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     // feeTx0
     feeTx0 = 5;
-    tx0Param = tx0Service.computeTx0Param(feeTx0, feeSatPerByte, pool01btc);
+    tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
     tx0Preview =
         tx0Service.tx0Preview(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
@@ -222,7 +214,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     // feeTx0
     feeTx0 = 50;
-    tx0Param = tx0Service.computeTx0Param(feeTx0, feeSatPerByte, pool01btc);
+    tx0Param = new Tx0Param(feeTx0, feeSatPerByte, pool01btc, null);
     tx0Preview =
         tx0Service.tx0Preview(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
@@ -262,14 +254,14 @@ public class Tx0ServiceTest extends AbstractTest {
             feePayload,
             "tb1qjara0278vrsr8gvaga7jpy2c9amtgvytr44xym",
             0);
-    Tx0Param tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feeSatPerByte, pool01btc);
+    Tx0Param tx0Param = new Tx0Param(feeSatPerByte, feeSatPerByte, pool01btc, null);
     Assertions.assertEquals(1000201, tx0Param.getPremixValue());
 
     int TX0_SIZE = 572;
 
     // feePremix
     int feePremix = 1;
-    tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feePremix, pool01btc);
+    tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     Tx0Preview tx0Preview =
         tx0Service.tx0Preview(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
@@ -280,7 +272,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     // feePremix
     feePremix = 5;
-    tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feePremix, pool01btc);
+    tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview =
         tx0Service.tx0Preview(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
@@ -291,7 +283,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     // feePremix
     feePremix = 20;
-    tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feePremix, pool01btc);
+    tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview =
         tx0Service.tx0Preview(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),
@@ -302,7 +294,7 @@ public class Tx0ServiceTest extends AbstractTest {
 
     // feePremix max
     feePremix = 99999;
-    tx0Param = tx0Service.computeTx0Param(feeSatPerByte, feePremix, pool01btc);
+    tx0Param = new Tx0Param(feeSatPerByte, feePremix, pool01btc, null);
     tx0Preview =
         tx0Service.tx0Preview(
             Lists.of(new UnspentOutputWithKey(spendFrom, spendFromKey.getPrivKeyBytes())),

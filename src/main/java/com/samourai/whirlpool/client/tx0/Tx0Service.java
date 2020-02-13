@@ -42,61 +42,6 @@ public class Tx0Service {
     whirlpoolFee = WhirlpoolFee.getInstance(config.getSecretPointFactory());
   }
 
-  public Tx0Param computeTx0Param(int feeTx0, int feePremix, Pool pool) {
-    String poolId = pool.getPoolId();
-    Long overspendValueOrNull =
-        config.getOverspendPerPool() != null ? config.getOverspendPerPool().get(poolId) : null;
-
-    long premixValue = computePremixValue(pool, feePremix, overspendValueOrNull);
-    return new Tx0Param(feeTx0, feePremix, pool, premixValue);
-  }
-
-  private long computePremixValue(Pool pool, int feePremix, final Long overspendValueOrNull) {
-    long premixOverspend;
-    if (overspendValueOrNull != null && overspendValueOrNull > 0) {
-      premixOverspend = overspendValueOrNull;
-    } else {
-      // compute premixOverspend
-      long mixFeesEstimate =
-          feeUtil.estimatedFeeSegwit(
-              0, 0, pool.getMixAnonymitySet(), pool.getMixAnonymitySet(), 0, feePremix);
-      premixOverspend = mixFeesEstimate / pool.getMinMustMix();
-      if (log.isDebugEnabled()) {
-        log.debug(
-            "mixFeesEstimate="
-                + mixFeesEstimate
-                + " => premixOverspend="
-                + overspendValueOrNull
-                + " for poolId="
-                + pool.getPoolId());
-      }
-    }
-    long premixValue = pool.getDenomination() + premixOverspend;
-
-    // make sure destinationValue is acceptable for pool
-    long premixBalanceMin = pool.computePremixBalanceMin(false);
-    long premixBalanceCap = pool.computePremixBalanceCap(false);
-    long premixBalanceMax = pool.computePremixBalanceMax(false);
-
-    long premixValueFinal = premixValue;
-    premixValueFinal = Math.min(premixValueFinal, premixBalanceMax);
-    premixValueFinal = Math.min(premixValueFinal, premixBalanceCap);
-    premixValueFinal = Math.max(premixValueFinal, premixBalanceMin);
-
-    if (log.isDebugEnabled()) {
-      log.debug(
-          "premixValueFinal="
-              + premixValueFinal
-              + ", premixValue="
-              + premixValue
-              + ", premixOverspend="
-              + premixOverspend
-              + " for poolId="
-              + pool.getPoolId());
-    }
-    return premixValueFinal;
-  }
-
   private int computeNbPremixMax(
       long premixValue,
       Collection<? extends UnspentResponse.UnspentOutput> spendFrom,
@@ -628,8 +573,7 @@ public class Tx0Service {
       long utxoValue) {
     List<Pool> eligiblePools = new LinkedList<Pool>();
     for (Pool pool : poolsByPreference) {
-      Tx0Param tx0Param =
-          computeTx0Param(tx0ParamSimple.getFeeTx0(), tx0ParamSimple.getFeePremix(), pool);
+      Tx0Param tx0Param = tx0ParamSimple.computeTx0Param(pool);
       boolean eligible = isTx0Possible(utxoValue, tx0Param, nbOutputsMin);
       if (eligible) {
         eligiblePools.add(pool);
