@@ -31,7 +31,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private BackendApi backendApi;
   private int tx0Delay;
   private int tx0MinConfirmations;
-  private Integer tx0MaxOutputs;
   private int refreshUtxoDelay;
   private int refreshFeeDelay;
   private int refreshPoolsDelay;
@@ -69,7 +68,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.backendApi = backendApi;
     this.tx0Delay = 30;
     this.tx0MinConfirmations = 0;
-    this.tx0MaxOutputs = null; // spend whole utxo when possible
     this.refreshUtxoDelay = 60; // 1min
     this.refreshFeeDelay = 300; // 5min
     this.refreshPoolsDelay = 300; // 5min
@@ -156,14 +154,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
 
   public void setTx0MinConfirmations(int tx0MinConfirmations) {
     this.tx0MinConfirmations = tx0MinConfirmations;
-  }
-
-  public Integer getTx0MaxOutputs() {
-    return tx0MaxOutputs;
-  }
-
-  public void setTx0MaxOutputs(Integer tx0MaxOutputs) {
-    this.tx0MaxOutputs = tx0MaxOutputs;
   }
 
   public int getRefreshUtxoDelay() {
@@ -294,8 +284,6 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
             + getClientDelay()
             + ", tx0Delay="
             + getTx0Delay()
-            + ", tx0MaxOutputs="
-            + getTx0MaxOutputs()
             + ", autoTx0="
             + (isAutoTx0() ? getAutoTx0PoolId() : "false")
             + ", autoTx0FeeTarget="

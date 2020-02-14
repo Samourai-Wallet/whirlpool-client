@@ -8,7 +8,7 @@ public class Tx0Config {
   private Long overspend;
 
   public Tx0Config() {
-    this.maxOutputs = null;
+    this.maxOutputs = null; // spend whole utxo when possible
     this.changeWallet = WhirlpoolWalletAccount.DEPOSIT;
     this.overspend = null;
   }

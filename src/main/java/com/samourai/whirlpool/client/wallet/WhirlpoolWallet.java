@@ -415,7 +415,6 @@ public class WhirlpoolWallet {
 
   public Tx0Config getTx0Config(Pool pool) {
     Tx0Config tx0Config = new Tx0Config();
-    tx0Config.setMaxOutputs(config.getTx0MaxOutputs());
     return tx0Config;
   }
 
