@@ -1,10 +1,7 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
 import com.google.common.primitives.Ints;
-import com.samourai.whirlpool.client.utils.ClientUtils;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java8.lang.Longs;
 
 public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo> {
@@ -15,6 +12,14 @@ public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo
       Set<String> mixingHashs, Map<String, Integer> mixingPerPool) {
     this.mixingHashs = mixingHashs;
     this.mixingPerPool = mixingPerPool;
+  }
+
+  public void sortShuffled(List<WhirlpoolUtxo> whirlpoolUtxos) {
+    // shuffle
+    Collections.shuffle(whirlpoolUtxos);
+
+    // sort by priority, but keep utxos shuffled when same-priority
+    Collections.sort(whirlpoolUtxos, this);
   }
 
   private int getMixingPerPool(String poolId) {
@@ -67,7 +72,7 @@ public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo
       return Longs.compare(s1.getLastError(), s2.getLastError());
     }
 
-    // when same priority: random selection
-    return ClientUtils.random(-1, 1);
+    // same priority
+    return 0;
   }
 }

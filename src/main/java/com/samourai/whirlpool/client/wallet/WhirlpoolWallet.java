@@ -31,8 +31,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java8.util.Lists;
 import java8.util.Optional;
-import java8.util.stream.Collectors;
-import java8.util.stream.StreamSupport;
 import org.bitcoinj.core.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -168,10 +166,9 @@ public class WhirlpoolWallet {
   private WhirlpoolUtxo findTx0SpendFrom(Tx0Param tx0Param, int nbOutputsMin)
       throws Exception { // throws EmptyWalletException, UnconfirmedUtxoException
 
-    Collection<WhirlpoolUtxo> depositUtxosByPriority =
-        StreamSupport.stream(getUtxosDeposit(true))
-            .sorted(getUtxoComparator())
-            .collect(Collectors.<WhirlpoolUtxo>toList());
+    List<WhirlpoolUtxo> depositUtxosByPriority =
+        new LinkedList<WhirlpoolUtxo>(getUtxosDeposit(true));
+    getUtxoComparator().sortShuffled(depositUtxosByPriority);
 
     return findTx0SpendFrom(
         tx0Param,
@@ -179,7 +176,7 @@ public class WhirlpoolWallet {
         depositUtxosByPriority); // throws EmptyWalletException, UnconfirmedUtxoException
   }
 
-  public WhirlpoolUtxoPriorityComparator getUtxoComparator() {
+  private WhirlpoolUtxoPriorityComparator getUtxoComparator() {
     return mixOrchestrator.computeWhirlpoolUtxoPriorityComparator();
   }
 

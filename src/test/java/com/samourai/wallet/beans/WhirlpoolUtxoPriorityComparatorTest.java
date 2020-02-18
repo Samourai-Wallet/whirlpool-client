@@ -9,8 +9,12 @@ import java8.util.stream.Collectors;
 import java8.util.stream.StreamSupport;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WhirlpoolUtxoPriorityComparatorTest extends AbstractTest {
+  private static final Logger log =
+      LoggerFactory.getLogger(WhirlpoolUtxoPriorityComparatorTest.class);
   private List<WhirlpoolUtxo> utxos = new LinkedList<WhirlpoolUtxo>();
 
   public WhirlpoolUtxoPriorityComparatorTest() {
@@ -30,33 +34,75 @@ public class WhirlpoolUtxoPriorityComparatorTest extends AbstractTest {
     WhirlpoolUtxoPriorityComparator c =
         new WhirlpoolUtxoPriorityComparator(
             new HashSet<String>(), new LinkedHashMap<String, Integer>());
-    String[] sortedUtxos =
-        StreamSupport.stream(utxos)
-            .sorted(c)
-            .map(
-                new Function<WhirlpoolUtxo, String>() {
-                  @Override
-                  public String apply(WhirlpoolUtxo whirlpoolUtxo) {
-                    return whirlpoolUtxo.getUtxo().tx_hash
-                        + ":"
-                        + whirlpoolUtxo.getUtxo().tx_output_n;
-                  }
-                })
-            .collect(Collectors.<String>toList())
-            .toArray(new String[] {});
 
+    List<WhirlpoolUtxo> sortedUtxos = new LinkedList<WhirlpoolUtxo>(utxos);
+    Collections.sort(sortedUtxos, c);
+    String[] utxoStrings = toUtxoStrings(sortedUtxos);
+
+    String[] expected =
+        new String[] {
+          "0.01btcPremix0conf:3",
+          "0.01btcPremix10conf:3",
+          "0.01btcPremix1conf:3",
+          "0.01btcPremix5confError:3",
+          "0.01btcPostmix0conf:3",
+          "0.01btcPostmix10conf:3",
+          "0.01btcPostmix1conf:3",
+          "0.01btcPostmix5confError:3"
+        };
+    Assertions.assertArrayEquals(expected, utxoStrings);
+  }
+
+  @Test
+  public void sortShuffled() {
+
+    String[] utxoStrings1 = doSortShuffled();
+    log.info("utxoStrings1=" + Arrays.toString(utxoStrings1));
+    verifySortShuffled(utxoStrings1);
+
+    String[] utxoStrings2 = doSortShuffled();
+    log.info("utxoStrings2=" + Arrays.toString(utxoStrings2));
+    verifySortShuffled(utxoStrings2);
+
+    Assertions.assertFalse(Arrays.equals(utxoStrings1, utxoStrings2));
+  }
+
+  private String[] doSortShuffled() {
+    WhirlpoolUtxoPriorityComparator c =
+        new WhirlpoolUtxoPriorityComparator(
+            new HashSet<String>(), new LinkedHashMap<String, Integer>());
+
+    List<WhirlpoolUtxo> sortedUtxos = new LinkedList<WhirlpoolUtxo>(utxos);
+    c.sortShuffled(sortedUtxos);
+    return toUtxoStrings(sortedUtxos);
+  }
+
+  private void verifySortShuffled(String[] utxoStrings) {
     // expected: first premix
     for (int i = 0; i < 4; i++) {
-      Assertions.assertTrue(sortedUtxos[i].contains("Premix"));
+      Assertions.assertTrue(utxoStrings[i].contains("Premix"));
     }
-    Assertions.assertEquals(sortedUtxos[3], "0.01btcPremix5confError:3"); // error last
+    Assertions.assertEquals(utxoStrings[3], "0.01btcPremix5confError:3"); // error last
 
     // expected: then postmix
-    for (int i = 4; i < sortedUtxos.length; i++) {
-      Assertions.assertTrue(sortedUtxos[i].contains("Postmix"));
+    for (int i = 4; i < utxoStrings.length; i++) {
+      Assertions.assertTrue(utxoStrings[i].contains("Postmix"));
     }
     Assertions.assertEquals(
-        sortedUtxos[sortedUtxos.length - 1], "0.01btcPostmix5confError:3"); // error last
+        utxoStrings[utxoStrings.length - 1], "0.01btcPostmix5confError:3"); // error last
+  }
+
+  private String[] toUtxoStrings(Collection<WhirlpoolUtxo> utxos) {
+    return StreamSupport.stream(utxos)
+        .map(
+            new Function<WhirlpoolUtxo, String>() {
+              @Override
+              public String apply(WhirlpoolUtxo whirlpoolUtxo) {
+                return whirlpoolUtxo.getUtxo().tx_hash + ":" + whirlpoolUtxo.getUtxo().tx_output_n;
+              }
+            })
+        .collect(Collectors.<String>toList())
+        .toArray(new String[] {});
   }
 
   private WhirlpoolUtxo newUtxo(
