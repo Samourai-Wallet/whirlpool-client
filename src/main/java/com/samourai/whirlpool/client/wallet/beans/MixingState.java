@@ -3,20 +3,26 @@ package com.samourai.whirlpool.client.wallet.beans;
 import io.reactivex.Observable;
 import io.reactivex.subjects.BehaviorSubject;
 import io.reactivex.subjects.Subject;
+import java.util.ArrayList;
 import java.util.Collection;
+import java8.util.function.Predicate;
+import java8.util.stream.StreamSupport;
 
 public class MixingState {
   private boolean started;
   private Collection<WhirlpoolUtxo> utxosMixing;
   private int nbMixing;
+  private int nbMixingMustMix;
+  private int nbMixingLiquidity;
   private int nbQueued;
+  private int nbQueuedMustMix;
+  private int nbQueuedLiquidity;
   private Subject<MixingState> observable;
 
-  public MixingState(boolean started, Collection<WhirlpoolUtxo> utxosMixing, int nbQueued) {
+  public MixingState(boolean started) {
     this.started = started;
-    this.utxosMixing = utxosMixing;
-    this.nbMixing = utxosMixing.size();
-    this.nbQueued = nbQueued;
+    doSetUtxosMixing(new ArrayList<WhirlpoolUtxo>());
+    doSetUtxosQueued(new ArrayList<WhirlpoolUtxo>());
     this.observable = BehaviorSubject.create();
   }
 
@@ -29,21 +35,62 @@ public class MixingState {
     return started;
   }
 
-  protected synchronized void set(Collection<WhirlpoolUtxo> utxosMixing, int nbQueued) {
+  private void doSetUtxosMixing(Collection<WhirlpoolUtxo> utxosMixing) {
     this.utxosMixing = utxosMixing;
     this.nbMixing = utxosMixing.size();
-    this.nbQueued = nbQueued;
+    this.nbMixingLiquidity =
+        (int)
+            StreamSupport.stream(utxosMixing)
+                .filter(
+                    new Predicate<WhirlpoolUtxo>() {
+                      @Override
+                      public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
+                        return WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount());
+                      }
+                    })
+                .count();
+    this.nbMixingMustMix = this.nbMixing - this.nbMixingLiquidity;
+  }
+
+  private void doSetUtxosQueued(Collection<WhirlpoolUtxo> utxosQueued) {
+    this.nbQueued = utxosQueued.size();
+    this.nbQueuedLiquidity =
+        (int)
+            StreamSupport.stream(utxosQueued)
+                .filter(
+                    new Predicate<WhirlpoolUtxo>() {
+                      @Override
+                      public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
+                        return WhirlpoolAccount.POSTMIX.equals(whirlpoolUtxo.getAccount());
+                      }
+                    })
+                .count();
+    this.nbQueuedMustMix = this.nbQueued - this.nbQueuedLiquidity;
+  }
+
+  protected void incrementUtxoQueued(WhirlpoolUtxo utxoQueued) {
+    if (WhirlpoolAccount.POSTMIX.equals(utxoQueued.getAccount())) {
+      nbQueuedLiquidity++;
+    } else {
+      nbQueuedMustMix++;
+    }
+    nbQueued++;
+  }
+
+  protected synchronized void set(
+      Collection<WhirlpoolUtxo> utxosMixing, Collection<WhirlpoolUtxo> utxosQueued) {
+    doSetUtxosMixing(utxosMixing);
+    doSetUtxosQueued(utxosQueued);
     emit();
   }
 
   protected synchronized void setUtxosMixing(Collection<WhirlpoolUtxo> utxosMixing) {
-    this.utxosMixing = utxosMixing;
-    this.nbMixing = utxosMixing.size();
+    doSetUtxosMixing(utxosMixing);
     emit();
   }
 
-  protected synchronized void setNbQueued(int nbQueued) {
-    this.nbQueued = nbQueued;
+  protected synchronized void setUtxosQueued(Collection<WhirlpoolUtxo> utxosQueued) {
+    doSetUtxosQueued(utxosQueued);
     emit();
   }
 
@@ -65,8 +112,24 @@ public class MixingState {
     return nbMixing;
   }
 
+  public int getNbMixingMustMix() {
+    return nbMixingMustMix;
+  }
+
+  public int getNbMixingLiquidity() {
+    return nbMixingLiquidity;
+  }
+
   public int getNbQueued() {
     return nbQueued;
+  }
+
+  public int getNbQueuedMustMix() {
+    return nbQueuedMustMix;
+  }
+
+  public int getNbQueuedLiquidity() {
+    return nbQueuedLiquidity;
   }
 
   public Observable<MixingState> getObservable() {

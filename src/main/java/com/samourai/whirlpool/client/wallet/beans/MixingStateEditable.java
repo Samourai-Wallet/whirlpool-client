@@ -4,8 +4,8 @@ import java.util.Collection;
 
 public class MixingStateEditable extends MixingState {
 
-  public MixingStateEditable(boolean started, Collection<WhirlpoolUtxo> utxosMixing, int nbQueued) {
-    super(started, utxosMixing, nbQueued);
+  public MixingStateEditable(boolean started) {
+    super(started);
   }
 
   @Override
@@ -14,8 +14,9 @@ public class MixingStateEditable extends MixingState {
   }
 
   @Override
-  public synchronized void set(Collection<WhirlpoolUtxo> utxosMixing, int nbQueued) {
-    super.set(utxosMixing, nbQueued);
+  public synchronized void set(
+      Collection<WhirlpoolUtxo> utxosMixing, Collection<WhirlpoolUtxo> utxosQueued) {
+    super.set(utxosMixing, utxosQueued);
   }
 
   @Override
@@ -24,11 +25,11 @@ public class MixingStateEditable extends MixingState {
   }
 
   @Override
-  public synchronized void setNbQueued(int nbQueued) {
-    super.setNbQueued(nbQueued);
+  public synchronized void setUtxosQueued(Collection<WhirlpoolUtxo> utxosQueued) {
+    super.setUtxosQueued(utxosQueued);
   }
 
-  public synchronized void incrementNbQueued() {
-    super.setNbQueued(getNbQueued() + 1);
+  public synchronized void incrementUtxoQueued(WhirlpoolUtxo utxoQueued) {
+    super.incrementUtxoQueued(utxoQueued);
   }
 }

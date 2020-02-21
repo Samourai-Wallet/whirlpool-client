@@ -367,7 +367,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
       if (log.isDebugEnabled()) {
         log.debug(" + mixQueue: " + whirlpoolUtxo.toString());
       }
-      mixingState.incrementNbQueued();
+      mixingState.incrementUtxoQueued(whirlpoolUtxo);
       notifyOrchestrator();
     } else {
       log.warn("mixQueue ignored: utxo already queued or mixing");
@@ -389,7 +389,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
       mixStop(myMixing, cancel);
     } else if (wasQueued) {
       // recount QUEUE if it was queued
-      mixingState.setNbQueued((int) getQueue().count());
+      mixingState.setUtxosQueued(getQueue().collect(Collectors.<WhirlpoolUtxo>toList()));
     }
   }
 
@@ -535,7 +535,9 @@ public class MixOrchestrator extends AbstractOrchestrator {
     mixing.put(key, mixingToAdd);
     mixingHashs.add(whirlpoolUtxo.getUtxo().tx_hash);
     mixingPerPool = computeMixingPerPool();
-    mixingState.set(computeUtxosMixing(), (int) getQueue().count()); // recount nbQueued too
+    mixingState.set(
+        computeUtxosMixing(),
+        getQueue().collect(Collectors.<WhirlpoolUtxo>toList())); // recount nbQueued too
   }
 
   public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo, boolean isFirstFetch) {
