@@ -32,7 +32,7 @@ public abstract class AbstractOrchestrator {
     this.lastRun = 0;
   }
 
-  public synchronized void start() {
+  public synchronized void start(boolean daemon) {
     if (isStarted()) {
       log.error("Cannot start: already started");
       return;
@@ -74,6 +74,7 @@ public abstract class AbstractOrchestrator {
               }
             },
             getClass().getSimpleName());
+    this.myThread.setDaemon(daemon);
     this.myThread.start();
   }
 

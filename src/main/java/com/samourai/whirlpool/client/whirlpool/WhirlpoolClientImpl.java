@@ -64,6 +64,7 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
               }
             },
             "whirlpoolClient-" + logPrefix);
+    this.mixThread.setDaemon(true);
     this.mixThread.start();
   }
 

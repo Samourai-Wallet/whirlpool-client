@@ -91,7 +91,7 @@ public class WhirlpoolWallet {
     this.postmixWallet = postmixWallet;
     this.badbankWallet = badbankWallet;
 
-    this.mixingState = new MixingStateEditable(false, new LinkedList<WhirlpoolUtxo>(), 0);
+    this.mixingState = new MixingStateEditable(false);
 
     this.persistOrchestrator =
         new PersistOrchestrator(
@@ -433,13 +433,13 @@ public class WhirlpoolWallet {
       log.error("", e);
     }
 
-    persistOrchestrator.start();
-    this.mixOrchestrator.start();
+    persistOrchestrator.start(true);
+    this.mixOrchestrator.start(true);
     if (this.autoTx0Orchestrator.isPresent()) {
-      this.autoTx0Orchestrator.get().start();
+      this.autoTx0Orchestrator.get().start(true);
     }
     if (this.autoMixOrchestrator.isPresent()) {
-      this.autoMixOrchestrator.get().start();
+      this.autoMixOrchestrator.get().start(true);
     }
 
     mixingState.setStarted(true);
