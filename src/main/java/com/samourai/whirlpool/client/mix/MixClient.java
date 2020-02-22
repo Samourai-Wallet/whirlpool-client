@@ -205,18 +205,19 @@ public class MixClient {
         // confirm receive address even when REGISTER_OUTPUT fails, to avoid 'ouput already
         // registered'
         mixParams.getPostmixHandler().confirmReceiveAddress();
-        Observable<Optional<Object>> observable =
+        Observable<Optional<String>> observable =
             config
                 .getHttpClient()
-                .postJsonOverTor(registerOutputUrl, null, null, registerOutputRequest);
-        Completable completable = Completable.fromObservable(observable);
-        completable.doOnComplete(
-            new Action() {
-              @Override
-              public void run() throws Exception {
-                listenerProgress(MixStep.REGISTERED_OUTPUT);
-              }
-            });
+                .postJsonOverTor(registerOutputUrl, String.class, null, registerOutputRequest);
+        Observable chainedObservable =
+            observable.doOnComplete(
+                new Action() {
+                  @Override
+                  public void run() throws Exception {
+                    listenerProgress(MixStep.REGISTERED_OUTPUT);
+                  }
+                });
+        Completable completable = Completable.fromObservable(chainedObservable);
         return completable;
       }
 

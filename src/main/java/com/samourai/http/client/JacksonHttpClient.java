@@ -76,6 +76,9 @@ public abstract class JacksonHttpClient implements IHttpClient {
               return result;
             } catch (Exception e) {
               onRequestError(e, false);
+              if (log.isDebugEnabled()) {
+                log.error("postJson failed: " + urlStr, e);
+              }
               throw e;
             }
           }
@@ -102,6 +105,9 @@ public abstract class JacksonHttpClient implements IHttpClient {
               return result;
             } catch (Exception e) {
               onRequestError(e, true);
+              if (log.isDebugEnabled()) {
+                log.error("postJsonOverTor failed: " + urlStr, e);
+              }
               throw e;
             }
           }
@@ -133,11 +139,21 @@ public abstract class JacksonHttpClient implements IHttpClient {
   }
 
   private <T> T parseJson(String responseContent, Class<T> responseType) throws Exception {
-    T result = null;
+    T result;
     if (log.isTraceEnabled()) {
-      log.trace("response: " + responseContent);
+      String responseStr =
+          (responseContent != null
+              ? responseContent.substring(0, Math.min(responseContent.length(), 50))
+              : "null");
+      log.trace(
+          "response["
+              + (responseType != null ? responseType.getCanonicalName() : "null")
+              + "]: "
+              + responseStr);
     }
-    if (responseType != null) {
+    if (String.class.equals(responseType)) {
+      result = (T) responseContent;
+    } else {
       result = objectMapper.readValue(responseContent, responseType);
     }
     return result;

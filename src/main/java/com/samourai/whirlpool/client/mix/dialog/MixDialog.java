@@ -234,7 +234,11 @@ public class MixDialog {
                 public void onSubscribe(Disposable disposable) {}
 
                 @Override
-                public void onComplete() {}
+                public void onComplete() {
+                  if (log.isDebugEnabled()) {
+                    log.debug("postRegisterOutput onComplete!");
+                  }
+                }
 
                 @Override
                 public void onError(Throwable throwable) {
