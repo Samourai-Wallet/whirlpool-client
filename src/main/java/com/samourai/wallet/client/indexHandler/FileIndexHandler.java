@@ -2,6 +2,7 @@ package com.samourai.wallet.client.indexHandler;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import java.io.File;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,7 +34,7 @@ public class FileIndexHandler {
     return value;
   }
 
-  public void set(String key, int value) {
+  public synchronized void set(String key, int value) {
     indexes.put(key, value);
     write();
   }
@@ -53,9 +54,9 @@ public class FileIndexHandler {
     }
   }
 
-  private void write() {
+  private synchronized void write() {
     try {
-      mapper.writeValue(file, indexes);
+      ClientUtils.safeWriteValue(mapper, indexes, file);
     } catch (Exception e) {
       log.error("Unable to write file " + file.getAbsolutePath());
     }

@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.wallet.persist;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 import io.reactivex.functions.Consumer;
@@ -175,7 +176,7 @@ public class FileWhirlpoolUtxoConfigHandler {
                     }));
 
     // write
-    mapper.writeValue(file, mapPersisted);
+    ClientUtils.safeWriteValue(mapper, mapPersisted, file);
     lastWrite = System.currentTimeMillis();
   }
 

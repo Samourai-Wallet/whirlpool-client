@@ -12,6 +12,7 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
+import java.io.File;
 import java.security.KeyFactory;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
@@ -224,6 +225,25 @@ public class ClientUtils {
 
   public static int random(int minInclusive, int maxInclusive) {
     return secureRandom.nextInt(maxInclusive + 1 - minInclusive) + minInclusive;
+  }
+
+  public static void safeWriteValue(ObjectMapper mapper, Object value, File file) throws Exception {
+    File tempFile = null;
+    try {
+      // write to temp file
+      tempFile = File.createTempFile(file.getName(), "");
+      mapper.writeValue(tempFile, value);
+
+      // then rename
+      tempFile.renameTo(file);
+    } catch (Exception e) {
+      log.error(
+          "safeWriteValue failed for "
+              + (tempFile != null ? tempFile.getAbsolutePath() : "null")
+              + " ->"
+              + file.getAbsolutePath());
+      throw e;
+    }
   }
 
   public static void setLogLevel(Level mainLevel, Level subLevel) {
