@@ -7,6 +7,7 @@ import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.wallet.util.FormatsUtilGeneric;
+import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
@@ -251,9 +252,20 @@ public class ClientUtils {
   }
 
   public static FileLock lockFile(File f) throws Exception {
+    return lockFile(
+        f,
+        "Cannot lock file "
+            + f.getAbsolutePath()
+            + ". Make sure no other Whirlpool instance is running in same directory.");
+  }
+
+  public static FileLock lockFile(File f, String errorMsg) throws Exception {
     FileChannel channel = new RandomAccessFile(f, "rw").getChannel();
     FileLock fileLock = channel.tryLock(); // exclusive lock
-    return fileLock;
+    if (fileLock == null) {
+      throw new NotifiableException(errorMsg);
+    }
+    return fileLock; // success
   }
 
   public static void unlockFile(FileLock fileLock) throws Exception {
