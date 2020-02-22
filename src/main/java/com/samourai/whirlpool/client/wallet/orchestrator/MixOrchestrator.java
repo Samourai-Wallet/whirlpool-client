@@ -444,7 +444,7 @@ public class MixOrchestrator extends AbstractOrchestrator {
 
   private WhirlpoolClientListener computeListener(
       final WhirlpoolUtxo whirlpoolUtxo, final Subject<MixProgress> mixStateObservable) {
-    return new LoggingWhirlpoolClientListener() {
+    return new LoggingWhirlpoolClientListener(whirlpoolUtxo.getUtxoConfig().getPoolId()) {
       @Override
       public void success(MixSuccess mixSuccess) {
         super.success(mixSuccess);

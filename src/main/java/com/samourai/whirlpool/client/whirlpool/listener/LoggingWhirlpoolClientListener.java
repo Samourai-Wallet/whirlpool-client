@@ -9,13 +9,15 @@ import org.slf4j.LoggerFactory;
 
 public class LoggingWhirlpoolClientListener extends AbstractWhirlpoolClientListener {
   private Logger log = LoggerFactory.getLogger(LoggingWhirlpoolClientListener.class);
+  private String poolId;
 
-  public LoggingWhirlpoolClientListener(WhirlpoolClientListener notifyListener) {
+  public LoggingWhirlpoolClientListener(String poolId, WhirlpoolClientListener notifyListener) {
     super(notifyListener);
+    this.poolId = poolId;
   }
 
-  public LoggingWhirlpoolClientListener() {
-    super();
+  public LoggingWhirlpoolClientListener(String poolId) {
+    this(poolId, null);
   }
 
   public void setLogPrefix(String logPrefix) {
@@ -23,7 +25,7 @@ public class LoggingWhirlpoolClientListener extends AbstractWhirlpoolClientListe
   }
 
   private String format(String log) {
-    return " - [MIX] " + log;
+    return " - [MIX] " + (poolId != null ? poolId + " " : "") + log;
   }
 
   @Override
