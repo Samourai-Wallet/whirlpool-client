@@ -13,6 +13,9 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
 import java.io.File;
+import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.security.KeyFactory;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
@@ -20,11 +23,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
-import org.bitcoinj.core.NetworkParameters;
-import org.bitcoinj.core.Sha256Hash;
-import org.bitcoinj.core.Transaction;
-import org.bitcoinj.core.TransactionOutput;
-import org.bitcoinj.core.TransactionWitness;
+import org.bitcoinj.core.*;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -228,22 +227,38 @@ public class ClientUtils {
   }
 
   public static void safeWriteValue(ObjectMapper mapper, Object value, File file) throws Exception {
-    File tempFile = null;
+    FileLock fileLock = lockFile(file);
     try {
-      // write to temp file
-      tempFile = File.createTempFile(file.getName(), "");
-      mapper.writeValue(tempFile, value);
+      File tempFile = null;
+      try {
+        // write to temp file
+        tempFile = File.createTempFile(file.getName(), "");
+        mapper.writeValue(tempFile, value);
 
-      // then rename
-      tempFile.renameTo(file);
-    } catch (Exception e) {
-      log.error(
-          "safeWriteValue failed for "
-              + (tempFile != null ? tempFile.getAbsolutePath() : "null")
-              + " ->"
-              + file.getAbsolutePath());
-      throw e;
+        // then rename
+        tempFile.renameTo(file);
+      } catch (Exception e) {
+        log.error(
+            "safeWriteValue failed for "
+                + (tempFile != null ? tempFile.getAbsolutePath() : "null")
+                + " ->"
+                + file.getAbsolutePath());
+        throw e;
+      }
+    } finally {
+      unlockFile(fileLock);
     }
+  }
+
+  public static FileLock lockFile(File f) throws Exception {
+    FileChannel channel = new RandomAccessFile(f, "rw").getChannel();
+    FileLock fileLock = channel.tryLock(); // exclusive lock
+    return fileLock;
+  }
+
+  public static void unlockFile(FileLock fileLock) throws Exception {
+    fileLock.release();
+    fileLock.channel().close();
   }
 
   public static void setLogLevel(Level mainLevel, Level subLevel) {
