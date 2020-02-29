@@ -14,7 +14,7 @@
         <dependency>
             <groupId>com.github.Samourai-Wallet</groupId>
             <artifactId>whirlpool-protocol</artifactId>
-            <version>develop-SNAPSHOT</version>
+            <version>0.23.2</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.github.Samourai-Wallet</groupId>
