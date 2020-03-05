@@ -278,6 +278,7 @@ public class ClientUtils {
 
     LogbackUtils.setLogLevel("com.samourai.whirlpool.client", subLevel.toString());
     LogbackUtils.setLogLevel("com.samourai.stomp.client", subLevel.toString());
+    LogbackUtils.setLogLevel("com.samourai.wallet.util.FeeUtil", subLevel.toString());
 
     LogbackUtils.setLogLevel("com.samourai.whirlpool.client.wallet", mainLevel.toString());
     LogbackUtils.setLogLevel(

@@ -56,7 +56,8 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     } catch (EmptyWalletException e) {
       // make sure that mixOrchestrator has no more to mix
       boolean hasMoreThreadForTx0 = whirlpoolWallet.hasMoreMixingThreadAvailable(autoTx0PoolId);
-      if (hasMoreThreadForTx0 && !whirlpoolWallet.hasMoreMixableOrUnconfirmed()) {
+      boolean hasMorMixableOrUnconfirmed = whirlpoolWallet.hasMoreMixableOrUnconfirmed();
+      if (hasMoreThreadForTx0 && !hasMorMixableOrUnconfirmed) {
         // wallet is empty
         log.warn(" • AutoTx0: no Tx0 candidate and we have no more to mix.");
         if (log.isDebugEnabled()) {
@@ -64,7 +65,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
               "hasMoreThreadForTx0="
                   + hasMoreThreadForTx0
                   + ", hasMoreMixableOrUnconfirmed="
-                  + whirlpoolWallet.hasMoreMixableOrUnconfirmed()
+                  + hasMorMixableOrUnconfirmed
                   + " => empty wallet management");
         }
 
@@ -80,7 +81,7 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
               " • AutoTx0: no Tx0 candidate yet, but we may have more to mix. hasMoreThreadForTx0="
                   + hasMoreThreadForTx0
                   + ", hasMoreMixableOrUnconfirmed="
-                  + whirlpoolWallet.hasMoreMixableOrUnconfirmed()
+                  + hasMorMixableOrUnconfirmed
                   + " => no empty wallet management");
         }
       }

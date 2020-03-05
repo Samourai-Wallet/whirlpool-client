@@ -166,11 +166,11 @@ public class JavaExample {
 
       // configure tx0
       Tx0Config tx0Config =
-          whirlpoolWallet.getTx0Config().setChangeWallet(WhirlpoolWalletAccount.BADBANK);
+          whirlpoolWallet.getTx0Config(pool05btc).setChangeWallet(WhirlpoolWalletAccount.BADBANK);
       Tx0FeeTarget minerFeeTarget = Tx0FeeTarget.BLOCKS_4;
 
       // choose pool
-      whirlpoolWallet.setPool(whirlpoolUtxo, "0.01btc");
+      whirlpoolWallet.setPool(whirlpoolUtxo, pool05btc.getPoolId());
 
       // preview tx0
       try {
@@ -202,11 +202,11 @@ public class JavaExample {
 
       // configure tx0
       Tx0Config tx0Config =
-          whirlpoolWallet.getTx0Config().setChangeWallet(WhirlpoolWalletAccount.BADBANK);
+          whirlpoolWallet.getTx0Config(pool05btc).setChangeWallet(WhirlpoolWalletAccount.BADBANK);
       Tx0FeeTarget minerFeeTarget = Tx0FeeTarget.BLOCKS_4;
 
       // pool for tx0
-      Pool pool = whirlpoolWallet.findPoolById("0.01btc"); // provide poolId
+      Pool pool = whirlpoolWallet.findPoolById(pool05btc.getPoolId()); // provide poolId
 
       // preview tx0
       try {

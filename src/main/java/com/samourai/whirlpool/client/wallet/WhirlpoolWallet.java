@@ -1,43 +1,32 @@
 package com.samourai.whirlpool.client.wallet;
 
 import com.samourai.wallet.api.backend.MinerFeeTarget;
-import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.client.Bip84ApiWallet;
-import com.samourai.wallet.hd.HD_Address;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
-import com.samourai.whirlpool.client.mix.MixParams;
-import com.samourai.whirlpool.client.mix.handler.*;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.mix.listener.MixSuccess;
 import com.samourai.whirlpool.client.tx0.*;
 import com.samourai.whirlpool.client.utils.ClientUtils;
 import com.samourai.whirlpool.client.wallet.beans.*;
-import com.samourai.whirlpool.client.wallet.orchestrator.AutoMixOrchestrator;
 import com.samourai.whirlpool.client.wallet.orchestrator.AutoTx0Orchestrator;
-import com.samourai.whirlpool.client.wallet.orchestrator.MixOrchestrator;
 import com.samourai.whirlpool.client.wallet.orchestrator.PersistOrchestrator;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.beans.Pools;
 import com.samourai.whirlpool.protocol.beans.Utxo;
 import io.reactivex.Observable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java8.util.Lists;
 import java8.util.Optional;
-import org.bitcoinj.core.ECKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class WhirlpoolWallet {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWallet.class);
-  public static final int MIX_MIN_CONFIRMATIONS = 1;
 
   private WhirlpoolWalletConfig config;
   private WhirlpoolDataService dataService;
@@ -52,9 +41,8 @@ public class WhirlpoolWallet {
   private Bip84ApiWallet badbankWallet;
 
   private PersistOrchestrator persistOrchestrator;
-  protected MixOrchestrator mixOrchestrator;
+  protected MixOrchestratorImpl mixOrchestrator;
   private Optional<AutoTx0Orchestrator> autoTx0Orchestrator;
-  private Optional<AutoMixOrchestrator> autoMixOrchestrator;
 
   private MixingStateEditable mixingState;
 
@@ -97,14 +85,7 @@ public class WhirlpoolWallet {
         new PersistOrchestrator(
             config.getPersistDelay() * 1000, this, config.getPersistCleanDelay() * 1000);
     int loopDelay = config.getRefreshUtxoDelay() * 1000;
-    this.mixOrchestrator =
-        new MixOrchestrator(
-            loopDelay,
-            this,
-            mixingState,
-            config.getMaxClients(),
-            config.getMaxClientsPerPool(),
-            config.getClientDelay());
+    this.mixOrchestrator = new MixOrchestratorImpl(mixingState, loopDelay, this);
 
     if (config.isAutoTx0()) {
       this.autoTx0Orchestrator =
@@ -113,11 +94,6 @@ public class WhirlpoolWallet {
                   loopDelay, this, config.getTx0Delay(), config.getAutoTx0PoolId()));
     } else {
       this.autoTx0Orchestrator = Optional.empty();
-    }
-    if (config.isAutoMix()) {
-      this.autoMixOrchestrator = Optional.of(new AutoMixOrchestrator(loopDelay, this));
-    } else {
-      this.autoMixOrchestrator = Optional.empty();
     }
 
     this.clearCache();
@@ -168,16 +144,11 @@ public class WhirlpoolWallet {
 
     List<WhirlpoolUtxo> depositUtxosByPriority =
         new LinkedList<WhirlpoolUtxo>(getUtxosDeposit(true));
-    getUtxoComparator().sortShuffled(depositUtxosByPriority);
-
+    Collections.shuffle(depositUtxosByPriority);
     return findTx0SpendFrom(
         tx0Param,
         nbOutputsMin,
         depositUtxosByPriority); // throws EmptyWalletException, UnconfirmedUtxoException
-  }
-
-  private WhirlpoolUtxoPriorityComparator getUtxoComparator() {
-    return mixOrchestrator.computeWhirlpoolUtxoPriorityComparator();
   }
 
   private WhirlpoolUtxo findTx0SpendFrom(
@@ -438,10 +409,6 @@ public class WhirlpoolWallet {
     if (this.autoTx0Orchestrator.isPresent()) {
       this.autoTx0Orchestrator.get().start(true);
     }
-    if (this.autoMixOrchestrator.isPresent()) {
-      this.autoMixOrchestrator.get().start(true);
-    }
-
     mixingState.setStarted(true);
   }
 
@@ -454,9 +421,6 @@ public class WhirlpoolWallet {
     this.mixOrchestrator.stop();
     if (this.autoTx0Orchestrator.isPresent()) {
       this.autoTx0Orchestrator.get().stop();
-    }
-    if (this.autoMixOrchestrator.isPresent()) {
-      this.autoMixOrchestrator.get().stop();
     }
     persistOrchestrator.stop();
 
@@ -499,7 +463,7 @@ public class WhirlpoolWallet {
   }
 
   public void mixStop(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
-    this.mixOrchestrator.mixStop(whirlpoolUtxo, false);
+    this.mixOrchestrator.mixStop(whirlpoolUtxo, true, false);
   }
 
   public int getFee(Tx0FeeTarget feeTarget) {
@@ -608,31 +572,7 @@ public class WhirlpoolWallet {
   }
 
   public Observable<MixProgress> mix(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
-    // check confirmations
-    if (whirlpoolUtxo.getUtxo().confirmations < WhirlpoolWallet.MIX_MIN_CONFIRMATIONS) {
-      throw new UnconfirmedUtxoException(whirlpoolUtxo.getUtxo());
-    }
-
-    // check pool
-    String poolId = whirlpoolUtxo.getUtxoConfig().getPoolId();
-    if (poolId == null) {
-      log.error(
-          "Cannot mix: no pool set: " + whirlpoolUtxo + " ; " + whirlpoolUtxo.getUtxoConfig());
-      throw new NotifiableException("Cannot mix: no pool set");
-    }
-    Pool pool = null;
-    try {
-      pool = findPoolById(poolId);
-    } catch (Exception e) {
-      log.error("", e);
-    }
-    if (pool == null) {
-      throw new NotifiableException("Pool not found: " + poolId);
-    }
-
-    MixParams mixParams = computeMixParams(whirlpoolUtxo, pool);
-    WhirlpoolClient mixClient = config.newClient();
-    return mixOrchestrator.doMix(whirlpoolUtxo, mixParams, mixClient);
+    return mixOrchestrator.mixNow(whirlpoolUtxo);
   }
 
   public void onMixSuccess(WhirlpoolUtxo whirlpoolUtxo, MixSuccess mixSuccess) {
@@ -686,37 +626,6 @@ public class WhirlpoolWallet {
         log.warn("onMixFail(" + reason + "): unknown reason");
         break;
     }
-  }
-
-  private IPremixHandler computePremixHandler(WhirlpoolUtxo whirlpoolUtxo) {
-    HD_Address premixAddress =
-        getWallet(whirlpoolUtxo.getAccount()).getAddressAt(whirlpoolUtxo.getUtxo());
-    ECKey premixKey = premixAddress.getECKey();
-
-    UnspentResponse.UnspentOutput premixOrPostmixUtxo = whirlpoolUtxo.getUtxo();
-    UtxoWithBalance utxoWithBalance =
-        new UtxoWithBalance(
-            premixOrPostmixUtxo.tx_hash,
-            premixOrPostmixUtxo.tx_output_n,
-            premixOrPostmixUtxo.value);
-
-    // use PREMIX(0,0) as userPreHash (not transmitted to server but rehashed with another salt)
-    HD_Address premix00 = getWallet(WhirlpoolAccount.PREMIX).getAddressAt(0, 0);
-    String premix00Bech32 = bech32Util.toBech32(premix00, config.getNetworkParameters());
-    String userPreHash = ClientUtils.sha256Hash(premix00Bech32);
-
-    return new PremixHandler(utxoWithBalance, premixKey, userPreHash);
-  }
-
-  public IPostmixHandler computePostmixHandler() {
-    return new Bip84PostmixHandler(getWalletPostmix(), config.isMobile());
-  }
-
-  private MixParams computeMixParams(WhirlpoolUtxo whirlpoolUtxo, Pool pool)
-      throws NotifiableException {
-    IPremixHandler premixHandler = computePremixHandler(whirlpoolUtxo);
-    IPostmixHandler postmixHandler = computePostmixHandler();
-    return new MixParams(pool.getPoolId(), pool.getDenomination(), premixHandler, postmixHandler);
   }
 
   public Collection<WhirlpoolUtxo> getUtxosDeposit() throws Exception {
@@ -823,13 +732,24 @@ public class WhirlpoolWallet {
     WhirlpoolUtxoConfig utxoConfig = getUtxoConfigOrNull(utxo);
     if (utxoConfig != null) {
       // utxoConfig found (from previous mix)
-      if (log.isDebugEnabled()) {
-        log.debug(
-            firstFetchInfo
-                + "New utxo detected: "
-                + whirlpoolUtxo
-                + " ; (existing utxoConfig) "
-                + utxoConfig);
+      if (!isFirstFetch) {
+        if (log.isDebugEnabled()) {
+          log.debug(
+              firstFetchInfo
+                  + "New utxo detected: "
+                  + whirlpoolUtxo
+                  + " ; (existing utxoConfig) "
+                  + utxoConfig);
+        }
+      } else {
+        if (log.isTraceEnabled()) {
+          log.trace(
+              firstFetchInfo
+                  + "New utxo detected: "
+                  + whirlpoolUtxo
+                  + " ; (existing utxoConfig) "
+                  + utxoConfig);
+        }
       }
     } else {
       // find by tx hash (new PREMIX from TX0)
@@ -894,9 +814,6 @@ public class WhirlpoolWallet {
     if (autoTx0Orchestrator.isPresent()) {
       autoTx0Orchestrator.get().onUtxoDetected(whirlpoolUtxo, isFirstFetch);
     }
-    if (autoMixOrchestrator.isPresent()) {
-      autoMixOrchestrator.get().onUtxoDetected(whirlpoolUtxo, isFirstFetch);
-    }
   }
 
   private void autoAssignPool(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
@@ -927,7 +844,9 @@ public class WhirlpoolWallet {
     }
   }
 
-  protected void onUtxoRemoved(WhirlpoolUtxo whirlpoolUtxo) {}
+  protected void onUtxoRemoved(WhirlpoolUtxo whirlpoolUtxo) {
+    mixOrchestrator.onUtxoRemoved(whirlpoolUtxo);
+  }
 
   protected void onUtxoUpdated(WhirlpoolUtxo whirlpoolUtxo, UnspentOutput oldUtxo) {
     int oldConfirmations = oldUtxo.confirmations;
@@ -935,7 +854,7 @@ public class WhirlpoolWallet {
 
     if (oldConfirmations == 0 && freshConfirmations > 0) {
       if (log.isDebugEnabled()) {
-        log.debug("New utxo CONFIRMED: " + whirlpoolUtxo + " ; " + whirlpoolUtxo.getUtxoConfig());
+        log.debug("New utxo updated: " + whirlpoolUtxo + " ; " + whirlpoolUtxo.getUtxoConfig());
       }
     }
 
@@ -945,10 +864,8 @@ public class WhirlpoolWallet {
       autoTx0Orchestrator.get().onUtxoConfirmed(whirlpoolUtxo);
     }
 
-    // notify mixOrchestrator on MIX_MIN_CONFIRMATIONS
-    if (wasConfirmed(MIX_MIN_CONFIRMATIONS, oldConfirmations, freshConfirmations)) {
-      mixOrchestrator.onUtxoConfirmed(whirlpoolUtxo);
-    }
+    // notify mixOrchestrator
+    mixOrchestrator.onUtxoUpdated(whirlpoolUtxo);
   }
 
   private boolean wasConfirmed(int minConfirmations, int oldConfirmations, int freshConfirmations) {

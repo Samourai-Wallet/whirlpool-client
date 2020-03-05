@@ -32,8 +32,8 @@ public class Tx0Param extends Tx0ParamSimple {
           feeUtil.estimatedFeeSegwit(
               0, 0, pool.getMixAnonymitySet(), pool.getMixAnonymitySet(), 0, feePremix);
       premixOverspend = mixFeesEstimate / pool.getMinMustMix();
-      if (log.isDebugEnabled()) {
-        log.debug(
+      if (log.isTraceEnabled()) {
+        log.trace(
             "mixFeesEstimate="
                 + mixFeesEstimate
                 + " => premixOverspend="

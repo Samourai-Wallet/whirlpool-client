@@ -65,6 +65,12 @@ public class WhirlpoolUtxoConfig {
     return Math.max(mixsTarget, mixsTargetMin);
   }
 
+  public boolean isDone(int mixsTargetMin) {
+    int mixsTargetOrDefault = getMixsTargetOrDefault(mixsTargetMin);
+    return (mixsDone >= mixsTargetOrDefault
+        && mixsTargetOrDefault != WhirlpoolUtxoConfig.MIXS_TARGET_UNLIMITED);
+  }
+
   public void setMixsTarget(Integer mixsTarget) {
     this.mixsTarget = mixsTarget;
   }

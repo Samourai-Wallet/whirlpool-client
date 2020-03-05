@@ -1,31 +1,33 @@
 package com.samourai.whirlpool.client.mix.listener;
 
 public enum MixStep {
-  CONNECTING("connecting...", 10),
-  CONNECTED("connected", 20),
+  CONNECTING("connecting...", 10, true),
+  CONNECTED("connected", 20, true),
 
-  REGISTERED_INPUT("registered input", 30),
+  REGISTERED_INPUT("registered input", 30, true),
 
-  CONFIRMING_INPUT("waiting for a mix...", 40),
-  CONFIRMED_INPUT("joined a mix!", 50),
+  CONFIRMING_INPUT("waiting for a mix...", 40, true),
+  CONFIRMED_INPUT("joined a mix!", 50, true),
 
-  REGISTERING_OUTPUT("registering output", 60),
-  REGISTERED_OUTPUT("registered output", 70),
+  REGISTERING_OUTPUT("registering output", 60, false),
+  REGISTERED_OUTPUT("registered output", 70, false),
 
-  REVEALED_OUTPUT("mix failed: someone didn't register output", 100),
+  REVEALED_OUTPUT("mix failed: someone didn't register output", 100, true),
 
-  SIGNING("signing", 80),
-  SIGNED("signed", 90),
+  SIGNING("signing", 80, false),
+  SIGNED("signed", 90, false),
 
-  SUCCESS("mix success", 100),
-  FAIL("mix failed", 100);
+  SUCCESS("mix success", 100, true),
+  FAIL("mix failed", 100, true);
 
   private String message;
   private int progress;
+  private boolean interruptable;
 
-  MixStep(String message, int progress) {
+  MixStep(String message, int progress, boolean interruptable) {
     this.message = message;
     this.progress = progress;
+    this.interruptable = interruptable;
   }
 
   public String getMessage() {
@@ -34,5 +36,9 @@ public enum MixStep {
 
   public int getProgress() {
     return progress;
+  }
+
+  public boolean isInterruptable() {
+    return interruptable;
   }
 }

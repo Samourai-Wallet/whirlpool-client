@@ -1,53 +1,20 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
-import com.google.common.primitives.Ints;
-import java.util.*;
+import java.util.Comparator;
 import java8.lang.Longs;
 
 public class WhirlpoolUtxoPriorityComparator implements Comparator<WhirlpoolUtxo> {
-  private Set<String> mixingHashs;
-  private Map<String, Integer> mixingPerPool;
+  private static final WhirlpoolUtxoPriorityComparator instance =
+      new WhirlpoolUtxoPriorityComparator();
 
-  public WhirlpoolUtxoPriorityComparator(
-      Set<String> mixingHashs, Map<String, Integer> mixingPerPool) {
-    this.mixingHashs = mixingHashs;
-    this.mixingPerPool = mixingPerPool;
+  public static WhirlpoolUtxoPriorityComparator getInstance() {
+    return instance;
   }
 
-  public void sortShuffled(List<WhirlpoolUtxo> whirlpoolUtxos) {
-    // shuffle
-    Collections.shuffle(whirlpoolUtxos);
-
-    // sort by priority, but keep utxos shuffled when same-priority
-    Collections.sort(whirlpoolUtxos, this);
-  }
-
-  private int getMixingPerPool(String poolId) {
-    return mixingPerPool.containsKey(poolId) ? mixingPerPool.get(poolId) : 0;
-  }
+  protected WhirlpoolUtxoPriorityComparator() {}
 
   @Override
   public int compare(WhirlpoolUtxo o1, WhirlpoolUtxo o2) {
-    // less active pool first
-    String pool1 = o1.getUtxoConfig().getPoolId();
-    String pool2 = o2.getUtxoConfig().getPoolId();
-    if (pool1 != null && pool2 != null) {
-      int comparePools = Ints.compare(getMixingPerPool(pool1), getMixingPerPool(pool2));
-      if (comparePools != 0) {
-        return comparePools;
-      }
-    }
-
-    // non-mixing txid first
-    String hash1 = o1.getUtxo().tx_hash;
-    String hash2 = o2.getUtxo().tx_hash;
-    if (!mixingHashs.contains(hash1) && mixingHashs.contains(hash2)) {
-      return -1;
-    }
-    if (mixingHashs.contains(hash1) && !mixingHashs.contains(hash2)) {
-      return 1;
-    }
-
     // premix before postmix
     if (WhirlpoolAccount.PREMIX.equals(o1.getAccount())
         && WhirlpoolAccount.POSTMIX.equals(o2.getAccount())) {

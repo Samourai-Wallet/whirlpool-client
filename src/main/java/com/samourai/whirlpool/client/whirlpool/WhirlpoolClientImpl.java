@@ -119,7 +119,11 @@ public class WhirlpoolClientImpl implements WhirlpoolClient {
     }
   }
 
-  public MixClient getMixClient() {
-    return mixClient;
+  public void _setListener(WhirlpoolClientListener listener) {
+    this.listener = listener;
+  }
+
+  public WhirlpoolClientListener getListener() {
+    return listener;
   }
 }

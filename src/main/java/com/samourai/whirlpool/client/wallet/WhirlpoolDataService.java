@@ -346,10 +346,11 @@ public class WhirlpoolDataService {
                 if (freshUtxo != null) {
                   UnspentOutput oldUtxo = whirlpoolUtxo.getUtxo();
 
-                  // set existing utxo
-                  whirlpoolUtxo.setUtxo(freshUtxo);
-                  whirlpoolWallet.onUtxoUpdated(whirlpoolUtxo, oldUtxo);
-
+                  // update utxo if changed
+                  if (freshUtxo.confirmations != oldUtxo.confirmations) {
+                    whirlpoolUtxo.setUtxo(freshUtxo);
+                    whirlpoolWallet.onUtxoUpdated(whirlpoolUtxo, oldUtxo);
+                  }
                   // add
                   result.put(key, whirlpoolUtxo);
                 } else {

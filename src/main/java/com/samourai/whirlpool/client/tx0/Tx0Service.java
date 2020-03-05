@@ -98,8 +98,8 @@ public class Tx0Service {
     long tx0MinerFee =
         feeUtil.estimatedFeeSegwit(0, 0, nbSpendFroms, nbOutputsNonOpReturn, 1, feeTx0);
 
-    if (log.isDebugEnabled()) {
-      log.debug(
+    if (log.isTraceEnabled()) {
+      log.trace(
           "tx0 minerFee: "
               + tx0MinerFee
               + "sats, totalBytes="

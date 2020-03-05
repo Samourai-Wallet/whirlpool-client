@@ -110,8 +110,8 @@ public abstract class AbstractOrchestrator {
         myThread.notify();
       }
     } else {
-      if (log.isDebugEnabled()) {
-        log.debug("NOT notifying (dontDisturb)");
+      if (log.isTraceEnabled()) {
+        log.trace("NOT notifying (dontDisturb)");
       }
     }
   }
