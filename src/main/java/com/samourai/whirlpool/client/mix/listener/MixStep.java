@@ -12,7 +12,7 @@ public enum MixStep {
   REGISTERING_OUTPUT("registering output", 60, false),
   REGISTERED_OUTPUT("registered output", 70, false),
 
-  REVEALED_OUTPUT("mix failed: someone didn't register output", 100, true),
+  REVEALED_OUTPUT("round aborted", 100, true),
 
   SIGNING("signing", 80, false),
   SIGNED("signed", 90, false),

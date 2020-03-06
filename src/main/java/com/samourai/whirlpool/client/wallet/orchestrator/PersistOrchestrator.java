@@ -27,9 +27,7 @@ public class PersistOrchestrator extends AbstractOrchestrator {
 
     // refresh utxos
     try {
-      whirlpoolWallet.getUtxosDeposit();
-      whirlpoolWallet.getUtxosPremix();
-      whirlpoolWallet.getUtxosPostmix();
+      whirlpoolWallet.refreshUtxos(false);
     } catch (Exception e) {
       log.error("", e);
     }

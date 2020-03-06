@@ -300,8 +300,8 @@ public class WhirlpoolWallet {
       // error
       for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxos) {
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
-        utxoState.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, true);
-        utxoState.setError(e);
+        String error = NotifiableException.computeNotifiableException(e).getMessage();
+        utxoState.setStatus(WhirlpoolUtxoStatus.TX0_FAILED, true, error);
       }
       throw e;
     }
@@ -669,6 +669,12 @@ public class WhirlpoolWallet {
     return dataService.getUtxos(clearCache, accounts);
   }
 
+  public void refreshUtxos(boolean clearCache) throws Exception {
+    getUtxosDeposit(clearCache);
+    getUtxosPremix(clearCache);
+    getUtxosPostmix(clearCache);
+  }
+
   public MixingState getMixingState() {
     return mixingState;
   }
@@ -854,7 +860,7 @@ public class WhirlpoolWallet {
 
     if (oldConfirmations == 0 && freshConfirmations > 0) {
       if (log.isDebugEnabled()) {
-        log.debug("New utxo updated: " + whirlpoolUtxo + " ; " + whirlpoolUtxo.getUtxoConfig());
+        log.debug("New utxo confirmed: " + whirlpoolUtxo + " ; " + whirlpoolUtxo.getUtxoConfig());
       }
     }
 

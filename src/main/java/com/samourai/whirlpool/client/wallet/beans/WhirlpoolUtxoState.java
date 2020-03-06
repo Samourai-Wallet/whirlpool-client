@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet.beans;
 
-import com.samourai.whirlpool.client.exception.NotifiableException;
+import com.samourai.whirlpool.client.mix.listener.MixStep;
 import io.reactivex.Observable;
 import io.reactivex.subjects.BehaviorSubject;
 import io.reactivex.subjects.Subject;
@@ -40,19 +40,37 @@ public class WhirlpoolUtxoState {
   }
 
   public void setStatus(
-      WhirlpoolUtxoStatus status, boolean updateLastActivity, MixProgress mixProgress) {
+      WhirlpoolUtxoStatus status,
+      boolean updateLastActivity,
+      MixProgress mixProgress,
+      String error) {
     this.status = status;
     this.mixProgress = mixProgress;
-    if (!WhirlpoolUtxoStatus.MIX_QUEUE.equals(status)) {
-      this.error = null;
+    if (mixProgress != null) {
+      String message = null;
+      MixStep mixStep = mixProgress.getMixStep();
+      if (mixStep != MixStep.SUCCESS) this.message = message;
+    }
+    this.error = error;
+    if (error != null) {
+      setLastError();
     }
     if (updateLastActivity) {
       setLastActivity();
     }
   }
 
+  public void setStatus(
+      WhirlpoolUtxoStatus status, boolean updateLastActivity, MixProgress mixProgress) {
+    setStatus(status, updateLastActivity, mixProgress, null);
+  }
+
+  public void setStatus(WhirlpoolUtxoStatus status, boolean updateLastActivity, String error) {
+    setStatus(status, updateLastActivity, null, error);
+  }
+
   public void setStatus(WhirlpoolUtxoStatus status, boolean updateLastActivity) {
-    setStatus(status, updateLastActivity, null);
+    setStatus(status, updateLastActivity, null, null);
   }
 
   public MixProgress getMixProgress() {
@@ -67,28 +85,12 @@ public class WhirlpoolUtxoState {
     this.mixableStatus = mixableStatus;
   }
 
-  public void setMessage(String message) {
-    this.message = message;
-    setLastActivity();
-  }
-
   public boolean hasMessage() {
     return message != null;
   }
 
   public String getMessage() {
     return message;
-  }
-
-  public void setError(Exception e) {
-    String message = NotifiableException.computeNotifiableException(e).getMessage();
-    setError(message);
-  }
-
-  public void setError(String error) {
-    this.error = error;
-    setLastActivity();
-    setLastError();
   }
 
   public boolean hasError() {

@@ -513,20 +513,18 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         MixProgress mixProgress = new MixProgressFail(reason);
 
         // update utxo
-        String message = reason.getMessage();
+        String error = reason.getMessage();
         if (notifiableError != null) {
-          message += " ; " + notifiableError;
+          error += " ; " + notifiableError;
         }
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
         if (reason == MixFailReason.STOP) {
-          utxoState.setStatus(WhirlpoolUtxoStatus.STOP, false, mixProgress);
-          utxoState.setError(message);
+          utxoState.setStatus(WhirlpoolUtxoStatus.STOP, false, mixProgress, error);
         } else if (reason == MixFailReason.CANCEL) {
           // silent stop
           utxoState.setStatus(WhirlpoolUtxoStatus.READY, false, mixProgress);
         } else {
-          utxoState.setStatus(WhirlpoolUtxoStatus.MIX_FAILED, true, mixProgress);
-          utxoState.setError(message);
+          utxoState.setStatus(WhirlpoolUtxoStatus.MIX_FAILED, true, mixProgress, error);
         }
 
         // manage
@@ -548,7 +546,6 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
 
         // update utxo
         WhirlpoolUtxoState utxoState = whirlpoolUtxo.getUtxoState();
-        utxoState.setMessage(step.getMessage());
         utxoState.setStatus(utxoState.getStatus(), true, mixProgress);
 
         // notify mixProgress
