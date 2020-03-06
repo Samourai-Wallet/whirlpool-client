@@ -240,6 +240,7 @@ public class MixSession {
         if (log.isDebugEnabled()) {
           log.debug("onTransportDisconnected", exception);
         }
+        long reconnectDelay = 0;
         if (connectBeginTime != null) {
           // we were trying connect
           long elapsedTime = System.currentTimeMillis() - connectBeginTime;
@@ -255,11 +256,7 @@ public class MixSession {
           // wait delay before retrying
           log.info(" ! connexion failed, retrying in " + config.getReconnectDelay() + "s");
           listener.onConnectionFailWillRetry(config.getReconnectDelay());
-          try {
-            wait(config.getReconnectDelay() * 1000);
-          } catch (Exception e) {
-            log.error("", e);
-          }
+          reconnectDelay = config.getReconnectDelay() * 1000L;
         } else {
           // we just got disconnected
           log.error(" ! connexion lost, reconnecting for a new mix...");
@@ -274,8 +271,29 @@ public class MixSession {
           return;
         }
 
-        // reconnect
-        connect();
+        if (reconnectDelay > 0) {
+          // reconnect after delay. use a new thread to avoid waiting on android's mainThread
+          final long waitDelay = reconnectDelay;
+          Thread reconnectThread =
+              new Thread(
+                  new Runnable() {
+                    @Override
+                    public synchronized void run() {
+                      try {
+                        wait(waitDelay);
+                      } catch (Exception e) {
+                        log.error("", e);
+                      }
+                      connect();
+                    }
+                  },
+                  "mixSession-reconnect-" + logPrefix);
+          reconnectThread.setDaemon(true);
+          reconnectThread.start();
+        } else {
+          // reconnect now
+          connect();
+        }
       }
     };
   }
