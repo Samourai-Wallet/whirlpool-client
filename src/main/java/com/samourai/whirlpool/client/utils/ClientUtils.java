@@ -6,6 +6,7 @@ import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.wallet.segwit.bech32.Bech32UtilGeneric;
+import com.samourai.wallet.util.CallbackWithArg;
 import com.samourai.wallet.util.FormatsUtilGeneric;
 import com.samourai.whirlpool.client.exception.NotifiableException;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
@@ -227,28 +228,52 @@ public class ClientUtils {
     return secureRandom.nextInt(maxInclusive + 1 - minInclusive) + minInclusive;
   }
 
-  public static void safeWriteValue(ObjectMapper mapper, Object value, File file) throws Exception {
+  public static void safeWrite(File file, CallbackWithArg<File> callback) throws Exception {
+    if (!file.exists()) {
+      file.createNewFile();
+    }
     FileLock fileLock = lockFile(file);
-    try {
-      File tempFile = null;
-      try {
-        // write to temp file
-        tempFile = File.createTempFile(file.getName(), "");
-        mapper.writeValue(tempFile, value);
 
-        // then rename
-        tempFile.renameTo(file);
-      } catch (Exception e) {
-        log.error(
-            "safeWriteValue failed for "
-                + (tempFile != null ? tempFile.getAbsolutePath() : "null")
-                + " ->"
-                + file.getAbsolutePath());
-        throw e;
+    File tempFile = null;
+    try {
+      tempFile = File.createTempFile(file.getName(), "");
+
+      // write to temp file
+      callback.apply(tempFile);
+
+      // delete existing file if any
+      if (file.exists()) {
+        if (!file.delete()) {
+          throw new NotifiableException("Cannot delete file: " + file.getAbsolutePath());
+        }
       }
+      // then rename
+      if (!tempFile.renameTo(file)) {
+        throw new NotifiableException(
+            "File rename failed: " + tempFile.getAbsolutePath() + " -> " + file.getAbsolutePath());
+      }
+    } catch (Exception e) {
+      log.error(
+          "safeWrite failed for "
+              + (tempFile != null ? tempFile.getAbsolutePath() : "null")
+              + " ->"
+              + file.getAbsolutePath());
+      throw e;
     } finally {
       unlockFile(fileLock);
     }
+  }
+
+  public static void safeWriteValue(final ObjectMapper mapper, final Object value, final File file)
+      throws Exception {
+    CallbackWithArg<File> callback =
+        new CallbackWithArg<File>() {
+          @Override
+          public void apply(File tempFile) throws Exception {
+            mapper.writeValue(tempFile, value);
+          }
+        };
+    safeWrite(file, callback);
   }
 
   public static FileLock lockFile(File f) throws Exception {
