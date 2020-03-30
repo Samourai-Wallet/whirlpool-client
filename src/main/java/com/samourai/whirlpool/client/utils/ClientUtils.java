@@ -2,6 +2,7 @@ package com.samourai.whirlpool.client.utils;
 
 import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.io.ByteStreams;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
@@ -14,8 +15,7 @@ import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoConfig;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoState;
 import com.samourai.whirlpool.protocol.WhirlpoolProtocol;
 import com.samourai.whirlpool.protocol.rest.RestErrorResponse;
-import java.io.File;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.security.KeyFactory;
@@ -236,22 +236,12 @@ public class ClientUtils {
 
     File tempFile = null;
     try {
-      tempFile = File.createTempFile(file.getName(), "");
-
       // write to temp file
+      tempFile = File.createTempFile(file.getName(), "");
       callback.apply(tempFile);
 
-      // delete existing file if any
-      if (file.exists()) {
-        if (!file.delete()) {
-          throw new NotifiableException("Cannot delete file: " + file.getAbsolutePath());
-        }
-      }
-      // then rename
-      if (!tempFile.renameTo(file)) {
-        throw new NotifiableException(
-            "File rename failed: " + tempFile.getAbsolutePath() + " -> " + file.getAbsolutePath());
-      }
+      // rename
+      renameFile(tempFile, file);
     } catch (Exception e) {
       log.error(
           "safeWrite failed for "
@@ -262,6 +252,27 @@ public class ClientUtils {
     } finally {
       unlockFile(fileLock);
     }
+  }
+
+  public static void renameFile(File from, File to) throws Exception {
+    // for some reason, File.renameTo() desn't work on pi4/java 11.0.6
+    // manual copy
+    InputStream in = null;
+    OutputStream out = null;
+    try {
+      in = new FileInputStream(from);
+      out = new FileOutputStream(to);
+      ByteStreams.copy(in, out);
+    } finally {
+      if (in != null) {
+        in.close();
+      }
+      if (out != null) {
+        out.close();
+      }
+    }
+    // delete old file
+    from.delete();
   }
 
   public static void safeWriteValue(final ObjectMapper mapper, final Object value, final File file)
