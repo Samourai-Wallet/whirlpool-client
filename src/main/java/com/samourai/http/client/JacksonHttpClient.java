@@ -35,8 +35,8 @@ public abstract class JacksonHttpClient implements IHttpClient {
   protected void onRequestError(Exception e, boolean isRegisterOutput) {}
 
   @Override
-  public synchronized <T> T getJson(
-      String urlStr, Class<T> responseType, Map<String, String> headers) throws HttpException {
+  public <T> T getJson(String urlStr, Class<T> responseType, Map<String, String> headers)
+      throws HttpException {
     if (log.isDebugEnabled()) {
       log.debug("getJson: " + urlStr);
     }
@@ -57,7 +57,7 @@ public abstract class JacksonHttpClient implements IHttpClient {
   }
 
   @Override
-  public synchronized <T> Observable<Optional<T>> postJson(
+  public <T> Observable<Optional<T>> postJson(
       final String urlStr,
       final Class<T> responseType,
       final Map<String, String> headers,
@@ -86,7 +86,7 @@ public abstract class JacksonHttpClient implements IHttpClient {
   }
 
   @Override
-  public synchronized <T> Observable<Optional<T>> postJsonOverTor(
+  public <T> Observable<Optional<T>> postJsonOverTor(
       final String urlStr,
       final Class<T> responseType,
       final Map<String, String> headers,
@@ -115,7 +115,7 @@ public abstract class JacksonHttpClient implements IHttpClient {
   }
 
   @Override
-  public synchronized <T> T postUrlEncoded(
+  public <T> T postUrlEncoded(
       String urlStr, Class<T> responseType, Map<String, String> headers, Map<String, String> body)
       throws HttpException {
     if (log.isDebugEnabled()) {
