@@ -286,7 +286,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     Map<String, Integer> mixingPerPool = new HashMap<String, Integer>();
     for (Mixing mixingItem : mixing.values()) {
       String poolId = mixingItem.getPoolId();
-      int currentCount = getNbMixing(poolId);
+      int currentCount = mixingPerPool.containsKey(poolId) ? mixingPerPool.get(poolId) : 0;
       mixingPerPool.put(poolId, currentCount + 1);
     }
     return mixingPerPool;
@@ -447,6 +447,12 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       throw new NotifiableException("Wallet is stopped");
     }
 
+    // check mixable
+    MixableStatus mixableStatus = whirlpoolUtxo.getUtxoState().getMixableStatus();
+    if (!MixableStatus.MIXABLE.equals(mixableStatus)) {
+      throw new NotifiableException("Cannot mix: " + mixableStatus);
+    }
+
     if (log.isDebugEnabled()) {
       log.debug(
           " + Mix("
@@ -459,12 +465,6 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     if (mixingToSwap != null) {
       // stop mixingToSwap
       mixStop(mixingToSwap, true, true);
-    }
-
-    // check mixable
-    MixableStatus mixableStatus = whirlpoolUtxo.getUtxoState().getMixableStatus();
-    if (!MixableStatus.MIXABLE.equals(mixableStatus)) {
-      throw new NotifiableException("Cannot mix: " + mixableStatus);
     }
 
     // mix
