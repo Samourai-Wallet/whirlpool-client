@@ -31,7 +31,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
   private static final int MIX_MIN_CONFIRMATIONS = 1;
 
   private MixingStateEditable mixingState;
-  private Integer maxClients;
+  private int maxClients;
   private int maxClientsPerPool;
   private boolean autoMix;
   private int mixsTargetMin;
@@ -44,7 +44,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
       int loopDelay,
       int clientDelay,
       MixingStateEditable mixingState,
-      Integer maxClients,
+      int maxClients,
       int maxClientsPerPool,
       boolean autoMix,
       int mixsTargetMin) {
@@ -210,7 +210,7 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
 
   public boolean hasMoreMixingThreadAvailable(String poolId) {
     // check maxClients
-    if (maxClients != null && mixing.size() >= maxClients) {
+    if (mixing.size() >= maxClients) {
       return false;
     }
 

@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private final Logger log = LoggerFactory.getLogger(WhirlpoolWalletConfig.class);
 
-  private Integer maxClients;
+  private int maxClients;
   private int maxClientsPerPool;
   private int clientDelay;
   private String autoTx0PoolId;
@@ -57,7 +57,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     super(httpClient, stompClientService, persistHandler, server, params, mobile);
 
     // default settings
-    this.maxClients = null;
+    this.maxClients = 5;
     this.maxClientsPerPool = 1;
     this.clientDelay = 30;
     this.autoTx0PoolId = null;
@@ -84,11 +84,11 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
     this.tx0Service = new Tx0Service(this);
   }
 
-  public Integer getMaxClients() {
+  public int getMaxClients() {
     return maxClients;
   }
 
-  public void setMaxClients(Integer maxClients) {
+  public void setMaxClients(int maxClients) {
     this.maxClients = maxClients;
   }
 
@@ -277,7 +277,7 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
         "mobile="
             + isMobile()
             + ", maxClients="
-            + (getMaxClients() != null ? getMaxClients() : "null")
+            + getMaxClients()
             + ", maxClientsPerPool="
             + getMaxClientsPerPool()
             + ", clientDelay="
