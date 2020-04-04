@@ -124,6 +124,9 @@ public class FileWhirlpoolUtxoConfigHandler {
   }
 
   protected synchronized void clean(Set<String> knownUtxosKeys) {
+    int nbObsoleted = 0;
+    int nbRemoved = 0;
+
     // remove obsoletes from map
     Iterator<Entry<String, WhirlpoolUtxoConfig>> iter = utxoConfigs.entrySet().iterator();
     while (iter.hasNext()) {
@@ -133,21 +136,20 @@ public class FileWhirlpoolUtxoConfigHandler {
         // entry is obsolete
         if (!keysToClean.contains(entryKey)) {
           // mark entry to clean next time
-          if (log.isDebugEnabled()) {
-            log.debug("Mark obsolete key: " + entryKey);
-          }
+          nbObsoleted++;
           keysToClean.add(entryKey);
         } else {
           // clean now
-          if (log.isDebugEnabled()) {
-            log.debug("Remove obsolete key: " + entryKey);
-          }
+          nbRemoved++;
           iter.remove();
           ((BehaviorSubject<WhirlpoolUtxoConfig>) entry.getValue().getObservable()).onComplete();
           knownUtxosKeys.remove(entryKey);
           setLastSet();
         }
       }
+    }
+    if (log.isDebugEnabled()) {
+      log.debug("utxos cleanup: " + nbObsoleted + " obsolete, " + nbRemoved + " removed");
     }
   }
 

@@ -4,9 +4,8 @@ import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
 import com.samourai.whirlpool.client.exception.EmptyWalletException;
 import com.samourai.whirlpool.client.exception.UnconfirmedUtxoException;
 import com.samourai.whirlpool.client.wallet.WhirlpoolWallet;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
 import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoStatus;
+import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxoChanges;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,32 +91,29 @@ public class AutoTx0Orchestrator extends AbstractOrchestrator {
     // no tx0 can be made now, check back later...
   }
 
-  public void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo, boolean isFirstFetch) {
-    if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())
-        && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getUtxoState().getStatus())
-        && whirlpoolUtxo.getUtxoConfig().getPoolId() != null) {
+  public void onUtxoChanges(WhirlpoolUtxoChanges whirlpoolUtxoChanges) {
+    boolean notify = false;
 
+    // DETECTED
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosDetected()) {
       if (whirlpoolUtxo.getUtxo().confirmations
           >= whirlpoolWallet.getConfig().getTx0MinConfirmations()) {
-        if (log.isDebugEnabled()) {
-          log.debug(" o AutoTx0: new DEPOSIT utxo detected, checking for tx0: " + whirlpoolUtxo);
-        }
-        notifyOrchestrator();
-      } else {
-        if (log.isDebugEnabled()) {
-          log.debug(
-              " o AutoTx0: new DEPOSIT utxo detected, waiting for confirmation: " + whirlpoolUtxo);
-        }
+        notify = true;
       }
     }
-  }
 
-  public void onUtxoConfirmed(WhirlpoolUtxo whirlpoolUtxo) {
-    if (WhirlpoolAccount.DEPOSIT.equals(whirlpoolUtxo.getAccount())
-        && WhirlpoolUtxoStatus.READY.equals(whirlpoolUtxo.getUtxoState().getStatus())
-        && whirlpoolUtxo.getUtxo().confirmations
-            >= whirlpoolWallet.getConfig().getTx0MinConfirmations()) {
-      log.info(" o AutoTx0: new DEPOSIT utxo CONFIRMED, checking for tx0: " + whirlpoolUtxo);
+    // UPDATED
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosDetected()) {
+      if (whirlpoolUtxo.getUtxo().confirmations
+          >= whirlpoolWallet.getConfig().getTx0MinConfirmations()) {
+        notify = true;
+      }
+    }
+
+    if (notify) {
+      if (log.isDebugEnabled()) {
+        log.debug(" o AutoTx0: checking for tx0...");
+      }
       notifyOrchestrator();
     }
   }

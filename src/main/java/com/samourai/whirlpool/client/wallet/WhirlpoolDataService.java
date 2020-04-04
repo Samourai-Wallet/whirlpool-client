@@ -334,6 +334,8 @@ public class WhirlpoolDataService {
       final boolean isFirstFetch) {
     final Map<String, WhirlpoolUtxo> result = new ConcurrentHashMap<String, WhirlpoolUtxo>();
 
+    final WhirlpoolUtxoChanges whirlpoolUtxoChanges = new WhirlpoolUtxoChanges(isFirstFetch);
+
     // add existing utxos
     StreamSupport.stream(currentUtxos.values())
         .forEach(
@@ -349,13 +351,13 @@ public class WhirlpoolDataService {
                   // update utxo if changed
                   if (freshUtxo.confirmations != oldUtxo.confirmations) {
                     whirlpoolUtxo.setUtxo(freshUtxo);
-                    whirlpoolWallet.onUtxoUpdated(whirlpoolUtxo, oldUtxo);
+                    whirlpoolUtxoChanges.getUtxosUpdated().add(whirlpoolUtxo);
                   }
                   // add
                   result.put(key, whirlpoolUtxo);
                 } else {
                   // ignore obsolete
-                  whirlpoolWallet.onUtxoRemoved(whirlpoolUtxo);
+                  whirlpoolUtxoChanges.getUtxosRemoved().add(whirlpoolUtxo);
                 }
               }
             });
@@ -376,7 +378,7 @@ public class WhirlpoolDataService {
                     // set lastActivity when utxo is detected but ignore on first fetch
                     whirlpoolUtxo.getUtxoState().setLastActivity();
                   }
-                  whirlpoolWallet.onUtxoDetected(whirlpoolUtxo, isFirstFetch);
+                  whirlpoolUtxoChanges.getUtxosDetected().add(whirlpoolUtxo);
                   result.put(key, whirlpoolUtxo);
                 }
               }
@@ -390,6 +392,21 @@ public class WhirlpoolDataService {
               + ", result="
               + result.size());
     }
+
+    // notify changes
+    if (!whirlpoolUtxoChanges.isEmpty()) {
+      // use a new thread to avoid deadlock on whirlpoolData -> whirlpoolWallet -> orchestrators
+      new Thread(
+              new Runnable() {
+                @Override
+                public void run() {
+                  whirlpoolWallet.onUtxoChanges(whirlpoolUtxoChanges);
+                }
+              },
+              "onUtxoChanges")
+          .start();
+    }
+
     return result;
   }
 }

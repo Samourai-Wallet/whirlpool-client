@@ -728,8 +728,32 @@ public class WhirlpoolWallet {
     return utxoConfig;
   }
 
-  protected void onUtxoDetected(WhirlpoolUtxo whirlpoolUtxo, boolean isFirstFetch) {
-    String firstFetchInfo = isFirstFetch ? "(init) " : "";
+  protected void onUtxoChanges(WhirlpoolUtxoChanges whirlpoolUtxoChanges) {
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "fresh utxos: "
+              + whirlpoolUtxoChanges.getUtxosDetected().size()
+              + " new, "
+              + whirlpoolUtxoChanges.getUtxosUpdated().size()
+              + " updated, "
+              + whirlpoolUtxoChanges.getUtxosRemoved().size()
+              + " removed");
+    }
+
+    // DETECTED : auto-configure
+    for (WhirlpoolUtxo whirlpoolUtxo : whirlpoolUtxoChanges.getUtxosDetected()) {
+      autoConfigureUtxo(whirlpoolUtxo, whirlpoolUtxoChanges.isFirstFetch());
+    }
+
+    // notify
+    mixOrchestrator.onUtxoChanges(whirlpoolUtxoChanges);
+    if (autoTx0Orchestrator.isPresent()) {
+      autoTx0Orchestrator.get().onUtxoChanges(whirlpoolUtxoChanges);
+    }
+  }
+
+  private void autoConfigureUtxo(WhirlpoolUtxo whirlpoolUtxo, boolean isFirstFetch) {
+    String logInfo = isFirstFetch ? "(init)" : "";
 
     // preserve utxo config
     UnspentOutput utxo = whirlpoolUtxo.getUtxo();
@@ -738,42 +762,15 @@ public class WhirlpoolWallet {
     WhirlpoolUtxoConfig utxoConfig = getUtxoConfigOrNull(utxo);
     if (utxoConfig != null) {
       // utxoConfig found (from previous mix)
-      if (!isFirstFetch) {
-        if (log.isDebugEnabled()) {
-          log.debug(
-              firstFetchInfo
-                  + "New utxo detected: "
-                  + whirlpoolUtxo
-                  + " ; (existing utxoConfig) "
-                  + utxoConfig);
-        }
-      } else {
-        if (log.isTraceEnabled()) {
-          log.trace(
-              firstFetchInfo
-                  + "New utxo detected: "
-                  + whirlpoolUtxo
-                  + " ; (existing utxoConfig) "
-                  + utxoConfig);
-        }
-      }
+      logInfo += "(existing utxoConfig)";
     } else {
       // find by tx hash (new PREMIX from TX0)
       WhirlpoolUtxoConfig utxoConfigByHash = getUtxoConfigOrNull(utxo.tx_hash);
       if (utxoConfigByHash != null) {
         addUtxoConfig(utxoConfigByHash.copy(), utxo.tx_hash, utxo.tx_output_n);
-        if (log.isDebugEnabled()) {
-          log.debug(
-              firstFetchInfo
-                  + "New utxo detected: "
-                  + whirlpoolUtxo
-                  + " ; (from TX0) "
-                  + utxoConfig);
-        }
+        logInfo += "(from TX0)";
       } else {
-        if (log.isDebugEnabled()) {
-          log.debug(firstFetchInfo + "New utxo detected: " + whirlpoolUtxo + " (no utxoConfig)");
-        }
+        logInfo += "(no utxoConfig)";
       }
     }
     if (utxoConfig != null && utxoConfig.getPoolId() != null) {
@@ -786,20 +783,17 @@ public class WhirlpoolWallet {
         // check pool is applicable
         if (pool != null && !isPoolApplicable(pool, whirlpoolUtxo, null)) {
           if (log.isDebugEnabled()) {
-            log.debug(
-                firstFetchInfo + "pool not applicable for utxo value: " + utxoConfig.getPoolId());
+            log.debug("pool not applicable for utxo value: " + utxoConfig.getPoolId());
           }
           pool = null;
         }
-
       } catch (Exception e) {
         log.error("", e);
       }
       if (pool == null) {
         // clear pool configuration
         log.warn(
-            firstFetchInfo
-                + "pool not found for utxoConfig: "
+            "pool not found for utxoConfig: "
                 + utxoConfig.getPoolId()
                 + " => reset utxoConfig.poolId");
         utxoConfig.setPoolId(null);
@@ -809,20 +803,29 @@ public class WhirlpoolWallet {
     // auto-assign pool when possible
     if (whirlpoolUtxo.getUtxoConfig().getPoolId() == null) {
       try {
-        autoAssignPool(whirlpoolUtxo);
+        String poolId = computeAutoAssignPoolId(whirlpoolUtxo);
+        if (poolId != null) {
+          whirlpoolUtxo.getUtxoConfig().setPoolId(poolId);
+        }
       } catch (Exception e) {
         log.error("", e);
       }
     }
 
-    // notify orchestrators
-    mixOrchestrator.onUtxoDetected(whirlpoolUtxo, isFirstFetch);
-    if (autoTx0Orchestrator.isPresent()) {
-      autoTx0Orchestrator.get().onUtxoDetected(whirlpoolUtxo, isFirstFetch);
+    // log
+    String msg = "New utxo: " + whirlpoolUtxo + logInfo + " ; " + utxoConfig;
+    if (!isFirstFetch) {
+      if (log.isDebugEnabled()) {
+        log.debug(msg);
+      }
+    } else {
+      if (log.isTraceEnabled()) {
+        log.trace(msg);
+      }
     }
   }
 
-  private void autoAssignPool(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
+  private String computeAutoAssignPoolId(WhirlpoolUtxo whirlpoolUtxo) throws Exception {
     Collection<Pool> eligiblePools = null;
 
     // find eligible pools for tx0
@@ -841,41 +844,10 @@ public class WhirlpoolWallet {
     // auto-assign pool by preference when found
     if (eligiblePools != null) {
       if (!eligiblePools.isEmpty()) {
-        String poolId = eligiblePools.iterator().next().getPoolId();
-        if (log.isDebugEnabled()) {
-          log.debug("autoAssignPool: " + whirlpoolUtxo + " -> " + poolId);
-        }
-        whirlpoolUtxo.getUtxoConfig().setPoolId(poolId);
+        return eligiblePools.iterator().next().getPoolId();
       }
     }
-  }
-
-  protected void onUtxoRemoved(WhirlpoolUtxo whirlpoolUtxo) {
-    mixOrchestrator.onUtxoRemoved(whirlpoolUtxo);
-  }
-
-  protected void onUtxoUpdated(WhirlpoolUtxo whirlpoolUtxo, UnspentOutput oldUtxo) {
-    int oldConfirmations = oldUtxo.confirmations;
-    int freshConfirmations = whirlpoolUtxo.getUtxo().confirmations;
-
-    if (oldConfirmations == 0 && freshConfirmations > 0) {
-      if (log.isDebugEnabled()) {
-        log.debug("New utxo confirmed: " + whirlpoolUtxo + " ; " + whirlpoolUtxo.getUtxoConfig());
-      }
-    }
-
-    // notify autoTx0Orchestrator on TX0_MIN_CONFIRMATIONS
-    if (autoTx0Orchestrator.isPresent()
-        && wasConfirmed(config.getTx0MinConfirmations(), oldConfirmations, freshConfirmations)) {
-      autoTx0Orchestrator.get().onUtxoConfirmed(whirlpoolUtxo);
-    }
-
-    // notify mixOrchestrator
-    mixOrchestrator.onUtxoUpdated(whirlpoolUtxo);
-  }
-
-  private boolean wasConfirmed(int minConfirmations, int oldConfirmations, int freshConfirmations) {
-    return oldConfirmations < minConfirmations && freshConfirmations >= minConfirmations;
+    return null; // no pool found
   }
 
   public void onEmptyWalletException(EmptyWalletException e) {

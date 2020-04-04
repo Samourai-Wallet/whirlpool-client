@@ -3,16 +3,11 @@ package com.samourai.whirlpool.client.wallet.orchestrator;
 import com.samourai.whirlpool.client.WhirlpoolClient;
 import com.samourai.whirlpool.client.mix.listener.MixFailReason;
 import com.samourai.whirlpool.client.test.AbstractTest;
-import com.samourai.whirlpool.client.wallet.beans.MixingStateEditable;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolAccount;
-import com.samourai.whirlpool.client.wallet.beans.WhirlpoolUtxo;
+import com.samourai.whirlpool.client.wallet.beans.*;
 import com.samourai.whirlpool.client.whirlpool.WhirlpoolClientImpl;
 import com.samourai.whirlpool.client.whirlpool.beans.Pool;
 import com.samourai.whirlpool.client.whirlpool.listener.WhirlpoolClientListener;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java8.util.function.Function;
 import java8.util.stream.Collectors;
 import java8.util.stream.Stream;
@@ -27,6 +22,7 @@ import org.slf4j.LoggerFactory;
 
 public class MixOrchestratorTest extends AbstractTest {
   private static final Logger log = LoggerFactory.getLogger(MixOrchestratorTest.class);
+  private MixOrchestratorData data;
   private MixOrchestrator mixOrchestrator;
   private MixingStateEditable mixingState = new MixingStateEditable(false);
   private List<WhirlpoolUtxo> utxos = new LinkedList<WhirlpoolUtxo>();
@@ -50,18 +46,21 @@ public class MixOrchestratorTest extends AbstractTest {
     utxos.add(newUtxo(POOL_001, WhirlpoolAccount.POSTMIX, "0.01btcPostmix5confError", 5, 3L));
     utxos.add(newUtxo(POOL_001, WhirlpoolAccount.POSTMIX, "0.01btcPostmix1conf", 1, null));
 
-    mixOrchestrator =
-        new MixOrchestrator(999999, 0, mixingState, maxClients, maxClientsPerPool, true, 99) {
+    data =
+        new MixOrchestratorData(mixingState) {
           @Override
-          protected Stream<WhirlpoolUtxo> getQueue() {
+          public Stream<WhirlpoolUtxo> getQueue() {
             return StreamSupport.stream(utxos);
           }
 
           @Override
-          protected Collection<Pool> getPools() {
+          public Collection<Pool> getPools() throws Exception {
             return MixOrchestratorTest.this.getPools();
           }
+        };
 
+    mixOrchestrator =
+        new MixOrchestrator(999999, 0, data, maxClients, maxClientsPerPool, true, 99) {
           @Override
           protected WhirlpoolClient runWhirlpoolClient(
               WhirlpoolUtxo whirlpoolUtxo, WhirlpoolClientListener listener) {
@@ -87,9 +86,10 @@ public class MixOrchestratorTest extends AbstractTest {
           }
         };
 
-    for (WhirlpoolUtxo utxo : utxos) {
-      mixOrchestrator.onUtxoDetected(utxo, true);
-    }
+    WhirlpoolUtxoChanges whirlpoolUtxoChanges = new WhirlpoolUtxoChanges(true);
+    whirlpoolUtxoChanges.getUtxosDetected().addAll(utxos);
+    mixOrchestrator.onUtxoChanges(whirlpoolUtxoChanges);
+
     Thread.sleep(600);
     log.debug("// --- init complete ---");
   }
@@ -142,31 +142,43 @@ public class MixOrchestratorTest extends AbstractTest {
 
     // spend "0.01btcPremix10conf"
     WhirlpoolUtxo utxo = utxos.get(1);
-    Assertions.assertNotNull(mixOrchestrator.getMixing(utxo.getUtxo())); // mixing
-    mixOrchestrator.onUtxoRemoved(utxos.get(1));
+    Assertions.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
+    {
+      WhirlpoolUtxoChanges whirlpoolUtxoChanges = new WhirlpoolUtxoChanges(false);
+      whirlpoolUtxoChanges.getUtxosRemoved().add(utxos.get(1));
+      mixOrchestrator.onUtxoChanges(whirlpoolUtxoChanges);
+    }
 
     // => should stop mixing
-    Assertions.assertNull(mixOrchestrator.getMixing(utxo.getUtxo())); // not mixing
+    Assertions.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
 
     // confirm "0.01btcPostmix0conf"
     utxo = utxos.get(0);
-    Assertions.assertNull(mixOrchestrator.getMixing(utxo.getUtxo())); // not mixing
+    Assertions.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
     utxo.getUtxo().confirmations = 7;
-    mixOrchestrator.onUtxoUpdated(utxo);
+    {
+      WhirlpoolUtxoChanges whirlpoolUtxoChanges = new WhirlpoolUtxoChanges(false);
+      whirlpoolUtxoChanges.getUtxosUpdated().add(utxo);
+      mixOrchestrator.onUtxoChanges(whirlpoolUtxoChanges);
+    }
     Thread.sleep(300);
 
     // => shoud start mixing
-    Assertions.assertNotNull(mixOrchestrator.getMixing(utxo.getUtxo())); // mixing
+    Assertions.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
 
     // new utxo
     utxo = newUtxo(POOL_001, WhirlpoolAccount.PREMIX, "0.01btcPremix9confNew", 9, null);
     utxos.add(utxo);
-    Assertions.assertNull(mixOrchestrator.getMixing(utxo.getUtxo())); // not mixing
-    mixOrchestrator.onUtxoDetected(utxo, false);
+    Assertions.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
+    {
+      WhirlpoolUtxoChanges whirlpoolUtxoChanges = new WhirlpoolUtxoChanges(false);
+      whirlpoolUtxoChanges.getUtxosDetected().add(utxo);
+      mixOrchestrator.onUtxoChanges(whirlpoolUtxoChanges);
+    }
     Thread.sleep(300);
 
     // => shoud start mixing
-    Assertions.assertNotNull(mixOrchestrator.getMixing(utxo.getUtxo())); // mixing
+    Assertions.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
   }
 
   @Test
@@ -181,13 +193,17 @@ public class MixOrchestratorTest extends AbstractTest {
 
     // stop current mix on utxo spend
     WhirlpoolUtxo utxo = mixingHistory.get(0);
-    Assertions.assertNotNull(mixOrchestrator.getMixing(utxo.getUtxo())); // mixing
+    Assertions.assertNotNull(data.getMixing(utxo.getUtxo())); // mixing
     utxos.remove(utxo);
-    mixOrchestrator.onUtxoRemoved(utxo);
+    {
+      WhirlpoolUtxoChanges whirlpoolUtxoChanges = new WhirlpoolUtxoChanges(false);
+      whirlpoolUtxoChanges.getUtxosRemoved().add(utxo);
+      mixOrchestrator.onUtxoChanges(whirlpoolUtxoChanges);
+    }
     Thread.sleep(600);
 
     // => should stop mixing
-    Assertions.assertNull(mixOrchestrator.getMixing(utxo.getUtxo())); // not mixing
+    Assertions.assertNull(data.getMixing(utxo.getUtxo())); // not mixing
 
     // another one is mixing
     Assertions.assertEquals(2, mixingHistory.size());
@@ -208,7 +224,11 @@ public class MixOrchestratorTest extends AbstractTest {
     WhirlpoolUtxo newUtxo =
         newUtxo(POOL_001, WhirlpoolAccount.PREMIX, "0.01btcPremix10confNew", 10, null);
     utxos.add(newUtxo);
-    mixOrchestrator.onUtxoDetected(newUtxo, false);
+    {
+      WhirlpoolUtxoChanges whirlpoolUtxoChanges = new WhirlpoolUtxoChanges(false);
+      whirlpoolUtxoChanges.getUtxosDetected().add(newUtxo);
+      mixOrchestrator.onUtxoChanges(whirlpoolUtxoChanges);
+    }
     // => nothing changed
     Assertions.assertEquals(1, mixingHistory.size());
     Assertions.assertTrue(Arrays.equals(utxoStrings, toUtxoStrings(mixingHistory)));

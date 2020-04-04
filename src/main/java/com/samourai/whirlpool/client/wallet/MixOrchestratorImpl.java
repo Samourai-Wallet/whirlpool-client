@@ -34,7 +34,7 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     super(
         loopDelay,
         whirlpoolWallet.getConfig().getClientDelay(),
-        mixingState,
+        computeData(mixingState, whirlpoolWallet),
         whirlpoolWallet.getConfig().getMaxClients(),
         whirlpoolWallet.getConfig().getMaxClientsPerPool(),
         whirlpoolWallet.getConfig().isAutoMix(),
@@ -42,28 +42,34 @@ public class MixOrchestratorImpl extends MixOrchestrator {
     this.whirlpoolWallet = whirlpoolWallet;
   }
 
-  @Override
-  protected Stream<WhirlpoolUtxo> getQueue() {
-    try {
-      return StreamSupport.stream(
-              whirlpoolWallet.getUtxos(false, WhirlpoolAccount.PREMIX, WhirlpoolAccount.POSTMIX))
-          .filter(
-              new Predicate<WhirlpoolUtxo>() {
-                @Override
-                public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
-                  // queued
-                  return WhirlpoolUtxoStatus.MIX_QUEUE.equals(
-                      whirlpoolUtxo.getUtxoState().getStatus());
-                }
-              });
-    } catch (Exception e) {
-      return StreamSupport.stream(new ArrayList());
-    }
-  }
+  private static MixOrchestratorData computeData(
+      MixingStateEditable mixingState, final WhirlpoolWallet whirlpoolWallet) {
+    return new MixOrchestratorData(mixingState) {
+      @Override
+      public Stream<WhirlpoolUtxo> getQueue() {
+        try {
+          return StreamSupport.stream(
+                  whirlpoolWallet.getUtxos(
+                      false, WhirlpoolAccount.PREMIX, WhirlpoolAccount.POSTMIX))
+              .filter(
+                  new Predicate<WhirlpoolUtxo>() {
+                    @Override
+                    public boolean test(WhirlpoolUtxo whirlpoolUtxo) {
+                      // queued
+                      return WhirlpoolUtxoStatus.MIX_QUEUE.equals(
+                          whirlpoolUtxo.getUtxoState().getStatus());
+                    }
+                  });
+        } catch (Exception e) {
+          return StreamSupport.stream(new ArrayList());
+        }
+      }
 
-  @Override
-  protected Collection<Pool> getPools() throws Exception {
-    return whirlpoolWallet.getPools();
+      @Override
+      public Collection<Pool> getPools() throws Exception {
+        return whirlpoolWallet.getPools();
+      }
+    };
   }
 
   @Override
