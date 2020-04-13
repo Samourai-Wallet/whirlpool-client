@@ -2,7 +2,7 @@ package com.samourai.whirlpool.client.utils;
 
 import ch.qos.logback.classic.Level;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.io.ByteStreams;
+import com.google.common.io.Files;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.api.backend.beans.UnspentResponse.UnspentOutput;
@@ -236,12 +236,18 @@ public class ClientUtils {
 
     File tempFile = null;
     try {
-      // write to temp file
-      tempFile = File.createTempFile(file.getName(), "");
-      callback.apply(tempFile);
+
+      try {
+        // write to temp file (in same directory)
+        tempFile = new File(file.getParent(), file.getName() + ".tmp");
+        callback.apply(tempFile);
+      } finally {
+        // unlock before rename
+        unlockFile(fileLock);
+      }
 
       // rename
-      renameFile(tempFile, file);
+      Files.move(tempFile, file);
     } catch (Exception e) {
       log.error(
           "safeWrite failed for "
@@ -249,30 +255,7 @@ public class ClientUtils {
               + " ->"
               + file.getAbsolutePath());
       throw e;
-    } finally {
-      unlockFile(fileLock);
     }
-  }
-
-  public static void renameFile(File from, File to) throws Exception {
-    // for some reason, File.renameTo() desn't work on pi4/java 11.0.6
-    // manual copy
-    InputStream in = null;
-    OutputStream out = null;
-    try {
-      in = new FileInputStream(from);
-      out = new FileOutputStream(to);
-      ByteStreams.copy(in, out);
-    } finally {
-      if (in != null) {
-        in.close();
-      }
-      if (out != null) {
-        out.close();
-      }
-    }
-    // delete old file
-    from.delete();
   }
 
   public static void safeWriteValue(final ObjectMapper mapper, final Object value, final File file)

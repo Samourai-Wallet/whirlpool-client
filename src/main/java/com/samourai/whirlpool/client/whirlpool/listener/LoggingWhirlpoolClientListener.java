@@ -42,7 +42,7 @@ public class LoggingWhirlpoolClientListener extends AbstractWhirlpoolClientListe
       message += " ; " + notifiableError;
     }
     if (MixFailReason.CANCEL.equals(failReason)) {
-      logError(format("⣿ CANCEL ⣿ " + message));
+      logInfo(format(message));
     } else {
       logError(format("⣿ WHIRLPOOL FAILED ⣿ " + message));
     }

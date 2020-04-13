@@ -193,6 +193,19 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     if (nbMixingInPool >= maxClientsPerPool) {
       return false;
     }
+    if (log.isDebugEnabled()) {
+      log.debug(
+          "hasMoreMixingThreadAvailable("
+              + poolId
+              + ")=true, clients="
+              + data.getMixing().size()
+              + "/"
+              + maxClients
+              + ", nbMixingInPool="
+              + nbMixingInPool
+              + "/"
+              + maxClientsPerPool);
+    }
     return true;
   }
 
@@ -222,12 +235,16 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     return null;
   }
 
-  private WhirlpoolUtxo[] findSwap(WhirlpoolUtxo toMix, boolean mixNow) {
+  private synchronized WhirlpoolUtxo[] findSwap(WhirlpoolUtxo toMix, boolean mixNow) {
     String toMixHash = toMix.getUtxo().tx_hash;
     final String mixingHashCriteria = data.isHashMixing(toMixHash) ? toMixHash : null;
     String poolId = toMix.getUtxoConfig().getPoolId();
-    if (mixingHashCriteria == null && hasMoreMixingThreadAvailable(poolId)) {
+    boolean isIdle = hasMoreMixingThreadAvailable(poolId);
+    if (mixingHashCriteria == null && isIdle) {
       // no swap required
+      if (log.isDebugEnabled()) {
+        log.debug("findSwap(" + toMix + ") => no swap required");
+      }
       return new WhirlpoolUtxo[] {toMix, null};
     }
 
@@ -237,6 +254,9 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
         findMixingToSwap(toMix, mixingHashCriteria, bestPriorityCriteria);
     if (mixingToSwapOpt.isPresent()) {
       // found mixing to swap
+      if (log.isDebugEnabled()) {
+        log.debug("findSwap(" + toMix + ") => swap found");
+      }
       return new WhirlpoolUtxo[] {toMix, mixingToSwapOpt.get().getUtxo()};
     }
     return null;
@@ -360,7 +380,8 @@ public abstract class MixOrchestrator extends AbstractOrchestrator {
     }
   }
 
-  public Observable<MixProgress> mixNow(WhirlpoolUtxo whirlpoolUtxo) throws NotifiableException {
+  public synchronized Observable<MixProgress> mixNow(WhirlpoolUtxo whirlpoolUtxo)
+      throws NotifiableException {
     // verify & queue
     mixQueue(whirlpoolUtxo, false);
 
