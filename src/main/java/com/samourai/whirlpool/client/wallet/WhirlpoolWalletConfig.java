@@ -1,6 +1,6 @@
 package com.samourai.whirlpool.client.wallet;
 
-import com.samourai.http.client.IHttpClient;
+import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
@@ -47,14 +47,14 @@ public class WhirlpoolWalletConfig extends WhirlpoolClientConfig {
   private Tx0Service tx0Service;
 
   public WhirlpoolWalletConfig(
-      IHttpClient httpClient,
+      IHttpClientService httpClientService,
       IStompClientService stompClientService,
       WhirlpoolWalletPersistHandler persistHandler,
       String server,
       NetworkParameters params,
       boolean mobile,
       BackendApi backendApi) {
-    super(httpClient, stompClientService, persistHandler, server, params, mobile);
+    super(httpClientService, stompClientService, persistHandler, server, params, mobile);
 
     // default settings
     this.maxClients = 5;

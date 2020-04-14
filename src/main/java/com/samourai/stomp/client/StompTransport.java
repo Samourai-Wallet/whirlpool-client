@@ -22,9 +22,9 @@ public class StompTransport {
   private boolean done;
 
   public StompTransport(
-      IStompClientService stompClientService, IStompTransportListener listener, String logPrefix) {
+      IStompClient stompClient, IStompTransportListener listener, String logPrefix) {
     this.log = LoggerFactory.getLogger(StompTransport.class + "[" + logPrefix + "]");
-    this.stompClient = stompClientService.newStompClient();
+    this.stompClient = stompClient;
     this.listener = listener;
   }
 

@@ -6,9 +6,8 @@ import java.util.Map;
 import java8.util.Optional;
 
 public interface IHttpClient extends IBackendClient {
-  <T> Observable<Optional<T>> postJson(
-      String url, Class<T> responseType, Map<String, String> headers, Object body);
+  void connect() throws Exception;
 
-  <T> Observable<Optional<T>> postJsonOverTor(
+  <T> Observable<Optional<T>> postJson(
       String url, Class<T> responseType, Map<String, String> headers, Object body);
 }

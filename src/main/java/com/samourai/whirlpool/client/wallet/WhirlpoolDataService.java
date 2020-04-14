@@ -2,6 +2,8 @@ package com.samourai.whirlpool.client.wallet;
 
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
+import com.samourai.http.client.HttpUsage;
+import com.samourai.http.client.IHttpClient;
 import com.samourai.wallet.api.backend.MinerFee;
 import com.samourai.wallet.api.backend.MinerFeeTarget;
 import com.samourai.wallet.api.backend.beans.HttpException;
@@ -144,7 +146,8 @@ public class WhirlpoolDataService {
   protected Pools fetchPools() throws Exception {
     String url = WhirlpoolProtocol.getUrlFetchPools(config.getServer());
     try {
-      PoolsResponse poolsResponse = config.getHttpClient().getJson(url, PoolsResponse.class, null);
+      IHttpClient httpClient = config.getHttpClient(HttpUsage.COORDINATOR_REST);
+      PoolsResponse poolsResponse = httpClient.getJson(url, PoolsResponse.class, null);
       return computePools(poolsResponse);
     } catch (HttpException e) {
       String restErrorResponseMessage = ClientUtils.parseRestErrorMessage(e);

@@ -1,5 +1,6 @@
 package com.samourai.whirlpool.client.mix.dialog;
 
+import com.samourai.stomp.client.IStompClient;
 import com.samourai.stomp.client.IStompTransportListener;
 import com.samourai.stomp.client.StompTransport;
 import com.samourai.whirlpool.client.exception.NotifiableException;
@@ -72,8 +73,8 @@ public class MixSession {
 
     // connect with a new transport
     Map<String, String> connectHeaders = computeStompHeaders(null);
-    transport =
-        new StompTransport(config.getStompClientService(), computeTransportListener(), logPrefix);
+    IStompClient stompClient = config.getStompClientService().newStompClient();
+    transport = new StompTransport(stompClient, computeTransportListener(), logPrefix);
     transport.connect(wsUrl, connectHeaders);
   }
 

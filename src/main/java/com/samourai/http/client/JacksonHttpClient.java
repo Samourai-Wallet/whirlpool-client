@@ -26,13 +26,10 @@ public abstract class JacksonHttpClient implements IHttpClient {
   protected abstract String requestJsonPost(
       String urlStr, Map<String, String> headers, String jsonBody) throws Exception;
 
-  protected abstract String requestJsonPostOverTor(
-      String urlStr, Map<String, String> headers, String jsonBody) throws Exception;
-
   protected abstract String requestJsonPostUrlEncoded(
       String urlStr, Map<String, String> headers, Map<String, String> body) throws Exception;
 
-  protected void onRequestError(Exception e, boolean isRegisterOutput) {}
+  protected void onRequestError(Exception e) {}
 
   @Override
   public <T> T getJson(String urlStr, Class<T> responseType, Map<String, String> headers)
@@ -45,7 +42,7 @@ public abstract class JacksonHttpClient implements IHttpClient {
       T result = parseJson(responseContent, responseType);
       return result;
     } catch (Exception e) {
-      onRequestError(e, false);
+      onRequestError(e);
       if (log.isDebugEnabled()) {
         log.error("getJson failed: " + urlStr + ":" + e.getMessage());
       }
@@ -75,38 +72,9 @@ public abstract class JacksonHttpClient implements IHttpClient {
               T result = parseJson(responseContent, responseType);
               return result;
             } catch (Exception e) {
-              onRequestError(e, false);
+              onRequestError(e);
               if (log.isDebugEnabled()) {
                 log.error("postJson failed: " + urlStr, e);
-              }
-              throw e;
-            }
-          }
-        });
-  }
-
-  @Override
-  public <T> Observable<Optional<T>> postJsonOverTor(
-      final String urlStr,
-      final Class<T> responseType,
-      final Map<String, String> headers,
-      final Object bodyObj) {
-    if (log.isDebugEnabled()) {
-      log.debug("postJsonOverTor: " + urlStr);
-    }
-    return httpObservable(
-        new Callable<T>() {
-          @Override
-          public T call() throws Exception {
-            try {
-              String jsonBody = objectMapper.writeValueAsString(bodyObj);
-              String responseContent = requestJsonPostOverTor(urlStr, headers, jsonBody);
-              T result = parseJson(responseContent, responseType);
-              return result;
-            } catch (Exception e) {
-              onRequestError(e, true);
-              if (log.isDebugEnabled()) {
-                log.error("postJsonOverTor failed: " + urlStr, e);
               }
               throw e;
             }
@@ -127,7 +95,7 @@ public abstract class JacksonHttpClient implements IHttpClient {
       T result = parseJson(responseContent, responseType);
       return result;
     } catch (Exception e) {
-      onRequestError(e, false);
+      onRequestError(e);
       if (log.isDebugEnabled()) {
         log.error("postUrlEncoded failed: " + urlStr, e);
       }
@@ -170,7 +138,7 @@ public abstract class JacksonHttpClient implements IHttpClient {
               if (!(e instanceof HttpException)) {
                 e = new HttpException(e, null);
               }
-              throw (HttpException) e;
+              throw e;
             }
           }
         });

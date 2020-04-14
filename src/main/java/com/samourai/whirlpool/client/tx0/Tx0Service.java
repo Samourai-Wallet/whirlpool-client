@@ -1,5 +1,7 @@
 package com.samourai.whirlpool.client.tx0;
 
+import com.samourai.http.client.HttpUsage;
+import com.samourai.http.client.IHttpClient;
 import com.samourai.wallet.api.backend.beans.HttpException;
 import com.samourai.wallet.api.backend.beans.UnspentResponse;
 import com.samourai.wallet.bip69.BIP69OutputComparator;
@@ -601,8 +603,8 @@ public class Tx0Service {
   protected Tx0Data fetchTx0Data(String poolId) throws HttpException, NotifiableException {
     String url = WhirlpoolProtocol.getUrlTx0Data(config.getServer(), poolId, config.getScode());
     try {
-      Tx0DataResponse tx0Response =
-          config.getHttpClient().getJson(url, Tx0DataResponse.class, null);
+      IHttpClient httpClient = config.getHttpClient(HttpUsage.COORDINATOR_REST);
+      Tx0DataResponse tx0Response = httpClient.getJson(url, Tx0DataResponse.class, null);
       byte[] feePayload = WhirlpoolProtocol.decodeBytes(tx0Response.feePayload64);
       Tx0Data tx0Data =
           new Tx0Data(

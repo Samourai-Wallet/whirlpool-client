@@ -1,4 +1,6 @@
+import com.samourai.http.client.HttpUsage;
 import com.samourai.http.client.IHttpClient;
+import com.samourai.http.client.IHttpClientService;
 import com.samourai.stomp.client.IStompClientService;
 import com.samourai.wallet.api.backend.BackendApi;
 import com.samourai.wallet.api.backend.BackendServer;
@@ -29,7 +31,7 @@ public class JavaExample {
 
   // TODO configure these values as you wish
   private WhirlpoolWalletConfig computeWhirlpoolWalletConfig() {
-    IHttpClient httpClient = null; // provide impl here, ie: new AndroidHttpclient();
+    IHttpClientService httpClientService = null; // provide impl here, ie: new AndroidHttpClient();
     IStompClientService stompClientService =
         null; // provide impl here, ie: new AndroidStompClientService();
     WhirlpoolWalletPersistHandler persistHandler =
@@ -40,13 +42,14 @@ public class JavaExample {
     boolean onion = true;
     String serverUrl = whirlpoolServer.getServerUrl(onion);
     String backendUrl = BackendServer.TESTNET.getBackendUrl(onion);
+    IHttpClient httpClient = httpClientService.getHttpClient(HttpUsage.BACKEND);
     BackendApi backendApi = new BackendApi(httpClient, backendUrl, Optional.<OAuthManager>empty());
 
     NetworkParameters params = whirlpoolServer.getParams();
     boolean isAndroid = false;
     WhirlpoolWalletConfig whirlpoolWalletConfig =
         new WhirlpoolWalletConfig(
-            httpClient,
+            httpClientService,
             stompClientService,
             persistHandler,
             serverUrl,
