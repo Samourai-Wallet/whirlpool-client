@@ -3,6 +3,8 @@
 
 # whirlpool-client
 
+# This repository is now maintained at https://code.samourai.io/whirlpool/whirlpool-client 
+
 Java client for [Whirlpool](https://github.com/Samourai-Wallet/Whirlpool) by Samourai-Wallet.
 
 ## Build
